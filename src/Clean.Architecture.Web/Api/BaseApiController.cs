@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Clean.Architecture.Web.AuthenticationAuthorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.Web.Resource;
 
 namespace Clean.Architecture.Web.Api;
 
@@ -8,6 +10,13 @@ namespace Clean.Architecture.Web.Api;
 /// </summary>
 [Route("api/[controller]")]
 [ApiController]
+[RequiredScope(scopeRequiredByAPI)]
 public abstract class BaseApiController : Controller
 {
+  const string scopeRequiredByAPI = "tasks.read";
+  public readonly AuthorizeService _authorizeService;
+  public BaseApiController(AuthorizeService authorizeService)
+  {
+    _authorizeService = authorizeService;
+  }
 }

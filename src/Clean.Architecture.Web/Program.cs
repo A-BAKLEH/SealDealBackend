@@ -1,13 +1,12 @@
-﻿using Ardalis.ListStartupServices;
-using Autofac;
+﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Clean.Architecture.Core;
 using Clean.Architecture.Infrastructure;
 using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.Web;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using Serilog;
+using Microsoft.Identity.Web;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +26,26 @@ builder.Services.AddDbContext(connectionString);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+  
+  options.AddPolicy(name: MyAllowSpecificOrigins,
+                    policy =>
+                    {
+                      policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                    });
+});
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                    .AddMicrosoftIdentityWebApi(options =>
+                    {
+                      builder.Configuration.Bind("AzureAdB2C", options);
+
+                      options.TokenValidationParameters.NameClaimType = "name";
+                    },
+            options => { builder.Configuration.Bind("AzureAdB2C", options); });
 //builder.Services.AddControllersWithViews().AddNewtonsoftJson();
 //builder.Services.AddRazorPages();
 
@@ -104,7 +123,7 @@ app.UseHttpsRedirection();
   endpoints.MapDefaultControllerRoute();
   endpoints.MapRazorPages();
 });*/
-
+app.UseCors(MyAllowSpecificOrigins);
 // Seed Database
 
 app.MapControllers();
