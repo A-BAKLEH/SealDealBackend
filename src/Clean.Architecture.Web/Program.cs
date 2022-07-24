@@ -15,33 +15,35 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration));
 
-builder.Services.Configure<CookiePolicyOptions>(options =>
+/*builder.Services.Configure<CookiePolicyOptions>(options =>
 {
   options.CheckConsentNeeded = context => true;
   options.MinimumSameSitePolicy = SameSiteMode.None;
-});
-
+});*/
+builder.Services.AddControllers();
 string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");  //Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext(connectionString);
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 //builder.Services.AddControllersWithViews().AddNewtonsoftJson();
 //builder.Services.AddRazorPages();
 
-builder.Services.AddSwaggerGen(c =>
+/*builder.Services.AddSwaggerGen(c =>
 {
   c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
   c.EnableAnnotations();
-});
+});*/
 
 // add list services for diagnostic purposes - see https://github.com/ardalis/AspNetCoreStartupServices
-builder.Services.Configure<ServiceConfig>(config =>
+/*builder.Services.Configure<ServiceConfig>(config =>
 {
   config.Services = new List<ServiceDescriptor>(builder.Services);
 
   // optional - default path to view services is /listallservices - recommended to choose your own path
   config.Path = "/listservices";
-});
+});*/
 
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
@@ -54,35 +56,6 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-  app.UseShowAllServicesMiddleware();
-}
-else
-{
-  app.UseExceptionHandler("/Home/Error");
-  app.UseHsts();
-}
-app.UseRouting();
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-app.UseCookiePolicy();
-
-// Enable middleware to serve generated Swagger as a JSON endpoint.
-app.UseSwagger();
-
-// Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), specifying the Swagger JSON endpoint.
-app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
-
-app.UseEndpoints(endpoints =>
-{
-  endpoints.MapDefaultControllerRoute();
-  endpoints.MapRazorPages();
-});
-
-// Seed Database
 using (var scope = app.Services.CreateScope())
 {
   var services = scope.ServiceProvider;
@@ -101,6 +74,40 @@ using (var scope = app.Services.CreateScope())
   }
 }
 
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+  app.UseSwagger();
+  app.UseSwaggerUI();
+}
+else
+{
+  
+  app.UseHsts();
+}
+
+//app.UseRouting();
+
+app.UseHttpsRedirection();
+//app.UseStaticFiles();
+//app.UseCookiePolicy();
+
+// Enable middleware to serve generated Swagger as a JSON endpoint.
+//app.UseSwagger();
+
+// Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), specifying the Swagger JSON endpoint.
+//app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
+//app.UseSwaggerUI();
+
+/*app.UseEndpoints(endpoints =>
+{
+  endpoints.MapDefaultControllerRoute();
+  endpoints.MapRazorPages();
+});*/
+
+// Seed Database
+
+app.MapControllers();
 app.Run();
 
 //Add-Migration InitialMigrationName -StartupProject Clean.Architecture.Web -Context AppDbContext -Project Clean.Architecture.Infrastructure
