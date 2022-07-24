@@ -2,6 +2,7 @@
 using Clean.Architecture.Core.ProjectAggregate.Specifications;
 using Clean.Architecture.SharedKernel.Interfaces;
 using Clean.Architecture.Web.ApiModels;
+using Clean.Architecture.Web.AuthenticationAuthorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.Api;
@@ -14,7 +15,7 @@ public class ProjectsController : BaseApiController
 {
   private readonly IRepository<Project> _repository;
 
-  public ProjectsController(IRepository<Project> repository)
+  public ProjectsController(IRepository<Project> repository, AuthorizeService authorizeService) : base(authorizeService)
   {
     _repository = repository;
   }

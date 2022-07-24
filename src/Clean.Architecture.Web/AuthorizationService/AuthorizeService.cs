@@ -1,5 +1,6 @@
 ﻿using Clean.Architecture.Core.BrokerAggregate;
 using Clean.Architecture.SharedKernel.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.AuthenticationAuthorization;
 
