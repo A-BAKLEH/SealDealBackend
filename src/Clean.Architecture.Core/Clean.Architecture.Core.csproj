@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <Folder Include="BrokerAggregate\" />
-    <Folder Include="AgencyAggregate\" />
   </ItemGroup>
 
 </Project>
