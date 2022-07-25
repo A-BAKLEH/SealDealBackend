@@ -103,7 +103,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-  
+  app.UseExceptionHandler();
   app.UseHsts();
 }
 
@@ -125,6 +125,8 @@ app.UseHttpsRedirection();
   endpoints.MapDefaultControllerRoute();
   endpoints.MapRazorPages();
 });*/
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseCors(MyAllowSpecificOrigins);
 // Seed Database
 

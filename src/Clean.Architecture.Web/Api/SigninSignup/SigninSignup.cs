@@ -16,12 +16,16 @@ public class SigninSignup : BaseApiController
     _repo = repository;
   }
 
+  /// <summary>
+  /// if an existing user signs in, returns OK(false);
+  /// if a new user signs up, insert Agency and Admin Broker into DB and return OK(true)
+  /// </summary>
+  /// <returns></returns>
   [HttpGet("signin-signup")]
   public async Task<IActionResult> SigninSingup()
   {
 
     //var broker = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
-
     bool signup = false;
     try
     {

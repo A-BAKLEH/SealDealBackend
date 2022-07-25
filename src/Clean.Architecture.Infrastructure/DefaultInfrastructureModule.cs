@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using Autofac;
+using Clean.Architecture.Core.AgencyAggregate;
 using Clean.Architecture.Core.Interfaces;
-using Clean.Architecture.Core.ProjectAggregate;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
@@ -20,7 +20,7 @@ public class DefaultInfrastructureModule : Module
   {
     _isDevelopment = isDevelopment;
     var coreAssembly =
-      Assembly.GetAssembly(typeof(Project)); // TODO: Replace "Project" with any type from your Core project
+      Assembly.GetAssembly(typeof(Agency)); // TODO: Replace "Project" with any type from your Core project
     var infrastructureAssembly = Assembly.GetAssembly(typeof(StartupSetup));
     if (coreAssembly != null)
     {
