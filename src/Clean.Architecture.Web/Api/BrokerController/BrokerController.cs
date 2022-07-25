@@ -17,7 +17,7 @@ public class BrokerController : BaseApiController
     var auth = User.Identity.IsAuthenticated;
     if (!auth) throw new Exception("not auth");
 
-    var broker =  this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
+    var brokerTuple =  this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
 
     /*var newProject = new Project(request.Name, PriorityStatus.Backlog);
 
