@@ -1,10 +1,11 @@
 ﻿using Clean.Architecture.Web.AuthenticationAuthorization;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 public class BrokerController : BaseApiController
 {
-  public BrokerController(AuthorizeService authorizeService) : base(authorizeService)
+  public BrokerController(AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
   }
 

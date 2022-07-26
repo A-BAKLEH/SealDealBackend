@@ -4,6 +4,7 @@ using Clean.Architecture.Core.BrokerAggregate.Specifications;
 using Clean.Architecture.SharedKernel.Interfaces;
 using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.AuthenticationAuthorization;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ public class BillingController : BaseApiController
 {
 
   private readonly IRepository<Broker> _repository;
-  public BillingController(IRepository<Broker> repository, AuthorizeService authorizeService) : base(authorizeService)
+  public BillingController(IRepository<Broker> repository, AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
     _repository = repository;
   }

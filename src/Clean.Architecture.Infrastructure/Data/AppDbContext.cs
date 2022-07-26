@@ -2,7 +2,7 @@
 using Clean.Architecture.Core.AgencyAggregate;
 using Clean.Architecture.Core.BrokerAggregate;
 using Clean.Architecture.Core.LeadAggregate;
-using Clean.Architecture.Core.Payment;
+using Clean.Architecture.Core.PaymentAggregate;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
 using Microsoft.EntityFrameworkCore;

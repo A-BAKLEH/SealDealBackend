@@ -2,7 +2,9 @@
 using Autofac;
 using Clean.Architecture.Core.AgencyAggregate;
 using Clean.Architecture.Core.Interfaces;
+using Clean.Architecture.Core.Interfaces.Stripe;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.Infrastructure.Services.Stripe;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
 using MediatR;
@@ -68,6 +70,11 @@ public class DefaultInfrastructureModule : Module
       .RegisterType<DomainEventDispatcher>()
       .As<IDomainEventDispatcher>()
       .InstancePerLifetimeScope();
+
+    builder.RegisterType<StripeService>()
+      .As<IStripeService>()
+      .InstancePerLifetimeScope();
+      
 
     builder.Register<ServiceFactory>(context =>
     {

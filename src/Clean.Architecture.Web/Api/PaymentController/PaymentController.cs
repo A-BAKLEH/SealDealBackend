@@ -1,8 +1,9 @@
 ﻿using Clean.Architecture.Core.AgencyAggregate;
-using Clean.Architecture.Core.Payment;
+using Clean.Architecture.Core.PaymentAggregate;
 using Clean.Architecture.SharedKernel.Interfaces;
 using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.AuthenticationAuthorization;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,13 +11,12 @@ using Stripe;
 using Stripe.Checkout;
 
 namespace Clean.Architecture.Web.Api.Payment;
-[Route("api/[controller]")]
-[ApiController]
+
 public class PaymentController : BaseApiController
 {
   private readonly IRepository<CheckoutSession> _repository;
 
-  public PaymentController(IRepository<CheckoutSession> repository, AuthorizeService authorizeService) : base(authorizeService)
+  public PaymentController(IRepository<CheckoutSession> repository, AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
     _repository = repository;
   }
@@ -31,10 +31,11 @@ public class PaymentController : BaseApiController
     try
     {
       var auth = User.Identity.IsAuthenticated;
-      if (!auth)
-      {
-        throw new Exception("not auth");
-      }
+      if (!auth) throw new Exception("not auth");
+ 
+      var brokerTuple = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
+      if (!brokerTuple.Item3) return BadRequest("not admin");
+
       var l = User.Claims.ToList();
        b2cBrokerId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     }

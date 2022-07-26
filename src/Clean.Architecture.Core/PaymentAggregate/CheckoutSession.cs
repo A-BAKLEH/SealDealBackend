@@ -2,7 +2,7 @@
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
 
-namespace Clean.Architecture.Core.Payment;
+namespace Clean.Architecture.Core.PaymentAggregate;
 public class CheckoutSession : Entity<int>, IAggregateRoot
 {
   public string StripeCheckoutSessionId { get; set; }

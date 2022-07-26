@@ -1,19 +1,18 @@
 ﻿using Clean.Architecture.Core.AgencyAggregate;
 using Clean.Architecture.Core.BrokerAggregate;
+using Clean.Architecture.Core.Commands_Handlers.Signup;
 using Clean.Architecture.SharedKernel.Interfaces;
 using Clean.Architecture.Web.AuthenticationAuthorization;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.Api.SigninSignup;
 
-
-
 public class SigninSignup : BaseApiController
 {
-  public readonly IRepository<Agency> _repo;
-  public SigninSignup(AuthorizeService authorizeService, IRepository<Agency> repository) : base(authorizeService)
+
+  public SigninSignup(AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
-    _repo = repository;
   }
 
   /// <summary>
@@ -41,30 +40,14 @@ public class SigninSignup : BaseApiController
 
       signup = true;
 
-      string AgencyName = l.Find(x => x.Type == "extension_AgencyName").Value;
-      string givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value;
-      string surName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname").Value;
-      string email = l.Find(x => x.Type == "emails").Value;
-      Guid b2cId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-
-      var broker = new Broker()
+      await _mediator.Send(new SignupCommand
       {
-        Id = b2cId,
-        FirstName = givenName,
-        LastName = surName,
-        Email = email,
-        isAdmin = true,
-      };
-      var agency = new Agency()
-      {
-
-        AgencyName = AgencyName,
-        IsPaying = false,
-        SoloBroker = true,
-        AgencyBrokers = new List<Core.BrokerAggregate.Broker> { broker }
-      };
-      await _repo.AddAsync(agency);
-
+        AgencyName = l.Find(x => x.Type == "extension_AgencyName").Value,
+        givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value,
+        surName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname").Value,
+        b2cId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value),
+        email = l.Find(x => x.Type == "emails").Value
+      });
     }
     catch (Exception ex)
     {

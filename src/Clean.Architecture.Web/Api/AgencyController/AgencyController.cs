@@ -5,16 +5,16 @@ using Clean.Architecture.Core.AgencyAggregate;
 using Microsoft.Identity.Web.Resource;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using Clean.Architecture.Core.BrokerAggregate;
+using MediatR;
 
 namespace Clean.Architecture.Web.Api.Agencycontroller;
 
 public class AgencyController : BaseApiController
 {
-  private readonly IRepository<Agency> _repository;
 
-  public AgencyController(IRepository<Agency> repository, AuthorizeService authorizeService) : base(authorizeService)
+
+  public AgencyController( AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
-    _repository = repository;
   }
 
 
@@ -32,13 +32,13 @@ public class AgencyController : BaseApiController
         name: createdProject.Name
     );
     return Ok(result);*/
-    var newAgnency = new Agency()
+   /* var newAgnency = new Agency()
     {
       AgencyName = "lolagency",
       IsPaying = false,
       SoloBroker = false
     };
-    await _repository.AddAsync(newAgnency);
+    await _repository.AddAsync(newAgnency);*/
     return Ok();
   }
 }
