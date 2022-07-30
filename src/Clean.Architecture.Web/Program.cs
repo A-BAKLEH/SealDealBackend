@@ -8,8 +8,10 @@ using Serilog;
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Clean.Architecture.Web.AuthenticationAuthorization;
+using Clean.Architecture.Core.Interfaces.Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
@@ -21,13 +23,21 @@ builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Con
   options.MinimumSameSitePolicy = SameSiteMode.None;
 });*/
 builder.Services.AddControllers();
+
+
 string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");  //Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext(connectionString);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+//Services  --- put in separate file later
 builder.Services.AddSingleton(typeof(AuthorizeService));
+
+
+
+// Options --- configure each option in its own assembly
 
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
@@ -65,7 +75,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
   // optional - default path to view services is /listallservices - recommended to choose your own path
   config.Path = "/listservices";
 });*/
-
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {

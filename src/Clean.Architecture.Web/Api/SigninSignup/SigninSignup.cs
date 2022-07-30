@@ -2,6 +2,7 @@
 using Clean.Architecture.Core.BrokerAggregate;
 using Clean.Architecture.Core.Commands_Handlers.Signup;
 using Clean.Architecture.SharedKernel.Interfaces;
+using Clean.Architecture.Web.ApiModels.Responses;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +26,7 @@ public class SigninSignup : BaseApiController
   {
 
     //var broker = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
-    bool signup = false;
+    //bool signup = false;
     try
     {
       var auth = User.Identity.IsAuthenticated;
@@ -36,25 +37,28 @@ public class SigninSignup : BaseApiController
 
       var l = User.Claims.ToList();
       var findClaim = l.Find(x => x.Type == "newUser");
-      if (findClaim == null) return Ok(signup);
+      //signin only
+      if (findClaim == null)
+      {
+        Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        return Ok(_authorizeService.signinSignupUser(b2cID));
+      }
 
-      signup = true;
-
-      await _mediator.Send(new SignupCommand
+      //signup
+      var reponseStatus = _mediator.Send(new SignupCommand
       {
         AgencyName = l.Find(x => x.Type == "extension_AgencyName").Value,
         givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value,
         surName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname").Value,
         b2cId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value),
         email = l.Find(x => x.Type == "emails").Value
-      });
+      }).Result;
+      return Ok(new SigninResponse { accountStatus = reponseStatus});
     }
     catch (Exception ex)
     {
-      //log error 
+      //log error
       return BadRequest();
     }
-
-    return Ok(signup);
   }
 }

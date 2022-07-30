@@ -1,28 +1,27 @@
-﻿
-using Clean.Architecture.Core.Interfaces.Stripe;
-using Clean.Architecture.Core.PaymentAggregate;
+﻿using Clean.Architecture.Core.Interfaces.Stripe;
 using Clean.Architecture.SharedKernel.Interfaces;
 using MediatR;
 
 namespace Clean.Architecture.Core.Commands_Handlers.Stripe;
-public  class CheckoutSessionCommand : IRequest<CheckoutSession>
+public  class CheckoutSessionCommand : IRequest<string>
 {
-  public Guid adminId { get; set; } 
+  public Guid adminId { get; set; }
+  public string priceID { get; set; }
+  public int AgencyID { get; set; }
+  public int Quantity { get; set; }
 }
 
-public class CheckoutSessionCommandHandler : IRequestHandler<CheckoutSessionCommand, CheckoutSession>
+public class CheckoutSessionCommandHandler : IRequestHandler<CheckoutSessionCommand, string>
 {
-  private readonly IRepository<CheckoutSession> _repository;
   private readonly IStripeService _stripeService;
 
-  public CheckoutSessionCommandHandler(IRepository<CheckoutSession> repository, IStripeService stripeService)
+  public CheckoutSessionCommandHandler( IStripeService stripeService)
   {
-    _repository = repository;
     _stripeService = stripeService;
   }
 
-  public async Task<CheckoutSession> Handle(CheckoutSessionCommand request, CancellationToken cancellationToken)
+  public async Task<string> Handle(CheckoutSessionCommand request, CancellationToken cancellationToken)
   {
-    throw new NotImplementedException();
+    return await _stripeService.CreateStripeCheckoutSessionAsync(request.priceID, request.adminId, request.AgencyID, request.Quantity);
   }
 }

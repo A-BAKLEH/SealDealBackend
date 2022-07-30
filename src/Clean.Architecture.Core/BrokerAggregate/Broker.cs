@@ -16,6 +16,7 @@ public class Broker : Entity<Guid>, IAggregateRoot
 
   public Boolean isAdmin { get; set; }
 
+  public Boolean AccountActive { get; set; }
   public string? PhoneNumber { get; set; }
 
   public string Email { get; set; }
@@ -35,6 +36,8 @@ public class Broker : Entity<Guid>, IAggregateRoot
   public List<ToDoTask> Tasks { get; set; }
 
   public List<Tag> BrokerTags { get; set; }
+
+ 
 
 
 

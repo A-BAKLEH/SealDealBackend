@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="SQLite" />
+    <PackageReference Include="Stripe.net" />
   </ItemGroup>
   
   <ItemGroup>

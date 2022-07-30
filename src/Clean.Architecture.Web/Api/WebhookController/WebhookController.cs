@@ -71,7 +71,7 @@ public class WebhookController : BaseApiController
     //Broker.Agency;
 
     agency.AdminStripeId = StripeAminId;
-    agency.IsPaying = true;
+    //agency.IsPaying = true;
     agency.StripeSubscriptionId = StripeSubsId;
     //_agencyRepository.Update(agency);
     await _repository.UpdateAsync(checkoutSession);

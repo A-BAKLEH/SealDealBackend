@@ -9,6 +9,7 @@ using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
 using MediatR;
 using MediatR.Pipeline;
+using Microsoft.Extensions.Configuration;
 using Module = Autofac.Module;
 
 namespace Clean.Architecture.Infrastructure;
@@ -17,10 +18,12 @@ public class DefaultInfrastructureModule : Module
 {
   private readonly bool _isDevelopment = false;
   private readonly List<Assembly> _assemblies = new List<Assembly>();
+  //private IConfiguration _config;
 
   public DefaultInfrastructureModule(bool isDevelopment, Assembly? callingAssembly = null)
   {
     _isDevelopment = isDevelopment;
+    //_config = configurationManager;
     var coreAssembly =
       Assembly.GetAssembly(typeof(Agency)); // TODO: Replace "Project" with any type from your Core project
     var infrastructureAssembly = Assembly.GetAssembly(typeof(StartupSetup));
@@ -74,8 +77,8 @@ public class DefaultInfrastructureModule : Module
     builder.RegisterType<StripeService>()
       .As<IStripeService>()
       .InstancePerLifetimeScope();
-      
 
+    
     builder.Register<ServiceFactory>(context =>
     {
       var c = context.Resolve<IComponentContext>();
