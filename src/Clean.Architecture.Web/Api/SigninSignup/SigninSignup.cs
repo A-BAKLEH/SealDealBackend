@@ -1,7 +1,4 @@
-﻿using Clean.Architecture.Core.AgencyAggregate;
-using Clean.Architecture.Core.BrokerAggregate;
-using Clean.Architecture.Core.Commands_Handlers.Signup;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿using Clean.Architecture.Core.Commands_Handlers.Signup;
 using Clean.Architecture.Web.ApiModels.Responses;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;
@@ -12,13 +9,12 @@ namespace Clean.Architecture.Web.Api.SigninSignup;
 public class SigninSignup : BaseApiController
 {
 
-  public SigninSignup(AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public SigninSignup(AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
   }
 
   /// <summary>
-  /// if an existing user signs in, returns OK(false);
-  /// if a new user signs up, insert Agency and Admin Broker into DB and return OK(true)
+  /// 
   /// </summary>
   /// <returns></returns>
   [HttpGet("signin-signup")]
@@ -45,7 +41,7 @@ public class SigninSignup : BaseApiController
       }
 
       //signup
-      var reponseStatus = _mediator.Send(new SignupCommand
+      var signinResponseDTO = _mediator.Send(new SignupCommand
       {
         AgencyName = l.Find(x => x.Type == "extension_AgencyName").Value,
         givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value,
@@ -53,7 +49,8 @@ public class SigninSignup : BaseApiController
         b2cId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value),
         email = l.Find(x => x.Type == "emails").Value
       }).Result;
-      return Ok(new SigninResponse { accountStatus = reponseStatus});
+      return Ok(new SigninResponse { SubscriptionStatus = signinResponseDTO.SubscriptionStatus,
+        UserAccountStatus = signinResponseDTO.UserAccountStatus});
     }
     catch (Exception ex)
     {

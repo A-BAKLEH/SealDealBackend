@@ -2,14 +2,14 @@
 using Autofac;
 using Clean.Architecture.Core.AgencyAggregate;
 using Clean.Architecture.Core.Interfaces;
-using Clean.Architecture.Core.Interfaces.Stripe;
+using Clean.Architecture.Core.Interfaces.StripeInterfaces;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.Infrastructure.Services;
 using Clean.Architecture.Infrastructure.Services.Stripe;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
 using MediatR;
 using MediatR.Pipeline;
-using Microsoft.Extensions.Configuration;
 using Module = Autofac.Module;
 
 namespace Clean.Architecture.Infrastructure;
@@ -78,7 +78,11 @@ public class DefaultInfrastructureModule : Module
       .As<IStripeService>()
       .InstancePerLifetimeScope();
 
-    
+    builder.RegisterType<MsGraphService>()
+      .As<IMsGraphService>()
+      .InstancePerLifetimeScope();
+
+
     builder.Register<ServiceFactory>(context =>
     {
       var c = context.Resolve<IComponentContext>();

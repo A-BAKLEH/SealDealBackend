@@ -8,7 +8,6 @@ using Serilog;
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Clean.Architecture.Web.AuthenticationAuthorization;
-using Clean.Architecture.Core.Interfaces.Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +32,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //Services  --- put in separate file later
-builder.Services.AddSingleton(typeof(AuthorizeService));
+builder.Services.AddSingleton(typeof(AuthorizationService));
 
 
 
@@ -93,7 +92,7 @@ using (var scope = app.Services.CreateScope())
   try
   {
     var context = services.GetRequiredService<AppDbContext>();
-    context.Database.Migrate();
+    //context.Database.Migrate();
     context.Database.EnsureCreated();
     //SeedData.Initialize(services);
   }
@@ -143,3 +142,4 @@ app.MapControllers();
 app.Run();
 
 //Add-Migration InitialMigrationName -StartupProject Clean.Architecture.Web -Context AppDbContext -Project Clean.Architecture.Infrastructure
+//stripe listen --forward-to https://localhost:7156/api/Webhook/webhook

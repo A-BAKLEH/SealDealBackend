@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <Folder Include="BrokerAggregate\" />
-    <Folder Include="AgencyAggregate\" />
+    <Folder Include="PaymentAggregate\Specification\" />
   </ItemGroup>
 
 </Project>

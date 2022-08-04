@@ -4,6 +4,7 @@ using Clean.Architecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Clean.Architecture.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220730221409_rehaul")]
+    partial class rehaul
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,11 +54,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("LastCheckoutSessionID")
+                    b.Property<string>("AgencyStatus")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("NumberOfBrokersInDatabase")
-                        .HasColumnType("int");
 
                     b.Property<int>("NumberOfBrokersInSubscription")
                         .HasColumnType("int");
@@ -64,15 +64,11 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Property<DateTime>("SignupDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("SoloBroker")
+                        .HasColumnType("bit");
+
                     b.Property<string>("StripeSubscriptionId")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StripeSubscriptionStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("SubscriptionLastValidDate")
-                        .HasColumnType("date");
 
                     b.HasKey("Id");
 
@@ -386,6 +382,43 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Notes");
                 });
 
+            modelBuilder.Entity("Clean.Architecture.Core.PaymentAggregate.CheckoutSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int>("AgencyId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("BrokerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CheckoutSessionStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("SessionEndAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("SessionStartAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("StripeCheckoutSessionId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgencyId");
+
+                    b.HasIndex("BrokerId");
+
+                    b.ToTable("CheckoutSessions");
+                });
+
             modelBuilder.Entity("LeadListing", b =>
                 {
                     b.Property<int>("InterestedLeadsId")
@@ -565,6 +598,23 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Lead");
                 });
 
+            modelBuilder.Entity("Clean.Architecture.Core.PaymentAggregate.CheckoutSession", b =>
+                {
+                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Agency", "Agency")
+                        .WithMany("CheckoutSessions")
+                        .HasForeignKey("AgencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "Broker")
+                        .WithMany()
+                        .HasForeignKey("BrokerId");
+
+                    b.Navigation("Agency");
+
+                    b.Navigation("Broker");
+                });
+
             modelBuilder.Entity("LeadListing", b =>
                 {
                     b.HasOne("Clean.Architecture.Core.LeadAggregate.Lead", null)
@@ -602,6 +652,8 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("AgencyListings");
 
                     b.Navigation("Areas");
+
+                    b.Navigation("CheckoutSessions");
 
                     b.Navigation("Leads");
                 });

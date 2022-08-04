@@ -15,9 +15,9 @@ namespace Clean.Architecture.Web.Api;
 public abstract class BaseApiController : Controller
 {
   const string scopeRequiredByAPI = "tasks.read";
-  public readonly AuthorizeService _authorizeService;
+  public readonly AuthorizationService _authorizeService;
   public readonly IMediator _mediator;
-  public BaseApiController(AuthorizeService authorizeService, IMediator mediator)
+  public BaseApiController(AuthorizationService authorizeService, IMediator mediator)
   {
     _authorizeService = authorizeService;
     _mediator = mediator;

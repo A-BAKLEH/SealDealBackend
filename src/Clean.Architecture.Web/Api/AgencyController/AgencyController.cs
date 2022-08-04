@@ -13,7 +13,7 @@ public class AgencyController : BaseApiController
 {
 
 
-  public AgencyController( AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public AgencyController( AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
   }
 

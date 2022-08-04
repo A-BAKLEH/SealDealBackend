@@ -1,6 +1,5 @@
-﻿namespace Clean.Architecture.Web.ApiModels.Responses;
-
-public class SigninResponse
+﻿namespace Clean.Architecture.Core.Commands_Handlers.DTOs;
+public class SigninResponseDTO
 {
   public string SubscriptionStatus { get; set; }
 

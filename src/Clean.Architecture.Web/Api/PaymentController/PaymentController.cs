@@ -1,7 +1,6 @@
-﻿using Clean.Architecture.Core.Commands_Handlers.Stripe;
-using Clean.Architecture.Core.PaymentAggregate;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿using Clean.Architecture.Core.Commands_Handlers.StripeCommands;
 using Clean.Architecture.Web.ApiModels;
+using Clean.Architecture.Web.ApiModels.Responses;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -12,11 +11,9 @@ namespace Clean.Architecture.Web.Api.Payment;
 
 public class PaymentController : BaseApiController
 {
-  private readonly IRepository<CheckoutSession> _repository;
 
-  public PaymentController(IRepository<CheckoutSession> repository, AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public PaymentController( AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
-    _repository = repository;
   }
 
   [Authorize]
@@ -38,17 +35,19 @@ public class PaymentController : BaseApiController
     }
     catch (Exception ex)
     {
+      //log
       throw new Exception($"authentication and/or b2c admin Guid Id retrieval failed, error m :\n {ex}");
     }
 
-    var checkoutSessionID = await _mediator.Send(new CheckoutSessionCommand
+    //return sessionID
+    var sessionID = await _mediator.Send(new CheckoutSessionCommand
     {
       adminId = b2cBrokerId,
       AgencyID = AgencyID,
       priceID = req.PriceId,
-      Quantity = req.Quantity
+      Quantity = req.Quantity >= 1 ? req.Quantity : 1,
     });
 
-    return Ok(new CheckoutSessionResponseDTO { SessionId = checkoutSessionID});
+    return Ok(new CheckoutSessionResponse { SessionId = sessionID});
   }
 }

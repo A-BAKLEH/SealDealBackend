@@ -2,7 +2,6 @@
 using Clean.Architecture.Core.AgencyAggregate;
 using Clean.Architecture.Core.BrokerAggregate;
 using Clean.Architecture.Core.LeadAggregate;
-using Clean.Architecture.Core.PaymentAggregate;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -24,8 +23,6 @@ public class AppDbContext : DbContext
   //public DbSet<Project> Projects => Set<Project>();
   public DbSet<Agency> Agencies => Set<Agency>();
   public DbSet<Listing> Listings => Set<Listing>();
-
-  public DbSet<CheckoutSession> CheckoutSessions => Set<CheckoutSession>();
   public DbSet<Area> Areas => Set<Area>();
   public DbSet<Broker> Brokers => Set<Broker>();
   public DbSet<SmsTemplate> SmsTemplates => Set<SmsTemplate>();

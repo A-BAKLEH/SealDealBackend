@@ -1,20 +1,15 @@
-﻿using Clean.Architecture.Core.PaymentAggregate;
-using Clean.Architecture.Core.PaymentAggregate.Specification;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿using Clean.Architecture.Core.Commands_Handlers.StripeCommands;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
 
 namespace Clean.Architecture.Web.Api.WebhookController;
-[Route("api/[controller]")]
-[ApiController]
+
 public class WebhookController : BaseApiController
 {
-  private readonly IRepository<CheckoutSession> _repository;
 
-  public WebhookController(AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public WebhookController(AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
   }
 
@@ -31,20 +26,42 @@ public class WebhookController : BaseApiController
        "whsec_b400db1d64cf5beda49363cbb3bbc018c40d5612ddea70ba23cbff6e9738bb96"
        );
 
-      // Handle the event
+      //checkuot session completed is used only the first time a customer creates a subscription,
+      //it only assigns Stripe susbID and CustomerID to an Agency in the Database and sets its
+      // Subscription Status to CreatedWaiting for Status
       if (stripeEvent.Type == Events.CheckoutSessionCompleted)
       {
         var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-
-        addStripeIdToAgency(session.CustomerId, session.SubscriptionId, session.Id);
-
+        await _mediator.Send(new CheckoutSessionCompletedCommand
+        {
+          SessionID = session.Id,
+          SusbscriptionID = session.SubscriptionId,
+          CustomerID = session.CustomerId,
+        });
         Console.WriteLine(session.Id);
       }
-      else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
+      else if (stripeEvent.Type == Events.CustomerSubscriptionUpdated)
       {
-        var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
+        var subscription = stripeEvent.Data.Object as Subscription;
+        Console.WriteLine("A subscription was updated.", subscription.Id);
+        await _mediator.Send(new SubscriptionUpdatedCommand
+        {
+          SubscriptionId = subscription.Id,
+          SubsStatus = subscription.Status,
+          currPeriodEnd = subscription.CurrentPeriodEnd,
+          quanity = subscription.Items.Data[0].Quantity
+        });
       }
-      // ... handle other event types
+      else if (stripeEvent.Type == Events.InvoicePaymentFailed)
+      {
+        //TODO handle payment failure
+
+      }
+      else if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
+      {
+        //TODO handle payment failure
+
+      }
       else
       {
         // Unexpected event type
@@ -57,24 +74,5 @@ public class WebhookController : BaseApiController
       Console.WriteLine(e.StripeError.Message);
       return BadRequest();
     }
-  }
-
-  private async void addStripeIdToAgency(string StripeAminId, string StripeSubsId, string stripecheckoutSessionID)
-  {
-
-    //Console.WriteLine(customer.DefaultSourceId);
-    var checkoutSession = await _repository.GetBySpecAsync(new CheckoutSessionByIdWithBrokerAgencySpec(stripecheckoutSessionID));
-
-    //checkoutSession.BrokerId
-    var agency = checkoutSession.Broker.Agency;
-    //var admin = _adminRepository.GetById(checkoutSession.Admin);
-    //Broker.Agency;
-
-    agency.AdminStripeId = StripeAminId;
-    //agency.IsPaying = true;
-    agency.StripeSubscriptionId = StripeSubsId;
-    //_agencyRepository.Update(agency);
-    await _repository.UpdateAsync(checkoutSession);
-
   }
 }

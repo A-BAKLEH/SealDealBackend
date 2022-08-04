@@ -1,8 +1,8 @@
-﻿using Clean.Architecture.Core.Interfaces.Stripe;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿
+using Clean.Architecture.Core.Interfaces.StripeInterfaces;
 using MediatR;
 
-namespace Clean.Architecture.Core.Commands_Handlers.Stripe;
+namespace Clean.Architecture.Core.Commands_Handlers.StripeCommands;
 public  class CheckoutSessionCommand : IRequest<string>
 {
   public Guid adminId { get; set; }

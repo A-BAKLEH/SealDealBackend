@@ -16,7 +16,7 @@ public class ProjectsController : BaseApiController
 {
   private readonly IRepository<Project> _repository;
 
-  public ProjectsController(IRepository<Project> repository, AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public ProjectsController(IRepository<Project> repository, AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
     _repository = repository;
   }

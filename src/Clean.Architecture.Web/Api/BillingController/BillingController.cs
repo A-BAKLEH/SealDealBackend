@@ -17,7 +17,7 @@ public class BillingController : BaseApiController
 {
 
   private readonly IRepository<Broker> _repository;
-  public BillingController(IRepository<Broker> repository, AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public BillingController(IRepository<Broker> repository, AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
     _repository = repository;
   }
@@ -53,6 +53,7 @@ public class BillingController : BaseApiController
         Customer = authAgency.AdminStripeId,
         ReturnUrl = req.ReturnUrl,
       };
+
       var service = new Stripe.BillingPortal.SessionService();
       var session = await service.CreateAsync(options);
 

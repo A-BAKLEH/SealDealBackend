@@ -1,12 +1,11 @@
 ﻿using Clean.Architecture.Core.BrokerAggregate;
 using Clean.Architecture.Core.LeadAggregate;
-using Clean.Architecture.Core.PaymentAggregate;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Interfaces;
 namespace Clean.Architecture.Core.AgencyAggregate;
 
-public enum AgencyStatus { 
-  SubscriptionCancelled, isPaying, JustSignedUp, SubscriptionPaused,
+public enum StripeSubscriptionStatus { 
+  SubscriptionCancelled, Active, NoStripeSubscription, SubscriptionPaused, CreatedWaitingForStatus
 }
 
 public class Agency : Entity<int> , IAggregateRoot
@@ -18,11 +17,12 @@ public class Agency : Entity<int> , IAggregateRoot
 
   public string? StripeSubscriptionId { get; set; }
 
-  public Boolean SoloBroker { get; set; }
-
+  public string? LastCheckoutSessionID { get; set; }
+  public DateTime? SubscriptionLastValidDate { get; set; }
   public int NumberOfBrokersInSubscription { get; set; }
 
-  public AgencyStatus AgencyStatus { get; set; }
+  public int NumberOfBrokersInDatabase { get; set; }
+  public StripeSubscriptionStatus StripeSubscriptionStatus { get; set; }
 
   public List<Listing> AgencyListings { get; set; }
 
@@ -31,9 +31,6 @@ public class Agency : Entity<int> , IAggregateRoot
   public List<Area> Areas { get; set; }
 
   public List<Lead> Leads { get; set; }
-
-  public List<CheckoutSession> CheckoutSessions { get; set; }
-
 
 }
 

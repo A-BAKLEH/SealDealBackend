@@ -7,7 +7,7 @@ namespace Clean.Architecture.Web.Api.LeadController;
 
 public class LeadController : BaseApiController
 {
-  public LeadController(AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public LeadController(AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
   }
 
