@@ -14,6 +14,7 @@
     <PackageReference Include="Ardalis.Specification" />
     <PackageReference Include="Autofac" />
     <PackageReference Include="MediatR" />
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,8 +22,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="BrokerAggregate\" />
-    <Folder Include="PaymentAggregate\Specification\" />
+    <Folder Include="DomainServices\" />
+    <Folder Include="Domain\AgencyAggregate\Rules\" />
+    <Folder Include="Domain\LeadAggregate\Rules\" />
+    <Folder Include="Domain\PaymentAggregate\Specification\" />
+    <Folder Include="OutboxNotifications\" />
+    <Folder Include="Notifications\" />
+    <Folder Include="Requests\" />
   </ItemGroup>
 
 </Project>

@@ -1,13 +1,8 @@
 ﻿using System.Reflection;
 using Autofac;
-using Clean.Architecture.Core.AgencyAggregate;
-using Clean.Architecture.Core.Interfaces;
-using Clean.Architecture.Core.Interfaces.StripeInterfaces;
+using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.Infrastructure.Services;
-using Clean.Architecture.Infrastructure.Services.Stripe;
-using Clean.Architecture.SharedKernel;
-using Clean.Architecture.SharedKernel.Interfaces;
+using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 using MediatR.Pipeline;
 using Module = Autofac.Module;
@@ -18,12 +13,10 @@ public class DefaultInfrastructureModule : Module
 {
   private readonly bool _isDevelopment = false;
   private readonly List<Assembly> _assemblies = new List<Assembly>();
-  //private IConfiguration _config;
 
   public DefaultInfrastructureModule(bool isDevelopment, Assembly? callingAssembly = null)
   {
     _isDevelopment = isDevelopment;
-    //_config = configurationManager;
     var coreAssembly =
       Assembly.GetAssembly(typeof(Agency)); // TODO: Replace "Project" with any type from your Core project
     var infrastructureAssembly = Assembly.GetAssembly(typeof(StartupSetup));
@@ -69,19 +62,6 @@ public class DefaultInfrastructureModule : Module
       .As<IMediator>()
       .InstancePerLifetimeScope();
 
-    builder
-      .RegisterType<DomainEventDispatcher>()
-      .As<IDomainEventDispatcher>()
-      .InstancePerLifetimeScope();
-
-    builder.RegisterType<StripeService>()
-      .As<IStripeService>()
-      .InstancePerLifetimeScope();
-
-    builder.RegisterType<MsGraphService>()
-      .As<IMsGraphService>()
-      .InstancePerLifetimeScope();
-
 
     builder.Register<ServiceFactory>(context =>
     {
@@ -107,6 +87,15 @@ public class DefaultInfrastructureModule : Module
     }
 
     builder.RegisterType<EmailSender>().As<IEmailSender>()
+      .InstancePerLifetimeScope();
+
+
+    builder.RegisterType<StripeService>()
+  .As<IStripeService>()
+  .InstancePerLifetimeScope();
+
+    builder.RegisterType<MsGraphService>()
+      .As<IMsGraphService>()
       .InstancePerLifetimeScope();
   }
 

@@ -1,7 +1,5 @@
 ﻿using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.Infrastructure.Services.Stripe;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Clean.Architecture.Infrastructure;
