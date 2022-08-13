@@ -1,5 +1,6 @@
 ﻿
-using Clean.Architecture.Core.Commands_Handlers.DTOs;
+
+using Clean.Architecture.Core.DTOs;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

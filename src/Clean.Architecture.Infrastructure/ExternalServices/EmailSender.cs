@@ -1,8 +1,8 @@
-﻿using System.Net.Mail;
-using Clean.Architecture.Core.Interfaces;
+﻿
+using Clean.Architecture.Core.ServiceInterfaces;
 using Microsoft.Extensions.Logging;
 
-namespace Clean.Architecture.Infrastructure;
+namespace Clean.Architecture.Infrastructure.ExternalServices;
 
 public class EmailSender : IEmailSender
 {
@@ -15,7 +15,7 @@ public class EmailSender : IEmailSender
 
   public async Task SendEmailAsync(string to, string from, string subject, string body)
   {
-    var emailClient = new SmtpClient("localhost");
+    /*var emailClient = new SmtpClient("localhost");
     var message = new MailMessage
     {
 
@@ -26,7 +26,7 @@ public class EmailSender : IEmailSender
 
     };
     message.To.Add(new MailAddress(to));
-    await emailClient.SendMailAsync(message);
-    _logger.LogWarning("Sending email to {to} from {from} with subject {subject}.", to, from, subject);
+    await emailClient.SendMailAsync(message);*/
+    _logger.LogInformation("Sending email to {to} from {from} with subject {subject}.", to, from, subject);
   }
 }

@@ -1,6 +1,7 @@
-﻿using Clean.Architecture.Core.BrokerAggregate;
-using Clean.Architecture.Core.BrokerAggregate.Specifications;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿
+using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.Domain.BrokerAggregate.Specifications;
+using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.Web.ApiModels.Responses;
 
 namespace Clean.Architecture.Web.AuthenticationAuthorization;
@@ -41,7 +42,7 @@ public class AuthorizationService
       return response;
     }
     //account not active
-    else if(broker.Agency.StripeSubscriptionStatus == Core.AgencyAggregate.StripeSubscriptionStatus.NoStripeSubscription && broker.isAdmin)
+    else if(broker.Agency.StripeSubscriptionStatus == Core.Domain.AgencyAggregate.StripeSubscriptionStatus.NoStripeSubscription && broker.isAdmin)
     {
       response.SubscriptionStatus = "nostripesubscription";
       response.UserAccountStatus = "inactive";

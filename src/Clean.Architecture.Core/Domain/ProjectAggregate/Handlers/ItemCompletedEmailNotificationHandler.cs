@@ -1,11 +1,10 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
+﻿
 using Ardalis.GuardClauses;
-using Clean.Architecture.Core.Interfaces;
-using Clean.Architecture.Core.ProjectAggregate.Events;
+using Clean.Architecture.Core.Domain.ProjectAggregate.Events;
+using Clean.Architecture.Core.ServiceInterfaces;
 using MediatR;
 
-namespace Clean.Architecture.Core.ProjectAggregate.Handlers;
+namespace Clean.Architecture.Core.Domain.ProjectAggregate.Handlers;
 
 public class ItemCompletedEmailNotificationHandler : INotificationHandler<ToDoItemCompletedEvent>
 {

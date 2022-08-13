@@ -1,7 +1,6 @@
 ﻿using Ardalis.Specification;
-using Clean.Architecture.Core.ProjectAggregate;
 
-namespace Clean.Architecture.Core.ProjectAggregate.Specifications;
+namespace Clean.Architecture.Core.Domain.ProjectAggregate.Specifications;
 
 public class ProjectByIdWithItemsSpec : Specification<Project>, ISingleResultSpecification
 {

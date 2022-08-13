@@ -1,24 +1,20 @@
-﻿using Clean.Architecture.Core.SignupRequests.Signup;
-using Clean.Architecture.Web.ApiModels.Responses;
-using Clean.Architecture.Web.AuthenticationAuthorization;
-using MediatR;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Clean.Architecture.Web.Api.SigninSignup;
-
-public class SigninSignup : BaseApiController
+namespace Clean.Architecture.Web.Api.TestingAPI;
+[Route("api/[controller]")]
+[ApiController]
+public class TestController : ControllerBase
 {
 
-  public SigninSignup(AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+
+  public TestController()
   {
+
   }
 
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <returns></returns>
-  [HttpGet("signin-signup")]
-  public async Task<IActionResult> SigninSingup()
+  [HttpGet("test-signup")]
+  public async Task<IActionResult> SigninSingupTest()
   {
 
     //var broker = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
@@ -49,8 +45,11 @@ public class SigninSignup : BaseApiController
         b2cId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value),
         email = l.Find(x => x.Type == "emails").Value
       }).Result;
-      return Ok(new SigninResponse { SubscriptionStatus = signinResponseDTO.SubscriptionStatus,
-        UserAccountStatus = signinResponseDTO.UserAccountStatus});
+      return Ok(new SigninResponse
+      {
+        SubscriptionStatus = signinResponseDTO.SubscriptionStatus,
+        UserAccountStatus = signinResponseDTO.UserAccountStatus
+      });
     }
     catch (Exception ex)
     {

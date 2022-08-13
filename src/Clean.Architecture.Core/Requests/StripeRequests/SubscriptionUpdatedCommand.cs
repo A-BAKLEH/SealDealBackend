@@ -1,7 +1,8 @@
-﻿using Clean.Architecture.Core.Interfaces.StripeInterfaces;
+﻿
+using Clean.Architecture.Core.ServiceInterfaces.StripeInterfaces;
 using MediatR;
 
-namespace Clean.Architecture.Core.Commands_Handlers.StripeCommands;
+namespace Clean.Architecture.Core.Requests.StripeRequests;
 public class SubscriptionUpdatedCommand : IRequest
 {
   public string SubscriptionId { get; set; }

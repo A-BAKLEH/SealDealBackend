@@ -1,9 +1,7 @@
 ﻿
-
-using Clean.Architecture.Core.BrokerAggregate;
 using MediatR;
 
-namespace Clean.Architecture.Core.Commands_Handlers.Admin;
+namespace Clean.Architecture.Core.Requests.BrokerRequests;
 /*public class AddBrokersCommand : IRequest
 {
   public List<Broker> brokers { get; set; } = new();

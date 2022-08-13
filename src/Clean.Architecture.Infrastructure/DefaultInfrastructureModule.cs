@@ -1,7 +1,15 @@
 ﻿using System.Reflection;
 using Autofac;
+using Clean.Architecture.Core.Config;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
+using Clean.Architecture.Core.ServiceInterfaces;
+using Clean.Architecture.Core.ServiceInterfaces.StripeInterfaces;
+using Clean.Architecture.Infrastructure.Behaviors;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.Infrastructure.Decorators;
+using Clean.Architecture.Infrastructure.Dispatching;
+using Clean.Architecture.Infrastructure.ExternalServices;
+using Clean.Architecture.Infrastructure.ExternalServices.Stripe;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 using MediatR.Pipeline;
@@ -72,8 +80,8 @@ public class DefaultInfrastructureModule : Module
 
     var mediatrOpenTypes = new[]
     {
-      typeof(IRequestHandler<,>), 
-      typeof(IRequestExceptionHandler<,,>), 
+      typeof(IRequestHandler<,>),
+      typeof(IRequestExceptionHandler<,,>),
       typeof(IRequestExceptionAction<,>),
       typeof(INotificationHandler<>),
     };
@@ -85,6 +93,25 @@ public class DefaultInfrastructureModule : Module
         .AsClosedTypesOf(mediatrOpenType)
         .AsImplementedInterfaces();
     }
+
+    // wraps commands in a transaction, dispatches and awaits domain events and their handlers, adds all DomainNotifs
+    //to DbContext list and enqueues them before committing the transaction
+    builder.RegisterGeneric(typeof(TransactionalBehavior<,>))
+   .As(typeof(IPipelineBehavior<,>)).InstancePerLifetimeScope();
+
+    builder.RegisterType<DomainEventsDispatcher>()
+    .As<IDomainEventsDispatcher>()
+    .InstancePerLifetimeScope();
+
+    builder.RegisterAssemblyTypes(Assembly.GetAssembly(typeof(Agency)))
+            .AsClosedTypesOf(typeof(IDomainEventNotification<>)).InstancePerDependency();
+
+    builder.RegisterGenericDecorator(
+            typeof(DomainEventsDispatcherNotificationHandlerDecorator<>),
+            typeof(INotificationHandler<>));
+
+    builder.RegisterType<DomainNotificationProcessor>()
+            .As<IDomainNotificationProcessor>().InstancePerLifetimeScope();
 
     builder.RegisterType<EmailSender>().As<IEmailSender>()
       .InstancePerLifetimeScope();

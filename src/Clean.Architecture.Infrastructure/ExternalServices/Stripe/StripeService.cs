@@ -1,6 +1,8 @@
-﻿using Clean.Architecture.Core.AgencyAggregate;
-using Clean.Architecture.Core.AgencyAggregate.Specifications;
-using Clean.Architecture.Core.Interfaces.StripeInterfaces;
+﻿
+using Clean.Architecture.Core.Domain.AgencyAggregate;
+using Clean.Architecture.Core.Domain.AgencyAggregate.Specifications;
+using Clean.Architecture.Core.ServiceInterfaces.StripeInterfaces;
+using Clean.Architecture.SharedKernel.Repositories;
 using Microsoft.Extensions.Configuration;
 using Stripe;
 using Stripe.Checkout;

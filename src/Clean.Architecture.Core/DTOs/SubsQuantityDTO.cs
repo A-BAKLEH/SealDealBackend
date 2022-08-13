@@ -1,4 +1,4 @@
-﻿namespace Clean.Architecture.Core.Commands_Handlers.DTOs;
+﻿namespace Clean.Architecture.Core.DTOs;
 public class SubsQuantityDTO
 {
   public int StripeSubsQuantity { get; set; }

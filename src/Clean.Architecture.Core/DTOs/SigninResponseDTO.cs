@@ -1,4 +1,4 @@
-﻿namespace Clean.Architecture.Core.Commands_Handlers.DTOs;
+﻿namespace Clean.Architecture.Core.DTOs;
 public class SigninResponseDTO
 {
   public string SubscriptionStatus { get; set; }

@@ -1,7 +1,7 @@
-﻿using Clean.Architecture.Core.ProjectAggregate.Events;
+﻿
 using Clean.Architecture.SharedKernel;
 
-namespace Clean.Architecture.Core.ProjectAggregate;
+namespace Clean.Architecture.Core.Domain.ProjectAggregate;
 
 public class ToDoItem : EntityBase
 {
@@ -15,7 +15,7 @@ public class ToDoItem : EntityBase
     {
       IsDone = true;
 
-      RegisterDomainEvent(new ToDoItemCompletedEvent(this));
+      //RegisterDomainEvent(new ToDoItemCompletedEvent(this));
     }
   }
 

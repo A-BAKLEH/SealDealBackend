@@ -8,6 +8,8 @@ using Serilog;
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Clean.Architecture.Web.AuthenticationAuthorization;
+using Hangfire;
+using Hangfire.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +18,21 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration));
 
+
+builder.Services.AddHangfire(configuration => configuration
+.SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+.UseSimpleAssemblyNameTypeSerializer()
+.UseRecommendedSerializerSettings()
+.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"), new SqlServerStorageOptions
+{
+  CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+  SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+  QueuePollInterval = TimeSpan.Zero,
+  UseRecommendedIsolationLevel = true,
+  DisableGlobalLocks = true
+}));
+builder.Services.AddHangfireServer();
+
 /*builder.Services.Configure<CookiePolicyOptions>(options =>
 {
   options.CheckConsentNeeded = context => true;
@@ -23,10 +40,7 @@ builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Con
 });*/
 builder.Services.AddControllers();
 
-
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");  //Configuration.GetConnectionString("DefaultConnection");
-
-builder.Services.AddDbContext(connectionString);
+builder.Services.AddDbContext(builder.Configuration.GetConnectionString("DefaultConnection"));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -57,6 +71,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                       options.TokenValidationParameters.NameClaimType = "name";
                     },
             options => { builder.Configuration.Bind("AzureAdB2C", options); });
+
+
+//builder.Services.AddHttpContextAccessor();
 //builder.Services.AddControllersWithViews().AddNewtonsoftJson();
 //builder.Services.AddRazorPages();
 
@@ -83,7 +100,11 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 
 //builder.Logging.AddAzureWebAppDiagnostics(); add this if deploying to Azure
 
+
 var app = builder.Build();
+
+//IExecutionContextAccessor executionContextAccessor = new ExecutionContextAccessor(app.Services.GetRequiredService<IHttpContextAccessor>());
+
 
 using (var scope = app.Services.CreateScope())
 {
@@ -93,7 +114,7 @@ using (var scope = app.Services.CreateScope())
   {
     var context = services.GetRequiredService<AppDbContext>();
     //context.Database.Migrate();
-    context.Database.EnsureCreated();
+    //context.Database.EnsureCreated();
     //SeedData.Initialize(services);
   }
   catch (Exception ex)
@@ -139,6 +160,7 @@ app.UseCors(MyAllowSpecificOrigins);
 // Seed Database
 
 app.MapControllers();
+app.MapHangfireDashboard();
 app.Run();
 
 //Add-Migration InitialMigrationName -StartupProject Clean.Architecture.Web -Context AppDbContext -Project Clean.Architecture.Infrastructure

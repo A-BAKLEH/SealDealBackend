@@ -1,6 +1,6 @@
 ﻿
 
-using Clean.Architecture.Core.LeadAggregate;
+using Clean.Architecture.Core.Domain.LeadAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

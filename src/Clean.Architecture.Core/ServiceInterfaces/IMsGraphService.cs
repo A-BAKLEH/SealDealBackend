@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.Core.BrokerAggregate;
+﻿
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 
 namespace Clean.Architecture.Core.ServiceInterfaces;
 public interface IMsGraphService

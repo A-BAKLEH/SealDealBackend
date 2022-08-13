@@ -1,4 +1,4 @@
-﻿using Clean.Architecture.Core.Commands_Handlers.StripeCommands;
+﻿using Clean.Architecture.Core.Requests.StripeRequests;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

@@ -1,6 +1,7 @@
-﻿using Clean.Architecture.Core.BrokerAggregate;
-using Clean.Architecture.Core.Interfaces;
+﻿
 using Azure.Identity;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.ServiceInterfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
 

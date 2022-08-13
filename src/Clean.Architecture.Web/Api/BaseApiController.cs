@@ -12,7 +12,7 @@ namespace Clean.Architecture.Web.Api;
 [Route("api/[controller]")]
 [ApiController]
 [RequiredScope(scopeRequiredByAPI)]
-public abstract class BaseApiController : Controller
+public abstract class BaseApiController : ControllerBase
 {
   const string scopeRequiredByAPI = "tasks.read";
   public readonly AuthorizationService _authorizeService;

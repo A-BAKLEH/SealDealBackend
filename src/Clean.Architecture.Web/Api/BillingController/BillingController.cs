@@ -1,7 +1,7 @@
-﻿using Clean.Architecture.Core.AgencyAggregate;
-using Clean.Architecture.Core.BrokerAggregate;
-using Clean.Architecture.Core.BrokerAggregate.Specifications;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿
+using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.Domain.BrokerAggregate.Specifications;
+using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;

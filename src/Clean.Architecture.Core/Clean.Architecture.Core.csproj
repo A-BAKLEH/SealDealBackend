@@ -28,7 +28,6 @@
     <Folder Include="Domain\PaymentAggregate\Specification\" />
     <Folder Include="OutboxNotifications\" />
     <Folder Include="Notifications\" />
-    <Folder Include="Requests\" />
   </ItemGroup>
 
 </Project>

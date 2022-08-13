@@ -1,9 +1,9 @@
 ﻿using Ardalis.GuardClauses;
-using Clean.Architecture.Core.ProjectAggregate.Events;
+using Clean.Architecture.Core.Domain.ProjectAggregate.Events;
 using Clean.Architecture.SharedKernel;
-using Clean.Architecture.SharedKernel.Interfaces;
+using Clean.Architecture.SharedKernel.Repositories;
 
-namespace Clean.Architecture.Core.ProjectAggregate;
+namespace Clean.Architecture.Core.Domain.ProjectAggregate;
 
 public class Project : EntityBase, IAggregateRoot
 {
@@ -27,7 +27,7 @@ public class Project : EntityBase, IAggregateRoot
     _items.Add(newItem);
 
     var newItemAddedEvent = new NewItemAddedEvent(this, newItem);
-    base.RegisterDomainEvent(newItemAddedEvent);
+    //base.RegisterDomainEvent(newItemAddedEvent);
   }
 
   public void UpdateName(string newName)

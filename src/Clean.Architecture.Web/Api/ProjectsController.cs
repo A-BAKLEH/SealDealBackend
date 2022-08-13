@@ -1,6 +1,6 @@
-﻿using Clean.Architecture.Core.ProjectAggregate;
-using Clean.Architecture.Core.ProjectAggregate.Specifications;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿
+using Clean.Architecture.Core.Domain.ProjectAggregate;
+using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.AuthenticationAuthorization;
 using MediatR;

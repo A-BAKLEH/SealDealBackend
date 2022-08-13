@@ -1,10 +1,7 @@
-﻿using Clean.Architecture.SharedKernel.Interfaces;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Clean.Architecture.Core.AgencyAggregate;
 using Microsoft.Identity.Web.Resource;
 using Clean.Architecture.Web.AuthenticationAuthorization;
-using Clean.Architecture.Core.BrokerAggregate;
 using MediatR;
 
 namespace Clean.Architecture.Web.Api.Agencycontroller;

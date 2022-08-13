@@ -1,6 +1,6 @@
 ﻿using Clean.Architecture.SharedKernel.DomainEvents;
 
-namespace Clean.Architecture.Core.ProjectAggregate.Events;
+namespace Clean.Architecture.Core.Domain.ProjectAggregate.Events;
 
 public class NewItemAddedEvent : DomainEventBase
 {

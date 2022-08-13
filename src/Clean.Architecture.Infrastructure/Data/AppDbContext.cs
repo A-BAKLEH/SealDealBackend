@@ -1,9 +1,8 @@
 ﻿using System.Reflection;
-using Clean.Architecture.Core.AgencyAggregate;
-using Clean.Architecture.Core.BrokerAggregate;
 using Clean.Architecture.Core.Config;
-using Clean.Architecture.Core.LeadAggregate;
-using Clean.Architecture.SharedKernel;
+using Clean.Architecture.Core.Domain.AgencyAggregate;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.Domain.LeadAggregate;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Infrastructure.Data;

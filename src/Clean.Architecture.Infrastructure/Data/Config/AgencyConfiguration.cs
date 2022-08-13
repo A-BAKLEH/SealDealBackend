@@ -1,5 +1,6 @@
 ﻿
-using Clean.Architecture.Core.AgencyAggregate;
+
+using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
