@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.Core.ProjectAggregate;
+﻿
+using Clean.Architecture.Core.Domain.ProjectAggregate;
 using Clean.Architecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

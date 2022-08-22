@@ -52,17 +52,27 @@ namespace Clean.Architecture.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsPaying")
-                        .HasColumnType("bit");
+                    b.Property<string>("LastCheckoutSessionID")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NumberOfBrokersInDatabase")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NumberOfBrokersInSubscription")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("SignupDateTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("SoloBroker")
-                        .HasColumnType("bit");
-
                     b.Property<string>("StripeSubscriptionId")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StripeSubscriptionStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("SubscriptionLastValidDate")
+                        .HasColumnType("date");
 
                     b.HasKey("Id");
 
@@ -134,6 +144,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AccountActive")
+                        .HasColumnType("bit");
 
                     b.Property<int>("AgencyId")
                         .HasColumnType("int");
@@ -334,8 +347,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Property<int>("LeadLastName")
                         .HasColumnType("int");
 
-                    b.Property<int>("LeadStatus")
-                        .HasColumnType("int");
+                    b.Property<string>("LeadStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -370,37 +384,6 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.HasIndex("LeadId");
 
                     b.ToTable("Notes");
-                });
-
-            modelBuilder.Entity("Clean.Architecture.Core.Payment.CheckoutSession", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsCompleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("SessionEndAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("SessionStartAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("StripeCheckoutSessionId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BrokerId");
-
-                    b.ToTable("CheckoutSessions");
                 });
 
             modelBuilder.Entity("LeadListing", b =>
@@ -580,17 +563,6 @@ namespace Clean.Architecture.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Lead");
-                });
-
-            modelBuilder.Entity("Clean.Architecture.Core.Payment.CheckoutSession", b =>
-                {
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "Broker")
-                        .WithMany()
-                        .HasForeignKey("BrokerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Broker");
                 });
 
             modelBuilder.Entity("LeadListing", b =>

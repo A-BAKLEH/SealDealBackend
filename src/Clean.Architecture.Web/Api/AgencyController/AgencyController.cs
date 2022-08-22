@@ -1,10 +1,7 @@
-﻿using Clean.Architecture.SharedKernel.Interfaces;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Clean.Architecture.Core.AgencyAggregate;
 using Microsoft.Identity.Web.Resource;
-using Clean.Architecture.Web.AuthenticationAuthorization;
-using Clean.Architecture.Core.BrokerAggregate;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 
 namespace Clean.Architecture.Web.Api.Agencycontroller;
@@ -13,7 +10,7 @@ public class AgencyController : BaseApiController
 {
 
 
-  public AgencyController( AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public AgencyController( AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
   }
 

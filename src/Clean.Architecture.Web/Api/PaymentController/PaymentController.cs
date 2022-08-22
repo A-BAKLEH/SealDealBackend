@@ -1,92 +1,52 @@
-﻿using Clean.Architecture.Core.AgencyAggregate;
-using Clean.Architecture.Core.PaymentAggregate;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿using Clean.Architecture.Core.Requests.StripeRequests;
+using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels;
-using Clean.Architecture.Web.AuthenticationAuthorization;
+using Clean.Architecture.Web.ApiModels.APIResponses;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Stripe;
-using Stripe.Checkout;
+
 
 namespace Clean.Architecture.Web.Api.Payment;
 
+[Authorize]
 public class PaymentController : BaseApiController
 {
-  private readonly IRepository<CheckoutSession> _repository;
-
-  public PaymentController(IRepository<CheckoutSession> repository, AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  private readonly ILogger<PaymentController> _logger;
+  public PaymentController(AuthorizationService authorizeService, IMediator mediator, ILogger<PaymentController> logger) : base(authorizeService, mediator)
   {
-    _repository = repository;
+    _logger = logger;
   }
 
-  [Authorize]
   [HttpPost("create-checkout-session")]
   public async Task<IActionResult> CreateChekoutSession([FromBody] CheckoutSessionRequestDTO req)
   {
-    StripeConfiguration.ApiKey = "sk_test_51LHCXSIAg7HKu3" +
-               "TPU6Ess0RMvvdMbFiZw0GwWfgDqZkFUFXtYwTY5XRbjqyJrAnJ8arSQ12k3heATZSbsK6GJyEI00txFG34FH";
     Guid b2cBrokerId;
-    try
-    {
-      var auth = User.Identity.IsAuthenticated;
-      if (!auth) throw new Exception("not auth");
- 
-      var brokerTuple = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
-      if (!brokerTuple.Item3) return BadRequest("not admin");
+    int AgencyID;
 
-      var l = User.Claims.ToList();
-       b2cBrokerId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
+    if (!brokerTuple.Item3)
+    {
+      _logger.LogWarning("non-admin mofo User with UserId {UserId} tried to create Checkout Session", brokerTuple.Item1.Id.ToString());
+      return Forbid();
     }
-    catch (Exception ex)
+    b2cBrokerId = brokerTuple.Item1.Id;
+    AgencyID = brokerTuple.Item1.AgencyId;
+    
+    _logger.LogInformation("[{Tag}] Creating a CheckoutSession for User with UserId '{UserId}' in" +
+      " Agency with AgencyId {AgencyId} with PriceID {PriceID} and Quantity {Quantity}","CreateCheckoutSession",b2cBrokerId.ToString(),AgencyID,req.PriceId, req.Quantity);
+
+    var sessionID = await _mediator.Send(new CreateCheckoutSessionCommand
     {
-      throw new Exception($"authentication and/or b2c admin Guid Id retrieval failed, error m :\n {ex}");
-    }
+      AgencyID = AgencyID,
+      priceID = req.PriceId,
+      Quantity = req.Quantity >= 1 ? req.Quantity : 1,
+    });
 
-    var options = new SessionCreateOptions
-    {
-      SuccessUrl = "http://localhost:3000/",
-      CancelUrl = "http://localhost:3000/leads",
-      PaymentMethodTypes = new List<string>
-                {
-                    "card",
-                },
-      Mode = "subscription",
-      LineItems = new List<SessionLineItemOptions>
-                {
-                    new SessionLineItemOptions
-                    {
-                        Price = req.PriceId,
-                        Quantity = 1,
-                    },
-                },
-    };
-
-    var service = new SessionService();
-    service.Create(options);
-    try
-    {
-      var session = await service.CreateAsync(options);
-      var checkoutSessionResponse = new CheckoutSessionResponseDTO
-      {
-        SessionId = session.Id,
-      };
-
-       _repository.AddAsync(new CheckoutSession
-      {
-        BrokerId = b2cBrokerId,
-        StripeCheckoutSessionId = session.Id
-      });
-
-      return Ok(checkoutSessionResponse);
-    }
-    catch (StripeException e)
-    {
-      Console.WriteLine(e.StripeError.Message);
-
-      return BadRequest(e.StripeError.Message);
-    }
+    if (string.IsNullOrEmpty(sessionID)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID",$"session ID is {sessionID}",b2cBrokerId.ToString());
+    _logger.LogInformation("[{Tag}] Created a CheckoutSession with ID {CheckoutSessionId} for User with UserId '{UserId}' in " +
+      "Agency with AgencyId {AgencyId}", "CheckoutSessionCreated", sessionID, b2cBrokerId.ToString(), AgencyID);
+    return Ok(new CheckoutSessionResponse { SessionId = sessionID });
   }
-
 }

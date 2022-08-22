@@ -1,5 +1,5 @@
-﻿using Clean.Architecture.Core.BrokerAggregate;
-using Clean.Architecture.Core.ProjectAggregate;
+﻿
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

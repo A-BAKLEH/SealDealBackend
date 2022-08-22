@@ -1,6 +1,6 @@
-﻿using Clean.Architecture.Core.ProjectAggregate;
+﻿
+using Clean.Architecture.Core.Domain.ProjectAggregate;
 using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.SharedKernel.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -14,9 +14,9 @@ public abstract class BaseEfRepoTestFixture
   protected BaseEfRepoTestFixture()
   {
     var options = CreateNewContextOptions();
-    var mockEventDispatcher = new Mock<IDomainEventDispatcher>();
+    //var mockEventDispatcher = new Mock<IDomainEventDispatcher>();
 
-    _dbContext = new AppDbContext(options, mockEventDispatcher.Object);
+    //_dbContext = new AppDbContext(options, mockEventDispatcher.Object);
   }
 
   protected static DbContextOptions<AppDbContext> CreateNewContextOptions()
@@ -38,6 +38,7 @@ public abstract class BaseEfRepoTestFixture
 
   protected EfRepository<Project> GetRepository()
   {
-    return new EfRepository<Project>(_dbContext);
+    //return new EfRepository<Project>(_dbContext);
+    throw new NotImplementedException();
   }
 }

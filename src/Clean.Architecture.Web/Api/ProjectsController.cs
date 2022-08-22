@@ -1,8 +1,8 @@
-﻿using Clean.Architecture.Core.ProjectAggregate;
-using Clean.Architecture.Core.ProjectAggregate.Specifications;
-using Clean.Architecture.SharedKernel.Interfaces;
+﻿
+using Clean.Architecture.Core.Domain.ProjectAggregate;
+using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.Web.ApiModels;
-using Clean.Architecture.Web.AuthenticationAuthorization;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +16,7 @@ public class ProjectsController : BaseApiController
 {
   private readonly IRepository<Project> _repository;
 
-  public ProjectsController(IRepository<Project> repository, AuthorizeService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  public ProjectsController(IRepository<Project> repository, AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
     _repository = repository;
   }
