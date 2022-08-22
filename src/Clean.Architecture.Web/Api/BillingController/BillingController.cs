@@ -3,7 +3,7 @@ using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate.Specifications;
 using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.Web.ApiModels;
-using Clean.Architecture.Web.AuthenticationAuthorization;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -13,6 +13,7 @@ using Stripe;
 namespace Clean.Architecture.Web.Api.BillingController;
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class BillingController : BaseApiController
 {
 
@@ -22,51 +23,31 @@ public class BillingController : BaseApiController
     _repository = repository;
   }
 
-
-  [Authorize]
   [HttpPost("customer-portal")]
   public async Task<IActionResult> CustomerPortal([FromBody] CustomerPortalRequestDTO req)
   {
-    StripeConfiguration.ApiKey = "sk_test_51LHCXSIAg7HKu3" +
-               "TPU6Ess0RMvvdMbFiZw0GwWfgDqZkFUFXtYwTY5XRbjqyJrAnJ8arSQ12k3heATZSbsK6GJyEI00txFG34FH";
+    var l = User.Claims.ToList();
+    Guid b2cBrokerId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
 
-    Guid b2cBrokerId;
 
-    try
+    //var authAgency = _agencyRepository.GetById(authAdmin.AgencyId);
+    var authAdmin = await _repository.GetBySpecAsync(new BrokerByIdWithAgencySpec(b2cBrokerId));
+    var authAgency = authAdmin.Agency;
+
+    var options = new Stripe.BillingPortal.SessionCreateOptions
     {
-      var isAuth = User.Identity.IsAuthenticated;
-      if (!isAuth)
-      {
-        throw new Exception("not auth");
-      }
-      var l = User.Claims.ToList();
+      Customer = authAgency.AdminStripeId,
+      ReturnUrl = req.ReturnUrl,
+    };
 
-      b2cBrokerId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var service = new Stripe.BillingPortal.SessionService();
+    var session = await service.CreateAsync(options);
 
-
-      //var authAgency = _agencyRepository.GetById(authAdmin.AgencyId);
-      var authAdmin = await _repository.GetBySpecAsync(new BrokerByIdWithAgencySpec(b2cBrokerId));
-      var authAgency = authAdmin.Agency;
-
-      var options = new Stripe.BillingPortal.SessionCreateOptions
-      {
-        Customer = authAgency.AdminStripeId,
-        ReturnUrl = req.ReturnUrl,
-      };
-
-      var service = new Stripe.BillingPortal.SessionService();
-      var session = await service.CreateAsync(options);
-
-      return Ok(new
-      {
-        url = session.Url
-      });
-    }
-    catch (StripeException e)
+    return Ok(new
     {
-      Console.WriteLine(e.StripeError.Message);
-      return BadRequest(e.StripeError.Message);
-    }
+      url = session.Url
+    });
+
 
     return Ok();
   }

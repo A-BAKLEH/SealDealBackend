@@ -18,7 +18,7 @@ public class DomainNotificationProcessor : IDomainNotificationProcessor
   public async Task ProcessDomainEventNotificationAsync(IDomainEventNotification<IDomainEvent> domainNotification)
   {
     Console.WriteLine($" thread {Thread.CurrentThread.ManagedThreadId} publishing domainEventNotification" +
-        $"with type {domainNotification.GetType().Name} and ID {domainNotification.Id} at {DateTime.UtcNow}");
+        $"with type {domainNotification.GetType().Name} at {DateTime.UtcNow}");
     await _mediator.Publish(domainNotification);
   }
 }

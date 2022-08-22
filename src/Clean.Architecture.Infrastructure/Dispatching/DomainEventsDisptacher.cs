@@ -28,6 +28,7 @@ public class DomainEventsDispatcher : IDomainEventsDispatcher
     var domainEntities = this._ordersContext.ChangeTracker
         .Entries<EntityBase>()
         .Where(x => x.Entity.DomainEvents != null && x.Entity.DomainEvents.Any()).ToList();
+    if (!domainEntities.Any()) return;
 
     var domainEvents = domainEntities
         .SelectMany(x => x.Entity.DomainEvents)

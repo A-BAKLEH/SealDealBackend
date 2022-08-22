@@ -1,4 +1,4 @@
-﻿using Clean.Architecture.Web.AuthenticationAuthorization;
+﻿using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Web.Resource;
@@ -11,10 +11,8 @@ namespace Clean.Architecture.Web.Api;
 /// </summary>
 [Route("api/[controller]")]
 [ApiController]
-[RequiredScope(scopeRequiredByAPI)]
 public abstract class BaseApiController : ControllerBase
 {
-  const string scopeRequiredByAPI = "tasks.read";
   public readonly AuthorizationService _authorizeService;
   public readonly IMediator _mediator;
   public BaseApiController(AuthorizationService authorizeService, IMediator mediator)

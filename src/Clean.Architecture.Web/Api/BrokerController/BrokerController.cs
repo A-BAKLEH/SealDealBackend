@@ -1,24 +1,25 @@
 ﻿
 
 using Clean.Architecture.Core.DTOs;
-using Clean.Architecture.Web.AuthenticationAuthorization;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
+[Authorize]
 public class BrokerController : BaseApiController
 {
+  
   public BrokerController(AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
   {
   }
 
-
-  [Authorize]
   [HttpGet("get-subscription-quantities")]
   public async Task<IActionResult> GetCurrentSubscriptionQuantities()
   {
-    var auth = User.Identity.IsAuthenticated;
+    return Ok();
+    /*var auth = User.Identity.IsAuthenticated;
     if (!auth) throw new Exception("not auth");
 
     var brokerTuple = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value), true);
@@ -29,9 +30,9 @@ public class BrokerController : BaseApiController
     {
       StripeSubsQuantity = brokerTuple.Item1.Agency.NumberOfBrokersInSubscription,
       BrokersQuantity = brokerTuple.Item1.Agency.NumberOfBrokersInDatabase
-    });
+    });*/
   }
-  /*[Authorize]
+  /*
   [HttpPost("add-brokers")]
   public async Task<IActionResult> AddBrokers([FromBody] IEnumerable<NewBrokerDTO> brokers)
   {

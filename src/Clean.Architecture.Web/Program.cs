@@ -2,129 +2,107 @@
 using Autofac.Extensions.DependencyInjection;
 using Clean.Architecture.Core;
 using Clean.Architecture.Infrastructure;
-using Clean.Architecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Microsoft.Identity.Web;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Clean.Architecture.Web.AuthenticationAuthorization;
 using Hangfire;
-using Hangfire.SqlServer;
+using Clean.Architecture.Web;
+using Clean.Architecture.Web.Config;
+using Hellang.Middleware.ProblemDetails;
+using Clean.Architecture.Web.Config.ProblemDetails;
+using Clean.Architecture.SharedKernel.BusinessRules;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
-builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration));
+var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
+  .WriteTo.Seq("http://localhost:5341", restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
+  .Enrich.FromLogContext()
+  .Enrich.WithProperty("AppVersion",version));
 
-
-builder.Services.AddHangfire(configuration => configuration
-.SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-.UseSimpleAssemblyNameTypeSerializer()
-.UseRecommendedSerializerSettings()
-.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"), new SqlServerStorageOptions
-{
-  CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-  SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-  QueuePollInterval = TimeSpan.Zero,
-  UseRecommendedIsolationLevel = true,
-  DisableGlobalLocks = true
-}));
-builder.Services.AddHangfireServer();
-
+builder.Services.AddHangfire(builder.Configuration.GetConnectionString("DefaultConnection"));
 /*builder.Services.Configure<CookiePolicyOptions>(options =>
 {
   options.CheckConsentNeeded = context => true;
   options.MinimumSameSitePolicy = SameSiteMode.None;
 });*/
 builder.Services.AddControllers();
-
 builder.Services.AddDbContext(builder.Configuration.GetConnectionString("DefaultConnection"));
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-//Services  --- put in separate file later
-builder.Services.AddSingleton(typeof(AuthorizationService));
-
-
-
-// Options --- configure each option in its own assembly
 
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
-  
-  options.AddPolicy(name: MyAllowSpecificOrigins,
-                    policy =>
-                    {
-                      policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-                    });
+  options.AddPolicy(name: MyAllowSpecificOrigins,policy => { policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();});
 });
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddMicrosoftIdentityWebApi(options =>
                     {
                       builder.Configuration.Bind("AzureAdB2C", options);
-
                       options.TokenValidationParameters.NameClaimType = "name";
                     },
-            options => { builder.Configuration.Bind("AzureAdB2C", options); });
+                    options => { builder.Configuration.Bind("AzureAdB2C", options); });
 
+builder.Services.AddHttpContextAccessor();
 
-//builder.Services.AddHttpContextAccessor();
-//builder.Services.AddControllersWithViews().AddNewtonsoftJson();
-//builder.Services.AddRazorPages();
-
-/*builder.Services.AddSwaggerGen(c =>
+builder.Services.AddProblemDetails(x =>
 {
-  c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
-  c.EnableAnnotations();
+  //x.Map<InvalidCommandException>(ex => new InvalidCommandProblemDetails(ex));
+  x.Map<BusinessRuleValidationException>(ex => new BusinessRuleValidationExceptionProblemDetails(ex));
+});
+
+/*builder.Services.AddProblemDetails(options =>
+{
+  // Only include exception details in a development environment. There's really no need
+  // to set this as it's the default behavior. It's just included here for completeness :)
+  options.IncludeExceptionDetails = (ctx, ex) => builder.Environment.IsDevelopment();
+
+  // This will map UserNotFoundException to the 404 Not Found status code and return custom problem details.
+  options.Map<UserNotFoundException>(ex => new ProblemDetails
+  {
+    Title = "Could not find user",
+    Status = StatusCodes.Status404NotFound,
+    Detail = ex.Message,
+  });
+
+  // This will map NotImplementedException to the 501 Not Implemented status code.
+  options.MapToStatusCode<NotImplementedException>(StatusCodes.Status501NotImplemented);
+
+  // You can configure the middleware to re-throw certain types of exceptions, all exceptions or based on a predicate.
+  // This is useful if you have upstream middleware that  needs to do additional handling of exceptions.
+  options.Rethrow<NotSupportedException>();
+
+  // You can configure the middleware to ingore any exceptions of the specified type.
+  // This is useful if you have upstream middleware that  needs to do additional handling of exceptions.
+  // Note that unlike Rethrow, additional information will not be added to the exception.
+  options.Ignore<DivideByZeroException>();
+
+  // Because exceptions are handled polymorphically, this will act as a "catch all" mapping, which is why it's added last.
+  // If an exception other than NotImplementedException and HttpRequestException is thrown, this will handle it.
+  options.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
 });*/
 
-// add list services for diagnostic purposes - see https://github.com/ardalis/AspNetCoreStartupServices
-/*builder.Services.Configure<ServiceConfig>(config =>
-{
-  config.Services = new List<ServiceDescriptor>(builder.Services);
 
-  // optional - default path to view services is /listallservices - recommended to choose your own path
-  config.Path = "/listservices";
-});*/
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
   containerBuilder.RegisterModule(new DefaultCoreModule());
   containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
+  containerBuilder.RegisterModule(new WebModule(builder.Environment.EnvironmentName == "Development"));
 });
+//builder.Services.AddApplicationInsightsTelemetry();
 
-//builder.Logging.AddAzureWebAppDiagnostics(); add this if deploying to Azure
-
+//builder.Logging.AddAzureWebAppDiagnostics(); //add this if deploying to Azure
 
 var app = builder.Build();
 
-//IExecutionContextAccessor executionContextAccessor = new ExecutionContextAccessor(app.Services.GetRequiredService<IHttpContextAccessor>());
+app.UseMiddleware<CorrelationMiddleware>();
 
-
-using (var scope = app.Services.CreateScope())
-{
-  var services = scope.ServiceProvider;
-
-  try
-  {
-    var context = services.GetRequiredService<AppDbContext>();
-    //context.Database.Migrate();
-    //context.Database.EnsureCreated();
-    //SeedData.Initialize(services);
-  }
-  catch (Exception ex)
-  {
-    var logger = services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "An error occurred seeding the DB. {exceptionMessage}", ex.Message);
-  }
-}
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
   app.UseSwagger();
@@ -132,32 +110,20 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-  app.UseExceptionHandler();
+  //app.UseExceptionHandler();
+  app.UseProblemDetails();
   app.UseHsts();
 }
-
 //app.UseRouting();
 
 app.UseHttpsRedirection();
 //app.UseStaticFiles();
 //app.UseCookiePolicy();
 
-// Enable middleware to serve generated Swagger as a JSON endpoint.
-//app.UseSwagger();
 
-// Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), specifying the Swagger JSON endpoint.
-//app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
-//app.UseSwaggerUI();
-
-/*app.UseEndpoints(endpoints =>
-{
-  endpoints.MapDefaultControllerRoute();
-  endpoints.MapRazorPages();
-});*/
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseCors(MyAllowSpecificOrigins);
-// Seed Database
 
 app.MapControllers();
 app.MapHangfireDashboard();

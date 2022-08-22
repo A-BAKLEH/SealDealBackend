@@ -1,4 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Clean.Architecture.Core.Domain.BrokerAggregate.Rules;
+using Clean.Architecture.Core.Requests.AgencyRequests;
+using Clean.Architecture.SharedKernel;
+using Clean.Architecture.SharedKernel.BusinessRules;
+using Clean.Architecture.SharedKernel.Exceptions;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
@@ -7,54 +13,26 @@ namespace Clean.Architecture.Web.Api.TestingAPI;
 public class TestController : ControllerBase
 {
 
-
-  public TestController()
+  private readonly IMediator _mediator;
+  private readonly ILogger<TestController> _logger;
+  public TestController(IMediator mediator, ILogger<TestController> logger)
   {
-
+    _mediator = mediator;
+    _logger = logger;
   }
 
   [HttpGet("test-signup")]
   public async Task<IActionResult> SigninSingupTest()
   {
-
-    //var broker = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
-    //bool signup = false;
-    try
-    {
-      var auth = User.Identity.IsAuthenticated;
-      if (!auth)
-      {
-        throw new Exception("not auth");
-      }
-
-      var l = User.Claims.ToList();
-      var findClaim = l.Find(x => x.Type == "newUser");
-      //signin only
-      if (findClaim == null)
-      {
-        Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-        return Ok(_authorizeService.signinSignupUser(b2cID));
-      }
-
-      //signup
-      var signinResponseDTO = _mediator.Send(new SignupRequest
-      {
-        AgencyName = l.Find(x => x.Type == "extension_AgencyName").Value,
-        givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value,
-        surName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname").Value,
-        b2cId = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value),
-        email = l.Find(x => x.Type == "emails").Value
-      }).Result;
-      return Ok(new SigninResponse
-      {
-        SubscriptionStatus = signinResponseDTO.SubscriptionStatus,
-        UserAccountStatus = signinResponseDTO.UserAccountStatus
-      });
-    }
-    catch (Exception ex)
-    {
-      //log error
-      return BadRequest();
-    }
+    await _mediator.Send(new TestRequest1 { name = "abdul"});
+    return Ok();
+  }
+  [HttpGet("test-stuff")]
+  public async Task<IActionResult> TestStuff()
+  {
+    //_logger.LogInformation("logging to see stuff lmao");
+    throw new BusinessRuleValidationException(new BrokerEmailsMustBeUniqueRule("bashEmail"));
+    //throw new InconsistentStateException("test", "test message");
+    return Ok();
   }
 }

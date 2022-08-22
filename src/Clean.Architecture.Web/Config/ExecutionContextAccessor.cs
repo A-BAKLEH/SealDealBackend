@@ -11,6 +11,7 @@ public class ExecutionContextAccessor : IExecutionContextAccessor
     _httpContextAccessor = httpContextAccessor;
   }
 
+
   public Guid CorrelationId
   {
     get
@@ -23,6 +24,5 @@ public class ExecutionContextAccessor : IExecutionContextAccessor
       throw new ApplicationException("Http context and correlation id is not available");
     }
   }
-
   public bool IsAvailable => _httpContextAccessor.HttpContext != null;
 }

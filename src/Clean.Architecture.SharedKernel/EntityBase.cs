@@ -20,7 +20,7 @@ public abstract class EntityBase
   /// Add domain event.
   /// </summary>
   /// <param name="domainEvent"></param>
-  protected void AddDomainEvent(IDomainEvent domainEvent)
+  public void AddDomainEvent(IDomainEvent domainEvent)
   {
     _domainEvents = _domainEvents ?? new List<IDomainEvent>();
     this._domainEvents.Add(domainEvent);
@@ -34,7 +34,7 @@ public abstract class EntityBase
     _domainEvents?.Clear();
   }
 
-  protected static void CheckRule(IBusinessRule rule)
+  public static void CheckRule(IBusinessRule rule)
   {
     if (rule.IsBroken())
     {

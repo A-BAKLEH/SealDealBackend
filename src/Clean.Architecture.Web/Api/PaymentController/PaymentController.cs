@@ -1,7 +1,8 @@
 ﻿using Clean.Architecture.Core.Requests.StripeRequests;
+using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels;
-using Clean.Architecture.Web.ApiModels.Responses;
-using Clean.Architecture.Web.AuthenticationAuthorization;
+using Clean.Architecture.Web.ApiModels.APIResponses;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,45 +10,43 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.Api.Payment;
 
+[Authorize]
 public class PaymentController : BaseApiController
 {
-
-  public PaymentController( AuthorizationService authorizeService, IMediator mediator) : base(authorizeService, mediator)
+  private readonly ILogger<PaymentController> _logger;
+  public PaymentController(AuthorizationService authorizeService, IMediator mediator, ILogger<PaymentController> logger) : base(authorizeService, mediator)
   {
+    _logger = logger;
   }
 
-  [Authorize]
   [HttpPost("create-checkout-session")]
   public async Task<IActionResult> CreateChekoutSession([FromBody] CheckoutSessionRequestDTO req)
   {
     Guid b2cBrokerId;
     int AgencyID;
-    try
+
+    var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
+    if (!brokerTuple.Item3)
     {
-      var auth = User.Identity.IsAuthenticated;
-      if (!auth) throw new Exception("not auth");
-
-      var brokerTuple = this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
-      if (!brokerTuple.Item3) return BadRequest("not admin");
-
-      b2cBrokerId = brokerTuple.Item1.Id;
-      AgencyID = brokerTuple.Item1.AgencyId;
+      _logger.LogWarning("non-admin mofo User with UserId {UserId} tried to create Checkout Session", brokerTuple.Item1.Id.ToString());
+      return Forbid();
     }
-    catch (Exception ex)
-    {
-      //log
-      throw new Exception($"authentication and/or b2c admin Guid Id retrieval failed, error m :\n {ex}");
-    }
+    b2cBrokerId = brokerTuple.Item1.Id;
+    AgencyID = brokerTuple.Item1.AgencyId;
+    
+    _logger.LogInformation("[{Tag}] Creating a CheckoutSession for User with UserId '{UserId}' in" +
+      " Agency with AgencyId {AgencyId} with PriceID {PriceID} and Quantity {Quantity}","CreateCheckoutSession",b2cBrokerId.ToString(),AgencyID,req.PriceId, req.Quantity);
 
-    //return sessionID
-    var sessionID = await _mediator.Send(new CheckoutSessionCommand
+    var sessionID = await _mediator.Send(new CreateCheckoutSessionCommand
     {
-      adminId = b2cBrokerId,
       AgencyID = AgencyID,
       priceID = req.PriceId,
       Quantity = req.Quantity >= 1 ? req.Quantity : 1,
     });
 
-    return Ok(new CheckoutSessionResponse { SessionId = sessionID});
+    if (string.IsNullOrEmpty(sessionID)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID",$"session ID is {sessionID}",b2cBrokerId.ToString());
+    _logger.LogInformation("[{Tag}] Created a CheckoutSession with ID {CheckoutSessionId} for User with UserId '{UserId}' in " +
+      "Agency with AgencyId {AgencyId}", "CheckoutSessionCreated", sessionID, b2cBrokerId.ToString(), AgencyID);
+    return Ok(new CheckoutSessionResponse { SessionId = sessionID });
   }
 }

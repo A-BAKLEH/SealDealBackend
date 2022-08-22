@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Web.Resource;
-using Clean.Architecture.Web.AuthenticationAuthorization;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 
 namespace Clean.Architecture.Web.Api.Agencycontroller;

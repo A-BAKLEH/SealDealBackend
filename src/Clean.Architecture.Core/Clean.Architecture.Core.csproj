@@ -26,8 +26,6 @@
     <Folder Include="Domain\AgencyAggregate\Rules\" />
     <Folder Include="Domain\LeadAggregate\Rules\" />
     <Folder Include="Domain\PaymentAggregate\Specification\" />
-    <Folder Include="OutboxNotifications\" />
-    <Folder Include="Notifications\" />
   </ItemGroup>
 
 </Project>

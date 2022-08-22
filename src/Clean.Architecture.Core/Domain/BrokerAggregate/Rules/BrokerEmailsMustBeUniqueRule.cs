@@ -16,5 +16,5 @@ public class BrokerEmailsMustBeUniqueRule : IBusinessRule
   //actually implement this
   public bool IsBroken() => false;
 
-  public string Message => "Broker with this email already exists.";
+  public string Message => $"Broker with this email {_email} already exists.";
 }

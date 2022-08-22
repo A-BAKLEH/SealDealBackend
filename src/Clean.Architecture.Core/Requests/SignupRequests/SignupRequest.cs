@@ -1,6 +1,7 @@
 ﻿using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs;
+using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 
@@ -16,12 +17,12 @@ public class SignupRequest : IRequest<SigninResponseDTO>
 
 public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninResponseDTO>
 {
-  private readonly IRepository<Agency> _repository;
+  private readonly IRepository<Agency> _agencyRepo;
   private readonly IReadRepository<Broker> _brokerRepo;
 
-  public SignupRequestHandler(IRepository<Agency> repository, IReadRepository<Broker> brokerRepo)
+  public SignupRequestHandler(IRepository<Agency> agencyRepository, IReadRepository<Broker> brokerRepo)
   {
-    _repository = repository;
+    _agencyRepo = agencyRepository;
     _brokerRepo = brokerRepo;
   }
 
@@ -38,7 +39,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninRespons
     if (_brokerRepo.GetByIdAsync(request.b2cId).Result != null)
     {
       //log warning 
-      throw new Exception("broker with B2C ID already exists in Brokers table");
+      throw new InconsistentStateException("SignupRequest-UserAlreadyInDatabase","broker with B2C ID already exists in Brokers table", request.b2cId.ToString());
     }
     var broker = new Broker()
     {
@@ -58,11 +59,11 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninRespons
       NumberOfBrokersInDatabase = 1,
       AgencyBrokers = new List<Broker> { broker }
     };
-    await _repository.AddAsync(agency);
+    await _agencyRepo.AddAsync(agency);
     return new SigninResponseDTO
     {
       UserAccountStatus = "inactive",
-      SubscriptionStatus = "nostripesubscription"
+      SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString()
     };
   }
 }

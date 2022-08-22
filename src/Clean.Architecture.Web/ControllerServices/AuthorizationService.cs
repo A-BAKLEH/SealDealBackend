@@ -1,17 +1,21 @@
 ﻿
+using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate.Specifications;
+using Clean.Architecture.Core.DTOs;
+using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Repositories;
-using Clean.Architecture.Web.ApiModels.Responses;
 
-namespace Clean.Architecture.Web.AuthenticationAuthorization;
+namespace Clean.Architecture.Web.ControllerServices;
 
 public class AuthorizationService
 {
   private readonly IReadRepository<Broker> _brokerRepository;
-  public AuthorizationService(IReadRepository<Broker> repo)
+  private readonly ILogger<AuthorizationService> _logger;
+  public AuthorizationService(IReadRepository<Broker> repo, ILogger<AuthorizationService> logger)
   {
     _brokerRepository = repo;
+    _logger = logger;
   }
   /// <summary>
   /// 
@@ -19,21 +23,21 @@ public class AuthorizationService
   /// <param name="id"></param>
   /// <returns>Tuple(broker, broker.accountActive, broker.isAdmin)</returns>
   /// <exception cref="Exception"></exception>
-  public Tuple<Broker, bool, bool> AuthorizeUser(Guid id, Boolean includeAgency = false)
+  public async Task<Tuple<Broker, bool, bool>> AuthorizeUser(Guid id, Boolean includeAgency = false)
   {
     Broker broker;
-    if(includeAgency) broker = _brokerRepository.GetBySpecAsync(new BrokerByIdWithAgencySpec(id)).Result;
-    else broker = _brokerRepository.GetByIdAsync(id).Result;
+    if(includeAgency) broker = await _brokerRepository.GetBySpecAsync(new BrokerByIdWithAgencySpec(id));
+    else broker = await _brokerRepository.GetByIdAsync(id);
 
-    if (broker == null) throw new Exception("Broker not found in DB");
+    if (broker == null) throw new InconsistentStateException("AuthorizeUser","Broker not found in DB",id.ToString());
     return Tuple.Create(broker, broker.AccountActive, broker.isAdmin);
   }
 
-  public SigninResponse signinSignupUser(Guid id)
+  public async Task<SigninResponseDTO> signinSignupUserAsync(Guid id)
   {
-    var response = new SigninResponse();
-    var broker = _brokerRepository.GetBySpecAsync(new BrokerByIdWithAgencySpec(id)).Result;
-    if (broker == null) throw new Exception("Broker not found in DB");
+    var response = new SigninResponseDTO();
+    var broker = await _brokerRepository.GetBySpecAsync(new BrokerByIdWithAgencySpec(id));
+    if (broker == null) throw new InconsistentStateException("SigninSignup","Broker not found in DB",id.ToString());
     //TODO: maybe handle if account is active but subscription is not?
     if (broker.AccountActive)
     {
@@ -42,9 +46,9 @@ public class AuthorizationService
       return response;
     }
     //account not active
-    else if(broker.Agency.StripeSubscriptionStatus == Core.Domain.AgencyAggregate.StripeSubscriptionStatus.NoStripeSubscription && broker.isAdmin)
+    else if(broker.Agency.StripeSubscriptionStatus == StripeSubscriptionStatus.NoStripeSubscription && broker.isAdmin)
     {
-      response.SubscriptionStatus = "nostripesubscription";
+      response.SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
       response.UserAccountStatus = "inactive";
       return response;
     }

@@ -1,4 +1,6 @@
-﻿namespace Clean.Architecture.Web.Config;
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Clean.Architecture.Web.Config;
 
 internal class CorrelationMiddleware
 {
@@ -14,13 +16,24 @@ internal class CorrelationMiddleware
 
   public async Task Invoke(HttpContext context)
   {
-    var correlationId = Guid.NewGuid();
+    var correlationId = Guid.NewGuid().ToString();
 
     if (context.Request != null)
     {
-      context.Request.Headers.Add(CorrelationHeaderKey, correlationId.ToString());
+      context.Request.Headers.Add(CorrelationHeaderKey, correlationId);
     }
+    /*context.Response.OnStarting(() =>
+    {
+      if (!context.Response.Headers.
+      TryGetValue(CorrelationHeaderKey,
+      out var correlationIds))
+        context.Response.Headers.Add(CorrelationHeaderKey, correlationId);
+      return Task.CompletedTask;
+    });*/
 
-    await this._next.Invoke(context);
+    using (Serilog.Context.LogContext.PushProperty(CorrelationHeaderKey, correlationId))
+    {
+      await this._next.Invoke(context);
+    }
   }
 }

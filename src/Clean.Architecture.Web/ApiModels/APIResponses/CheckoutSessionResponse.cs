@@ -1,4 +1,4 @@
-﻿namespace Clean.Architecture.Web.ApiModels.Responses;
+﻿namespace Clean.Architecture.Web.ApiModels.APIResponses;
 
 public class CheckoutSessionResponse
 {
