@@ -1,7 +1,7 @@
 ﻿
 using Ardalis.GuardClauses;
 using Clean.Architecture.Core.Domain.ProjectAggregate.Events;
-using Clean.Architecture.Core.ServiceInterfaces;
+using Clean.Architecture.Core.ExternalServiceInterfaces;
 using MediatR;
 
 namespace Clean.Architecture.Core.Domain.ProjectAggregate.Handlers;

@@ -1,4 +1,5 @@
 ﻿using Clean.Architecture.Infrastructure.Dispatching;
+using Clean.Architecture.SharedKernel;
 using MediatR;
 
 namespace Clean.Architecture.Infrastructure.Decorators;

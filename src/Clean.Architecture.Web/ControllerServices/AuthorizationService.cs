@@ -48,8 +48,8 @@ public class AuthorizationService
     //account not active
     else if(broker.Agency.StripeSubscriptionStatus == StripeSubscriptionStatus.NoStripeSubscription && broker.isAdmin)
     {
-      response.SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
       response.UserAccountStatus = "inactive";
+      response.SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
       return response;
     }
     else

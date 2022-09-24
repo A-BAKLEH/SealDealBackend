@@ -37,7 +37,158 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("AreaLead");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.AgencyAggregate.Agency", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int>("ActionsCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("AssignToLead")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("BrokerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FirstActionDelay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NotifsToListenTo")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("StopPlanOnInteraction")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("TimeCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Triggers")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrokerId");
+
+                    b.ToTable("ActionPlans");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int?>("ActionPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ActionPlanTriggeredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CustomDelay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FirstActionHangfireId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LeadId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ThisActionPlanStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TriggerNotificationId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("currentTrackedActionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionPlanId");
+
+                    b.HasIndex("LeadId");
+
+                    b.ToTable("ActionPlanAssociations");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.ActionBase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int>("ActionLevel")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ActionPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ActionProperties")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NextActionDelay")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionPlanId");
+
+                    b.ToTable("Actions");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("ActionBase");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionTracker", b =>
+                {
+                    b.Property<int>("ActionPlanAssociationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TrackedActionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ActionResultId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ActionStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ActionStatusInfo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExecutionCompletedTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("HangfireJobId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("HangfireScheduledStartTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ActionPlanAssociationId", "TrackedActionId");
+
+                    b.HasIndex("TrackedActionId");
+
+                    b.ToTable("ActionTrackers");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Agency", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -79,7 +230,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Agencies");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.AgencyAggregate.Area", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Area", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -94,8 +245,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PostalCode")
-                        .HasColumnType("int");
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -104,7 +256,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Areas");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.AgencyAggregate.Listing", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Listing", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -140,7 +292,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Listings");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.Broker", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
@@ -154,8 +306,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
+                    b.Property<string>("FirstConnectedEmail")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
@@ -166,7 +317,17 @@ namespace Clean.Architecture.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("LoginEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("NotifsForActionPlans")
+                        .HasColumnType("int");
+
                     b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SecondaryConnectedEmail")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("isAdmin")
@@ -179,7 +340,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Brokers");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.EmailTemplate", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.EmailTemplate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -205,7 +366,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("EmailTemplates");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.SmsTemplate", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.SmsTemplate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -227,7 +388,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("SmsTemplates");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.Tag", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.Tag", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -249,7 +410,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Tags");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.ToDoTask", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.ToDoTask", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -279,44 +440,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("ToDoTasks");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.LeadAggregate.History", b =>
-                {
-                    b.Property<int>("HistoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("HistoryId"), 1L, 1);
-
-                    b.Property<int?>("AgencyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Event")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EventDescription")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EventSubject")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("EventTimestamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("LeadId")
-                        .HasColumnType("int");
-
-                    b.HasKey("HistoryId");
-
-                    b.HasIndex("AgencyId");
-
-                    b.HasIndex("LeadId");
-
-                    b.ToTable("Histories");
-                });
-
-            modelBuilder.Entity("Clean.Architecture.Core.LeadAggregate.Lead", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.Lead", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -330,11 +454,10 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Property<Guid?>("BrokerId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Budget")
+                    b.Property<int?>("Budget")
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("EntryDate")
@@ -344,15 +467,14 @@ namespace Clean.Architecture.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("LeadLastName")
-                        .HasColumnType("int");
+                    b.Property<string>("LeadLastName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LeadStatus")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -364,7 +486,25 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Leads");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.LeadAggregate.Note", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.LeadListing", b =>
+                {
+                    b.Property<int>("LeadId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ListingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ClientComments")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("LeadId", "ListingId");
+
+                    b.HasIndex("ListingId");
+
+                    b.ToTable("LeadListing");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.Note", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -386,19 +526,44 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("Notes");
                 });
 
-            modelBuilder.Entity("LeadListing", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.NotificationAggregate.Notification", b =>
                 {
-                    b.Property<int>("InterestedLeadsId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("ListingOfInterestId")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<Guid>("BrokerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("LeadId")
                         .HasColumnType("int");
 
-                    b.HasKey("InterestedLeadsId", "ListingOfInterestId");
+                    b.Property<DateTime>("NotifCreatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.HasIndex("ListingOfInterestId");
+                    b.Property<string>("NotifData")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.ToTable("LeadListing");
+                    b.Property<int>("NotifHandlingStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NotifType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("NotifyBroker")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ReadByBroker")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeadId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("LeadTag", b =>
@@ -416,24 +581,96 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.ToTable("LeadTag");
                 });
 
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.ChangeLeadStatusAction", b =>
+                {
+                    b.HasBaseType("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.ActionBase");
+
+                    b.HasDiscriminator().HasValue("ChangeLeadStatusAction");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.SendEmailAction", b =>
+                {
+                    b.HasBaseType("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.ActionBase");
+
+                    b.HasDiscriminator().HasValue("SendEmailAction");
+                });
+
             modelBuilder.Entity("AreaLead", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Area", null)
+                    b.HasOne("Clean.Architecture.Core.Domain.AgencyAggregate.Area", null)
                         .WithMany()
                         .HasForeignKey("AreasOfInterestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Clean.Architecture.Core.LeadAggregate.Lead", null)
+                    b.HasOne("Clean.Architecture.Core.Domain.LeadAggregate.Lead", null)
                         .WithMany()
                         .HasForeignKey("InterestedLeadsId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.ClientCascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.AgencyAggregate.Area", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlan", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Agency", "Agency")
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", "broker")
+                        .WithMany("ActionPlans")
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("broker");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
+                {
+                    b.HasOne("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlan", "ActionPlan")
+                        .WithMany("ActionPlanAssociations")
+                        .HasForeignKey("ActionPlanId");
+
+                    b.HasOne("Clean.Architecture.Core.Domain.LeadAggregate.Lead", "lead")
+                        .WithMany("ActionPlanAssociations")
+                        .HasForeignKey("LeadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionPlan");
+
+                    b.Navigation("lead");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.ActionBase", b =>
+                {
+                    b.HasOne("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlan", "ActionPlan")
+                        .WithMany("Actions")
+                        .HasForeignKey("ActionPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionPlan");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionTracker", b =>
+                {
+                    b.HasOne("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlanAssociation", "ActionPlanAssociation")
+                        .WithMany("ActionTrackers")
+                        .HasForeignKey("ActionPlanAssociationId")
+                        .OnDelete(DeleteBehavior.ClientCascade)
+                        .IsRequired();
+
+                    b.HasOne("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.ActionBase", "TrackedAction")
+                        .WithMany("ActionTrackers")
+                        .HasForeignKey("TrackedActionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionPlanAssociation");
+
+                    b.Navigation("TrackedAction");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Area", b =>
+                {
+                    b.HasOne("Clean.Architecture.Core.Domain.AgencyAggregate.Agency", "Agency")
                         .WithMany("Areas")
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -442,15 +679,15 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Agency");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.AgencyAggregate.Listing", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Listing", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Agency", "Agency")
+                    b.HasOne("Clean.Architecture.Core.Domain.AgencyAggregate.Agency", "Agency")
                         .WithMany("AgencyListings")
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "AssignedBroker")
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", "AssignedBroker")
                         .WithMany("Listings")
                         .HasForeignKey("BrokerId");
 
@@ -459,9 +696,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("AssignedBroker");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.Broker", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Agency", "Agency")
+                    b.HasOne("Clean.Architecture.Core.Domain.AgencyAggregate.Agency", "Agency")
                         .WithMany("AgencyBrokers")
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -470,9 +707,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Agency");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.EmailTemplate", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.EmailTemplate", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "Broker")
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", "Broker")
                         .WithMany("EmailTemplates")
                         .HasForeignKey("BrokerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -481,9 +718,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Broker");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.SmsTemplate", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.SmsTemplate", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "Broker")
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", "Broker")
                         .WithMany("SmsTemplates")
                         .HasForeignKey("BrokerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -492,9 +729,9 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Broker");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.Tag", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.Tag", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "Broker")
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", "Broker")
                         .WithMany("BrokerTags")
                         .HasForeignKey("BrokerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -503,15 +740,15 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Broker");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.ToDoTask", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.ToDoTask", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "Broker")
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", "Broker")
                         .WithMany("Tasks")
                         .HasForeignKey("BrokerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Clean.Architecture.Core.LeadAggregate.Lead", "Lead")
+                    b.HasOne("Clean.Architecture.Core.Domain.LeadAggregate.Lead", "Lead")
                         .WithMany()
                         .HasForeignKey("LeadId");
 
@@ -520,32 +757,15 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Lead");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.LeadAggregate.History", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.Lead", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Agency", "Agency")
-                        .WithMany()
-                        .HasForeignKey("AgencyId");
-
-                    b.HasOne("Clean.Architecture.Core.LeadAggregate.Lead", "Lead")
-                        .WithMany("Histories")
-                        .HasForeignKey("LeadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Agency");
-
-                    b.Navigation("Lead");
-                });
-
-            modelBuilder.Entity("Clean.Architecture.Core.LeadAggregate.Lead", b =>
-                {
-                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Agency", "Agency")
+                    b.HasOne("Clean.Architecture.Core.Domain.AgencyAggregate.Agency", "Agency")
                         .WithMany("Leads")
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Broker", "Broker")
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", "Broker")
                         .WithMany("Leads")
                         .HasForeignKey("BrokerId");
 
@@ -554,9 +774,28 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Broker");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.LeadAggregate.Note", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.LeadListing", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.LeadAggregate.Lead", "Lead")
+                    b.HasOne("Clean.Architecture.Core.Domain.LeadAggregate.Lead", "Lead")
+                        .WithMany("ListingsOfInterest")
+                        .HasForeignKey("LeadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Clean.Architecture.Core.Domain.AgencyAggregate.Listing", "Listing")
+                        .WithMany("InterestedLeads")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.ClientCascade)
+                        .IsRequired();
+
+                    b.Navigation("Lead");
+
+                    b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.Note", b =>
+                {
+                    b.HasOne("Clean.Architecture.Core.Domain.LeadAggregate.Lead", "Lead")
                         .WithMany("Notes")
                         .HasForeignKey("LeadId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -565,37 +804,46 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Lead");
                 });
 
-            modelBuilder.Entity("LeadListing", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.NotificationAggregate.Notification", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.LeadAggregate.Lead", null)
-                        .WithMany()
-                        .HasForeignKey("InterestedLeadsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Clean.Architecture.Core.AgencyAggregate.Listing", null)
-                        .WithMany()
-                        .HasForeignKey("ListingOfInterestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("Clean.Architecture.Core.Domain.LeadAggregate.Lead", null)
+                        .WithMany("LeadHistoryEvents")
+                        .HasForeignKey("LeadId");
                 });
 
             modelBuilder.Entity("LeadTag", b =>
                 {
-                    b.HasOne("Clean.Architecture.Core.LeadAggregate.Lead", null)
+                    b.HasOne("Clean.Architecture.Core.Domain.LeadAggregate.Lead", null)
                         .WithMany()
                         .HasForeignKey("LeadsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Clean.Architecture.Core.BrokerAggregate.Tag", null)
+                    b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.Tag", null)
                         .WithMany()
                         .HasForeignKey("TagsId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.ClientCascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.AgencyAggregate.Agency", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlan", b =>
+                {
+                    b.Navigation("ActionPlanAssociations");
+
+                    b.Navigation("Actions");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
+                {
+                    b.Navigation("ActionTrackers");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions.ActionBase", b =>
+                {
+                    b.Navigation("ActionTrackers");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Agency", b =>
                 {
                     b.Navigation("AgencyBrokers");
 
@@ -606,8 +854,15 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Leads");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.BrokerAggregate.Broker", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Listing", b =>
                 {
+                    b.Navigation("InterestedLeads");
+                });
+
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.Broker", b =>
+                {
+                    b.Navigation("ActionPlans");
+
                     b.Navigation("BrokerTags");
 
                     b.Navigation("EmailTemplates");
@@ -621,9 +876,13 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Tasks");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.LeadAggregate.Lead", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.Lead", b =>
                 {
-                    b.Navigation("Histories");
+                    b.Navigation("ActionPlanAssociations");
+
+                    b.Navigation("LeadHistoryEvents");
+
+                    b.Navigation("ListingsOfInterest");
 
                     b.Navigation("Notes");
                 });

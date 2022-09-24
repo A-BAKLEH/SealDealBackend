@@ -1,7 +1,7 @@
 ﻿
 using Azure.Identity;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Core.ServiceInterfaces;
+using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
 
@@ -10,7 +10,7 @@ public class MsGraphService : IMsGraphService
 {
 
   public GraphServiceClient _graphClient;
-  private readonly IConfigurationSection _MsGraphConfigSection;
+  //private readonly IConfigurationSection _MsGraphConfigSection;
   public MsGraphService(IConfiguration config)
   {
 
@@ -25,29 +25,28 @@ public class MsGraphService : IMsGraphService
     {
       AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
     };
-
     var clientSecretCredential = new ClientSecretCredential(
         tenantId, clientId, clientSecret, options);
 
     _graphClient = new GraphServiceClient(clientSecretCredential, scopes);
   }
 
-  public async Task createB2CUsers(List<Broker> brokers)
+  public async Task<string> createB2CUser(Broker broker)
   {
-    /*var user = new User
+    var user = new User
     {
-      GivenName = brokerDTO.FirstName,
-      Surname = brokerDTO.LastName,
-      DisplayName = brokerDTO.FirstName + " " + brokerDTO.LastName,
+      GivenName = broker.FirstName,
+      Surname = broker.LastName,
+      DisplayName = broker.FirstName + " " + broker.LastName,
       Identities = new List<ObjectIdentity>
-                {
-                    new ObjectIdentity()
-                    {
-                        SignInType = "emailAddress",
-                        Issuer = "sealdealtest.onmicrosoft.com",
-                        IssuerAssignedId = brokerDTO.Email
-                    }
-                },
+      {
+          new ObjectIdentity()
+          {
+              SignInType = "emailAddress",
+              Issuer = "sealdealtest.onmicrosoft.com",
+              IssuerAssignedId = broker.LoginEmail
+          }
+      },
       PasswordProfile = new PasswordProfile()
       {
         Password = "Bashar9!"
@@ -55,9 +54,25 @@ public class MsGraphService : IMsGraphService
       PasswordPolicies = "DisablePasswordExpiration",
     };
 
-    var created = MsGraphClient._graphClient.Users.Request().AddAsync(user).Result;
-    */
-    // return created.Id;
-    throw new NotImplementedException();
+    var created = await _graphClient.Users.Request().AddAsync(user);
+    return created.Id;
+  }
+
+  public async Task test()
+  {
+    var scopes = new[] { "https://graph.microsoft.com/.default" };
+    var options = new TokenCredentialOptions
+    {
+      AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
+    };
+    var clientSecretCredential = new ClientSecretCredential(
+        "6f64f9eb-73c2-4e0c-b1c6-2bb14c3b2d14", "f60efc37-251c-4d97-bb07-554000f5057f", "5ud8Q~VO9RxZ9srylubIcMXvuFRWPezGs8gGXaH1", options);
+
+    var  client = new GraphServiceClient(clientSecretCredential, scopes);
+
+    var clients = await client.Users.Request().GetAsync();
+
+    var count = clients.Count;
+
   }
 }

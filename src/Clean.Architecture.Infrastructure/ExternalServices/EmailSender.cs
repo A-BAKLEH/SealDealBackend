@@ -1,5 +1,5 @@
 ﻿
-using Clean.Architecture.Core.ServiceInterfaces;
+using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Clean.Architecture.Infrastructure.ExternalServices;

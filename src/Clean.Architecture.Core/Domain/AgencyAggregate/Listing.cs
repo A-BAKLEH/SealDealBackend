@@ -19,7 +19,8 @@ public class Listing : Entity<int>
   public Guid? BrokerId { get; set; }
   public Broker AssignedBroker { get; set; }
 
-  public List<Lead> InterestedLeads { get; set; }
+  //public List<Lead> InterestedLeads { get; set; }
+  public List<LeadListing> InterestedLeads { get; set; }
 
 }
 

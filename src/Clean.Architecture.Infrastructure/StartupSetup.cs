@@ -22,7 +22,7 @@ public static class StartupSetup
     {
       CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
       SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-      QueuePollInterval = TimeSpan.Zero,
+      QueuePollInterval = TimeSpan.Zero, //just for fire and forget jobs
       UseRecommendedIsolationLevel = true,
       DisableGlobalLocks = true
     }));

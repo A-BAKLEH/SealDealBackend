@@ -2,8 +2,8 @@
 using Autofac;
 using Clean.Architecture.Core.Config;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
-using Clean.Architecture.Core.ServiceInterfaces;
-using Clean.Architecture.Core.ServiceInterfaces.StripeInterfaces;
+using Clean.Architecture.Core.ExternalServiceInterfaces;
+using Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
 using Clean.Architecture.Infrastructure.Behaviors;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Infrastructure.Decorators;
@@ -104,26 +104,34 @@ public class DefaultInfrastructureModule : Module
     .InstancePerLifetimeScope();
 
     builder.RegisterAssemblyTypes(Assembly.GetAssembly(typeof(Agency)))
-            .AsClosedTypesOf(typeof(IDomainEventNotification<>)).InstancePerDependency();
+     .AsClosedTypesOf(typeof(IDomainEventNotification<>)).InstancePerDependency();
 
     builder.RegisterGenericDecorator(
-            typeof(DomainEventsDispatcherNotificationHandlerDecorator<>),
-            typeof(INotificationHandler<>));
+     typeof(DomainEventsDispatcherNotificationHandlerDecorator<>),
+     typeof(INotificationHandler<>));
 
     builder.RegisterType<DomainNotificationProcessor>()
-            .As<IDomainNotificationProcessor>().InstancePerLifetimeScope();
+    .As<IDomainNotificationProcessor>().InstancePerLifetimeScope();
 
     builder.RegisterType<EmailSender>().As<IEmailSender>()
-      .InstancePerLifetimeScope();
+    .InstancePerLifetimeScope();
 
 
-    builder.RegisterType<StripeService>()
-  .As<IStripeService>()
-  .InstancePerLifetimeScope();
+    builder.RegisterType<StripeCheckoutService>()
+    .As<IStripeCheckoutService>()
+    .InstancePerLifetimeScope();
+
+    builder.RegisterType<StripeBillingPortalService>()
+    .As<IStripeBillingPortalService>()
+    .InstancePerLifetimeScope();
+
+    builder.RegisterType<StripeSubscriptionService>()
+    .As<IStripeSubscriptionService>()
+    .InstancePerLifetimeScope();
 
     builder.RegisterType<MsGraphService>()
-      .As<IMsGraphService>()
-      .InstancePerLifetimeScope();
+    .As<IMsGraphService>()
+    .InstancePerLifetimeScope();
   }
 
   private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

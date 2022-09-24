@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.Core.SignupRequests.Signup;
+﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Core.MediatrRequests.SignupRequests;
 using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -24,7 +25,8 @@ public class SigninSignupController : BaseApiController
     if (newUserClaim == null)
     {
       Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-      return Ok(_authorizeService.signinSignupUserAsync(b2cID));
+      var res = await _authorizeService.signinSignupUserAsync(b2cID);
+      return Ok(res);
     }
     //signup
     var agencyName = l.Find(x => x.Type == "extension_AgencyName").Value;
@@ -37,7 +39,7 @@ public class SigninSignupController : BaseApiController
       b2cId = id,
       email = l.Find(x => x.Type == "emails").Value
     });
-    _logger.LogInformation("[{Tag}] New Agency Signed up with name {AgencyName} and admin B2cId {UserId}", "AgencySignup",agencyName,id);
+    _logger.LogInformation("[{Tag}] New Agency Signed up with name {AgencyName} and admin B2cId {UserId}", TagConstants.AgencySignup,agencyName,id);
     return Ok(signinResponseDTO);
   }
 }

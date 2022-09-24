@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.Core.Requests.StripeRequests;
+﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Core.MediatrRequests.StripeRequests;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.ApiModels.APIResponses;
@@ -28,16 +29,16 @@ public class PaymentController : BaseApiController
     var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
     if (!brokerTuple.Item3)
     {
-      _logger.LogWarning("non-admin mofo User with UserId {UserId} tried to create Checkout Session", brokerTuple.Item1.Id.ToString());
+      _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} tried to create Checkout Session", TagConstants.Unauthorized, brokerTuple.Item1.Id.ToString());
       return Forbid();
     }
     b2cBrokerId = brokerTuple.Item1.Id;
     AgencyID = brokerTuple.Item1.AgencyId;
     
     _logger.LogInformation("[{Tag}] Creating a CheckoutSession for User with UserId '{UserId}' in" +
-      " Agency with AgencyId {AgencyId} with PriceID {PriceID} and Quantity {Quantity}","CreateCheckoutSession",b2cBrokerId.ToString(),AgencyID,req.PriceId, req.Quantity);
+      " Agency with AgencyId {AgencyId} with PriceID {PriceID} and Quantity {Quantity}",TagConstants.CheckoutSession,b2cBrokerId.ToString(),AgencyID,req.PriceId, req.Quantity);
 
-    var sessionID = await _mediator.Send(new CreateCheckoutSessionCommand
+    var sessionID = await _mediator.Send(new CreateCheckoutSessionRequest
     {
       AgencyID = AgencyID,
       priceID = req.PriceId,
@@ -46,7 +47,7 @@ public class PaymentController : BaseApiController
 
     if (string.IsNullOrEmpty(sessionID)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID",$"session ID is {sessionID}",b2cBrokerId.ToString());
     _logger.LogInformation("[{Tag}] Created a CheckoutSession with ID {CheckoutSessionId} for User with UserId '{UserId}' in " +
-      "Agency with AgencyId {AgencyId}", "CheckoutSessionCreated", sessionID, b2cBrokerId.ToString(), AgencyID);
+      "Agency with AgencyId {AgencyId}", TagConstants.CheckoutSession, sessionID, b2cBrokerId.ToString(), AgencyID);
     return Ok(new CheckoutSessionResponse { SessionId = sessionID });
   }
 }

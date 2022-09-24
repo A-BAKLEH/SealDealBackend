@@ -1,8 +1,11 @@
 ﻿using System.Reflection;
 using Clean.Architecture.Core.Config;
+using Clean.Architecture.Core.Domain.ActionPlanAggregate;
+using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
+using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Infrastructure.Data;
@@ -16,6 +19,7 @@ public class AppDbContext : DbContext
   }
   public DbSet<Agency> Agencies => Set<Agency>();
   public DbSet<Listing> Listings => Set<Listing>();
+  public DbSet<LeadListing> LeadListing => Set<LeadListing>();
   public DbSet<Area> Areas => Set<Area>();
   public DbSet<Broker> Brokers => Set<Broker>();
   public DbSet<SmsTemplate> SmsTemplates => Set<SmsTemplate>();
@@ -25,9 +29,18 @@ public class AppDbContext : DbContext
 
   public DbSet<Lead> Leads => Set<Lead>();
   public DbSet<Note> Notes => Set<Note>();
-  public DbSet<History> Histories => Set<History>();
 
+  //Action Plans  + Notifications---------------
+  public DbSet<ActionBase> Actions => Set<ActionBase>();
+  public DbSet<ChangeLeadStatusAction> ChangeLeadStatusActions => Set<ChangeLeadStatusAction>();
+  public DbSet<SendEmailAction> SendEmailActions => Set<SendEmailAction>();
+  
 
+  public DbSet<ActionPlan> ActionPlans => Set<ActionPlan>();
+  public DbSet<ActionPlanAssociation> ActionPlanAssociations => Set<ActionPlanAssociation>();
+
+  public DbSet<ActionTracker> ActionTrackers => Set<ActionTracker>();
+  public DbSet<Notification> Notifications => Set<Notification>();
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     base.OnModelCreating(modelBuilder);

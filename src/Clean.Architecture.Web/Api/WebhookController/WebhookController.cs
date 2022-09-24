@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.Core.Requests.StripeRequests;
+﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Core.MediatrRequests.StripeRequests.WebhookRequests;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ControllerServices;
 using MediatR;
@@ -32,10 +33,10 @@ public class WebhookController : BaseApiController
       if (stripeEvent.Type == Events.CheckoutSessionCompleted)
       {
         var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-        _logger.BeginScope("[{Tag}] received {WebhookEvent} event with SessionId {SessionId}" +
-          " and SubscriptionId {SubscriptionId}", "Webhook", "CheckoutSessionCompleted",session.Id,session.SubscriptionId);
+        _logger.BeginScope("[{Tag}] received {WebhookEvent} event with CheckoutSessionId {CheckoutSessionId}" +
+          " and SubscriptionId {SubscriptionId}", TagConstants.Webhook, "CheckoutSessionCompleted",session.Id,session.SubscriptionId);
 
-        await _mediator.Send(new CheckoutSessionCompletedCommand
+        await _mediator.Send(new CheckoutSessionCompletedRequest
         {
           SessionID = session.Id,
           SusbscriptionID = session.SubscriptionId,
@@ -46,8 +47,8 @@ public class WebhookController : BaseApiController
       {
         var subscription = stripeEvent.Data.Object as Subscription;
         _logger.BeginScope("[{Tag}] received {WebhookEvent} event with " +
-          "SubscriptionId {SubscriptionId} and new Subscription Status {SubscriptionStatus}", "Webhook", "SubscriptionUpdated", subscription.Id, subscription.Status);
-        await _mediator.Send(new SubscriptionUpdatedCommand
+          "SubscriptionId {SubscriptionId} and new Subscription Status {SubscriptionStatus}", TagConstants.Webhook, "SubscriptionUpdated", subscription.Id, subscription.Status);
+        await _mediator.Send(new SubscriptionUpdatedRequest
         {
           SubscriptionId = subscription.Id,
           SubsStatus = subscription.Status,
@@ -68,7 +69,7 @@ public class WebhookController : BaseApiController
       else
       {
         // Unexpected event type
-        _logger.LogError("[{Tag}] Unhandled {WebhookEvent} event", "Webhook",stripeEvent.Type);
+        _logger.LogError("[{Tag}] Unhandled {WebhookEvent} event", TagConstants.Webhook,stripeEvent.Type);
       }
       return Ok();
     }
@@ -79,7 +80,7 @@ public class WebhookController : BaseApiController
     }
     catch(InconsistentStateException ex)
     {
-      _logger.LogError("[{Tag}] InconsistentStateException with Tag {InconsistentStateExcTag} and Details {InconsistentStateExcDetails} encountered", "Webhook",ex.tag, ex.details);
+      _logger.LogError("[{Tag}] InconsistentStateException with Tag {InconsistentStateExcTag} and Details {InconsistentStateExcDetails} encountered", TagConstants.Webhook, ex.tag, ex.details);
       return BadRequest();
     }
   }
