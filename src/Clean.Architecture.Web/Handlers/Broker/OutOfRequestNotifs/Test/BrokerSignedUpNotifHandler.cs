@@ -1,7 +1,7 @@
 ﻿using Clean.Architecture.Core.ExternalServiceInterfaces;
 using MediatR;
 
-namespace Clean.Architecture.Core.DomainNotifications.BrokerNotifs.Test;
+namespace Clean.Architecture.Web.DomainNotifications.BrokerNotifs.Test;
 public class BrokerSignedUpNotifHandler : INotificationHandler<BrokerSignedUpNotif>
 {
   private readonly IEmailSender _emailSender;

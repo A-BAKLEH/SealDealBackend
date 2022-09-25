@@ -1,5 +1,4 @@
-﻿
-using Clean.Architecture.Infrastructure.Data;
+﻿using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Infrastructure.Dispatching;
 using Clean.Architecture.SharedKernel;
 using MediatR;

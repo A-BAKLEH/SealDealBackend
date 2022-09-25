@@ -1,9 +1,9 @@
 ﻿
 using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Core.MediatrRequests.BrokerRequests;
 using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.ControllerServices;
+using Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

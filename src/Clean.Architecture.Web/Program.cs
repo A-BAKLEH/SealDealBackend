@@ -92,7 +92,7 @@ builder.Services.AddProblemDetails(x =>
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
   containerBuilder.RegisterModule(new DefaultCoreModule());
-  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development"));
+  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development", Assembly.GetExecutingAssembly()) );
   containerBuilder.RegisterModule(new WebModule(builder.Environment.EnvironmentName == "Development"));
 });
 //builder.Services.AddApplicationInsightsTelemetry();

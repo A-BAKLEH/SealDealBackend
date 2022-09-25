@@ -1,11 +1,11 @@
 ﻿
 using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Core.MediatrRequests.StripeRequests;
 using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.ApiModels.APIResponses;
 using Clean.Architecture.Web.ControllerServices;
+using Clean.Architecture.Web.MediatrRequests.StripeRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

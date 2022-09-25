@@ -37,6 +37,13 @@
   
   <ItemGroup>
     <Folder Include="Filters\" />
+    <Folder Include="Handlers\ActionPlan\EventHandlers\" />
+    <Folder Include="Handlers\ActionPlan\OutOfRequestHandler\" />
+    <Folder Include="Handlers\Agency\OutOfRequestNotifs\" />
+    <Folder Include="Handlers\Broker\EventHandlers\" />
+    <Folder Include="Handlers\Lead\EventHandlers\" />
+    <Folder Include="Handlers\Lead\OutOfRequestNotifs\" />
+    <Folder Include="Handlers\Notification\" />
   </ItemGroup>
   
 </Project>

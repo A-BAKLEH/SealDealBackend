@@ -23,16 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DomainServices\" />
     <Folder Include="Domain\ActionPlanAggregate\Actions\ExecuteParamsObjects\" />
     <Folder Include="Domain\ActionPlanAggregate\Events\" />
-    <Folder Include="Domain\ActionPlanAggregate\EventHandlers\" />
-    <Folder Include="Domain\BrokerAggregate\EventHandlers\" />
     <Folder Include="Domain\LeadAggregate\Events\" />
-    <Folder Include="Domain\LeadAggregate\EventHandlers\" />
-    <Folder Include="Domain\NotificationAggregate\EventHandlers\" />
-    <Folder Include="Domain\PaymentAggregate\" />
-    <Folder Include="DomainNotifications\AgencyNotifs\Test\" />
   </ItemGroup>
 
 </Project>

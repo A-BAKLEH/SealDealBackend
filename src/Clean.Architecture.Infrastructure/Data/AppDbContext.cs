@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
-using Clean.Architecture.Core.Config;
 using Clean.Architecture.Core.Domain.ActionPlanAggregate;
 using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
+using Clean.Architecture.SharedKernel.DomainNotifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Infrastructure.Data;

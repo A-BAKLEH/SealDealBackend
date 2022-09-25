@@ -6,7 +6,7 @@ using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.SharedKernel;
 using MediatR;
 
-namespace Clean.Architecture.Core.Domain.AgencyAggregate.EventHandlers;
+namespace Clean.Architecture.Web.Domain.AgencyAggregate.EventHandlers;
 public class TestEventHandler : INotificationHandler<TestEvent>
 {
   private readonly IRepository<Broker> _repo;

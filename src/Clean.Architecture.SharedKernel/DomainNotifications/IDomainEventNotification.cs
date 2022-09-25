@@ -1,6 +1,7 @@
-﻿using MediatR;
+﻿
+using MediatR;
 
-namespace Clean.Architecture.Core.Config;
+namespace Clean.Architecture.SharedKernel.DomainNotifications;
 public interface IDomainEventNotification<out TEventType> : IDomainEventNotification
 {
   TEventType DomainEvent { get; }

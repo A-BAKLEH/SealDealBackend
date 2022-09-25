@@ -6,7 +6,7 @@ using MediatR;
 using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.SharedKernel.Exceptions;
 
-namespace Clean.Architecture.Core.MediatrRequests.StripeRequests.WebhookRequests;
+namespace Clean.Architecture.Web.MediatrRequests.StripeRequests.WebhookRequests;
 public class CheckoutSessionCompletedRequest : IRequest
 {
   public string CustomerID { get; set; }

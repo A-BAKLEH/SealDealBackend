@@ -1,6 +1,6 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
-using Clean.Architecture.Core.MediatrRequests.SignupRequests;
 using Clean.Architecture.Web.ControllerServices;
+using Clean.Architecture.Web.MediatrRequests.SignupRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

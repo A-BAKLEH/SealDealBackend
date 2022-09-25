@@ -9,7 +9,7 @@ using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace Clean.Architecture.Core.MediatrRequests.BrokerRequests;
+namespace Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 public class AddBrokersRequest : IRequest<List<Broker>>, ITransactional
 {
   public Broker admin { get; set; }

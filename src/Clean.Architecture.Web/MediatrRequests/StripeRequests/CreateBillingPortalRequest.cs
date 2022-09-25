@@ -4,7 +4,7 @@ using Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 
-namespace Clean.Architecture.Core.MediatrRequests.StripeRequests;
+namespace Clean.Architecture.Web.MediatrRequests.StripeRequests;
 public class CreateBillingPortalRequest : IRequest<string>
 {
   public Guid BrokerId { get; set; }

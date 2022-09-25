@@ -1,12 +1,12 @@
 ﻿
-using Clean.Architecture.Core.Domain.ProjectAggregate;
+/*using Clean.Architecture.Core.Domain.ProjectAggregate;
 using Clean.Architecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web;
 
 public static class SeedData
-{
+{/*
   public static readonly Project TestProject1 = new Project("Test Project", PriorityStatus.Backlog);
   public static readonly ToDoItem ToDoItem1 = new ToDoItem
   {
@@ -39,8 +39,8 @@ public static class SeedData
 
 
     }*/
-  }
-  public static void PopulateTestData(AppDbContext dbContext)
+  //}
+ /* public static void PopulateTestData(AppDbContext dbContext)
   {
     /*foreach (var item in dbContext.Projects)
     {
@@ -57,6 +57,6 @@ public static class SeedData
     TestProject1.AddItem(ToDoItem3);
     dbContext.Projects.Add(TestProject1);
 
-    dbContext.SaveChanges();*/
+    dbContext.SaveChanges();*
   }
-}
+}*/

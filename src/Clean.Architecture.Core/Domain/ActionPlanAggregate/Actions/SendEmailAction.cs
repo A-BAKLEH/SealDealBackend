@@ -2,8 +2,8 @@
 public class SendEmailAction : ActionBase
 {
   
-  private const string EmailTemplateIdKey = "EmailTemplateId"; //int value
-  private const string EmailTextKey = "EmailText"; // string value
+  public const string EmailTemplateIdKey = "EmailTemplateId"; //int value
+  public const string EmailTextKey = "EmailText"; // string value
 
   public async override Task<Tuple<int?, string?>> Execute()
   {

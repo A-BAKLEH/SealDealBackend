@@ -1,8 +1,8 @@
 ﻿using Autofac;
 using Autofac.Core;
-using Clean.Architecture.Core.Config;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel;
+using Clean.Architecture.SharedKernel.DomainNotifications;
 using MediatR;
 
 namespace Clean.Architecture.Infrastructure.Dispatching;

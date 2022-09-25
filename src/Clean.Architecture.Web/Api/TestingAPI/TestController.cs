@@ -1,12 +1,18 @@
-﻿using Clean.Architecture.Core.Domain.AgencyAggregate;
+﻿using Clean.Architecture.Core.Domain.ActionPlanAggregate;
+using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
+using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate.Specifications;
+using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
-using Clean.Architecture.Core.MediatrRequests.AgencyRequests;
+using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Repositories;
+using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Graph;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
 [Route("api/[controller]")]
@@ -22,8 +28,11 @@ public class TestController : ControllerBase
   private readonly IRepository<Broker> _brokerRepo;
   private readonly IRepository<Agency> _agencyRepo;
   private readonly IRepository<Area> _areaRepo;
+
+  private readonly AppDbContext _appDbContext;
   public TestController(IMediator mediator, ILogger<TestController> logger, IMsGraphService msGraphService,
-    IRepository<Agency> agencyRepo, IRepository<Lead> leadRepo, IRepository<Broker> brokerRepo, IRepository<Area> areaRepo)
+    IRepository<Agency> agencyRepo, IRepository<Lead> leadRepo, IRepository<Broker> brokerRepo,
+    AppDbContext appDbContext ,IRepository<Area> areaRepo)
   {
     _mediator = mediator;
     _logger = logger;
@@ -32,6 +41,7 @@ public class TestController : ControllerBase
     _leadRepo = leadRepo;
     _brokerRepo = brokerRepo;
     _areaRepo = areaRepo;
+    _appDbContext = appDbContext;
   }
 
 
@@ -43,11 +53,45 @@ public class TestController : ControllerBase
   }
 
   [HttpGet("test-signup")]
-  public async Task<IActionResult> SigninSingupTest()
+  public async Task<IActionResult> SigninSignupTest()
+  {
+    var agency = _appDbContext.Agencies.Include(a => a.AgencyBrokers).ThenInclude(b => b.ActionPlans).FirstOrDefault(a => a.Id == 1);
+    var emailtemp = new EmailTemplate
+    {EmailTemplateSubject = "wlak", EmailTemplateText = "salut habibi qu'est ce pasee" };
+    agency.AgencyBrokers[0].EmailTemplates = new List<EmailTemplate> { emailtemp };
+    var act1 = new SendEmailAction
+    {
+      ActionLevel = 1,
+      NextActionDelay = "1:0:0",
+    };
+    act1.ActionProperties[SendEmailAction.EmailTemplateIdKey] = "1";
+
+    var actionplan = new ActionPlan
+    {
+      ActionsCount = 1,
+      AssignToLead = true,
+      isActive = true,
+      StopPlanOnInteraction = true,
+      Title = "first plan",
+      NotifsToListenTo = NotifType.EmailReceived | NotifType.SmsReceived | NotifType.Call,
+      Triggers = NotifType.LeadAssigned,
+      Actions = new List<ActionBase>
+      {
+        act1
+      }
+    };
+    agency.AgencyBrokers[0].ActionPlans.Add(actionplan);
+    _appDbContext.SaveChanges();
+    return Ok();
+  }
+
+  [HttpGet("test-schema")]
+  public async Task<IActionResult> TestNewSchema()
   {
     await _mediator.Send(new TestRequest1 { name = "abdul" });
     return Ok();
   }
+
   [HttpGet("test-stuff")]
   public async Task<IActionResult> TestStuff()
   {

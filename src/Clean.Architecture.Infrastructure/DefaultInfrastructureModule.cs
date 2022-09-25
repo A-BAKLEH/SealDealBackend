@@ -10,6 +10,7 @@ using Clean.Architecture.Infrastructure.Decorators;
 using Clean.Architecture.Infrastructure.Dispatching;
 using Clean.Architecture.Infrastructure.ExternalServices;
 using Clean.Architecture.Infrastructure.ExternalServices.Stripe;
+using Clean.Architecture.SharedKernel.DomainNotifications;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 using MediatR.Pipeline;

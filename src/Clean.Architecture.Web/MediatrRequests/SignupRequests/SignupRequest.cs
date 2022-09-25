@@ -5,7 +5,7 @@ using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 
-namespace Clean.Architecture.Core.MediatrRequests.SignupRequests;
+namespace Clean.Architecture.Web.MediatrRequests.SignupRequests;
 public class SignupRequest : IRequest<SigninResponseDTO>
 {
   public string AgencyName { get; set; }

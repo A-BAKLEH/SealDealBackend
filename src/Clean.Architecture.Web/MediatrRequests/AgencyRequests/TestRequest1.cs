@@ -4,7 +4,7 @@ using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 
-namespace Clean.Architecture.Core.MediatrRequests.AgencyRequests;
+namespace Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 public class TestRequest1 : IRequest, ITransactional
 {
   public string name { get; init; }

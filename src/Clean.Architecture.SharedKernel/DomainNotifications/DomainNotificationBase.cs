@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Clean.Architecture.Core.Config;
+namespace Clean.Architecture.SharedKernel.DomainNotifications;
 public class DomainNotificationBase<T> : IDomainEventNotification<T> where T : IDomainEvent
 {
   [JsonIgnore]

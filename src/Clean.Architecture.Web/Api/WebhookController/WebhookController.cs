@@ -1,7 +1,7 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
-using Clean.Architecture.Core.MediatrRequests.StripeRequests.WebhookRequests;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ControllerServices;
+using Clean.Architecture.Web.MediatrRequests.StripeRequests.WebhookRequests;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;

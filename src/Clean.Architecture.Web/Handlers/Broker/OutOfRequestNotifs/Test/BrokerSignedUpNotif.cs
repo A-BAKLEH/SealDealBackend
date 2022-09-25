@@ -1,8 +1,9 @@
-﻿using Clean.Architecture.Core.Config;
+﻿
 using Clean.Architecture.Core.Domain.BrokerAggregate.Events;
+using Clean.Architecture.SharedKernel.DomainNotifications;
 using Newtonsoft.Json;
 
-namespace Clean.Architecture.Core.DomainNotifications.BrokerNotifs.Test;
+namespace Clean.Architecture.Web.DomainNotifications.BrokerNotifs.Test;
 public class BrokerSignedUpNotif : DomainNotificationBase<BrokerSignedUpEvent>
 {
   public Guid brokerId { get; set; }

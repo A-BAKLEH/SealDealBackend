@@ -1,5 +1,5 @@
 ﻿
-using Clean.Architecture.Core.Config;
+using Clean.Architecture.SharedKernel.DomainNotifications;
 using MediatR;
 
 namespace Clean.Architecture.Infrastructure.Dispatching;
