@@ -26,7 +26,7 @@ public class PaymentController : BaseApiController
     Guid b2cBrokerId;
     int AgencyID;
 
-    var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value));
+    var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value),true);
     if (!brokerTuple.Item3)
     {
       _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} tried to create Checkout Session", TagConstants.Unauthorized, brokerTuple.Item1.Id.ToString());
@@ -40,7 +40,7 @@ public class PaymentController : BaseApiController
 
     var sessionID = await _mediator.Send(new CreateCheckoutSessionRequest
     {
-      AgencyID = AgencyID,
+      agency = brokerTuple.Item1.Agency,
       priceID = req.PriceId,
       Quantity = req.Quantity >= 1 ? req.Quantity : 1,
     });

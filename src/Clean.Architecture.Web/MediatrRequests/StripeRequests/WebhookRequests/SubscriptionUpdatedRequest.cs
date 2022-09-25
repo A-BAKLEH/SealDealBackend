@@ -4,6 +4,8 @@ using Clean.Architecture.Core.Domain.AgencyAggregate;
 using MediatR;
 using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.SharedKernel.Exceptions;
+using Clean.Architecture.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web.MediatrRequests.StripeRequests.WebhookRequests;
 public class SubscriptionUpdatedRequest : IRequest
@@ -16,11 +18,11 @@ public class SubscriptionUpdatedRequest : IRequest
 
 public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpdatedRequest>
 {
-  private readonly IRepository<Agency> _agencyRepository;
+  private readonly AppDbContext _appDbContext;
 
-  public SubscriptionUpdatedRequestHandler(IRepository<Agency> repository)
+  public SubscriptionUpdatedRequestHandler(AppDbContext appDbContext)
   {
-    _agencyRepository = repository;
+    _appDbContext = appDbContext;
   }
 
   public async Task<Unit> Handle(SubscriptionUpdatedRequest request, CancellationToken cancellationToken)
@@ -31,7 +33,7 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
 
     for (var i = 0; i < 3; i++)
     {
-      agency = await _agencyRepository.GetBySpecAsync(spec);
+      agency = await _appDbContext.Agencies.Include(a => a.AgencyBrokers.Take(1)).FirstOrDefaultAsync(a => a.StripeSubscriptionId == request.SubscriptionId);
       if (agency != null) break;
       else if (i < 2)
       {
@@ -50,7 +52,7 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
       admin.AccountActive = true;
       agency.NumberOfBrokersInSubscription = (int)request.quantity;
       agency.SubscriptionLastValidDate = request.currPeriodEnd;
-      await _agencyRepository.UpdateAsync(agency);
+      await _appDbContext.SaveChangesAsync();
     }
     else
     {

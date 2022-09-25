@@ -7,12 +7,10 @@ using Clean.Architecture.Core.Domain.LeadAggregate.Specifications;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
 [Route("api/[controller]")]
@@ -24,23 +22,13 @@ public class TestController : ControllerBase
   private readonly ILogger<TestController> _logger;
   private readonly IMsGraphService _graphService;
 
-  private readonly IRepository<Lead> _leadRepo;
-  private readonly IRepository<Broker> _brokerRepo;
-  private readonly IRepository<Agency> _agencyRepo;
-  private readonly IRepository<Area> _areaRepo;
-
   private readonly AppDbContext _appDbContext;
-  public TestController(IMediator mediator, ILogger<TestController> logger, IMsGraphService msGraphService,
-    IRepository<Agency> agencyRepo, IRepository<Lead> leadRepo, IRepository<Broker> brokerRepo,
-    AppDbContext appDbContext ,IRepository<Area> areaRepo)
+  public TestController(IMediator mediator, ILogger<TestController> logger,
+     AppDbContext appDbContext,IMsGraphService msGraphService)
   {
     _mediator = mediator;
     _logger = logger;
-    _graphService = msGraphService;
-    _agencyRepo = agencyRepo;
-    _leadRepo = leadRepo;
-    _brokerRepo = brokerRepo;
-    _areaRepo = areaRepo;
+
     _appDbContext = appDbContext;
   }
 
@@ -167,10 +155,10 @@ public class TestController : ControllerBase
     var agency = await _agencyRepo.GetBySpecAsync(spec);
     var listing = agency.AgencyListings[0];*/
 
-    var spec2 = new LeadByIdWithListings(1);
-    var lead = await _leadRepo.GetBySpecAsync(spec2);
-    lead.ListingsOfInterest.RemoveAll(x => x.ListingId ==1);
-    await _leadRepo.UpdateAsync(lead);
+    //var spec2 = new LeadByIdWithListings(1);
+    //var lead = await _leadRepo.GetBySpecAsync(spec2);
+    //lead.ListingsOfInterest.RemoveAll(x => x.ListingId ==1);
+    //await _leadRepo.UpdateAsync(lead);
 
     return Ok();
   }

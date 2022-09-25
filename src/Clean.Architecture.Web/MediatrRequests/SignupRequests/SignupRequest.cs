@@ -1,6 +1,7 @@
 ﻿using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs;
+using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
@@ -17,13 +18,11 @@ public class SignupRequest : IRequest<SigninResponseDTO>
 
 public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninResponseDTO>
 {
-  private readonly IRepository<Agency> _agencyRepo;
-  private readonly IReadRepository<Broker> _brokerRepo;
+  private readonly AppDbContext _appDbContext;
 
-  public SignupRequestHandler(IRepository<Agency> agencyRepository, IReadRepository<Broker> brokerRepo)
+  public SignupRequestHandler(AppDbContext appDbContext)
   {
-    _agencyRepo = agencyRepository;
-    _brokerRepo = brokerRepo;
+    _appDbContext = appDbContext;
   }
 
   /// <summary>
@@ -36,7 +35,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninRespons
   /// <returns></returns>
   public async Task<SigninResponseDTO> Handle(SignupRequest request, CancellationToken cancellationToken)
   {
-    if (_brokerRepo.GetByIdAsync(request.b2cId).Result != null)
+    if (_appDbContext.Brokers.FirstOrDefault(b => b.Id == request.b2cId) != null)
     {
       //log warning 
       throw new InconsistentStateException("SignupRequest-UserAlreadyInDatabase","broker with B2C ID already exists in Brokers table", request.b2cId.ToString());
@@ -59,7 +58,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninRespons
       NumberOfBrokersInDatabase = 1,
       AgencyBrokers = new List<Broker> { broker }
     };
-    await _agencyRepo.AddAsync(agency);
+    _appDbContext.Add(agency);
+    await _appDbContext.SaveChangesAsync();
     return new SigninResponseDTO
     {
       UserAccountStatus = "inactive",

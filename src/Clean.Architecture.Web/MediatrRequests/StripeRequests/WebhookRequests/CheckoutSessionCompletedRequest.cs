@@ -5,6 +5,8 @@ using Clean.Architecture.Core.Domain.AgencyAggregate;
 using MediatR;
 using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.SharedKernel.Exceptions;
+using Clean.Architecture.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web.MediatrRequests.StripeRequests.WebhookRequests;
 public class CheckoutSessionCompletedRequest : IRequest
@@ -16,15 +18,15 @@ public class CheckoutSessionCompletedRequest : IRequest
 
 public class CheckoutSessionCompletedRequestHandler : IRequestHandler<CheckoutSessionCompletedRequest>
 {
-  private readonly IRepository<Agency> _agencyRepository;
-  public CheckoutSessionCompletedRequestHandler(IRepository<Agency> agencyRepository)
+  private readonly AppDbContext _appDbContext;
+  public CheckoutSessionCompletedRequestHandler(AppDbContext appDbContext)
   {
-    _agencyRepository = agencyRepository;
+    _appDbContext = appDbContext;
   }
 
   public async Task<Unit> Handle(CheckoutSessionCompletedRequest request, CancellationToken cancellationToken)
   {
-    var agency = await _agencyRepository.GetBySpecAsync(new AgencyByCheckoutSessionID(request.SessionID));
+    var agency = await _appDbContext.Agencies.FirstOrDefaultAsync(a => a.LastCheckoutSessionID == request.SessionID);
     if (agency == null) throw new InconsistentStateException("HandleCheckoutSessionCompletedCommand", $"Agency with sessionId {request.SessionID} not found");
 
     if (agency.StripeSubscriptionStatus == StripeSubscriptionStatus.NoStripeSubscription)
@@ -37,7 +39,7 @@ public class CheckoutSessionCompletedRequestHandler : IRequestHandler<CheckoutSe
     {
       //TODO handle when there is already a StripeSubscription
     }
-    await _agencyRepository.UpdateAsync(agency);
+    await _appDbContext.SaveChangesAsync(cancellationToken);
     return Unit.Value;
   }
 }

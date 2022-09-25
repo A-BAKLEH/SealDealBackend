@@ -1,20 +1,21 @@
 ﻿
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Core.Domain.BrokerAggregate.Specifications;
 using Clean.Architecture.Core.DTOs;
+using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web.ControllerServices;
 
 public class AuthorizationService
 {
-  private readonly IReadRepository<Broker> _brokerRepository;
+  private readonly AppDbContext _appDbContext;
   private readonly ILogger<AuthorizationService> _logger;
-  public AuthorizationService(IReadRepository<Broker> repo, ILogger<AuthorizationService> logger)
+  public AuthorizationService(AppDbContext appDbContext ,ILogger<AuthorizationService> logger)
   {
-    _brokerRepository = repo;
+    _appDbContext = appDbContext;
     _logger = logger;
   }
   /// <summary>
@@ -25,9 +26,9 @@ public class AuthorizationService
   /// <exception cref="Exception"></exception>
   public async Task<Tuple<Broker, bool, bool>> AuthorizeUser(Guid id, Boolean includeAgency = false)
   {
-    Broker broker;
-    if(includeAgency) broker = await _brokerRepository.GetBySpecAsync(new BrokerByIdWithAgencySpec(id));
-    else broker = await _brokerRepository.GetByIdAsync(id);
+    Broker? broker;
+    if (includeAgency) broker = await _appDbContext.Brokers.Include(b =>b.Agency).FirstOrDefaultAsync(b => b.Id == id);
+    else broker = await _appDbContext.Brokers.FirstOrDefaultAsync(b => b.Id == id);
 
     if (broker == null) throw new InconsistentStateException("AuthorizeUser","Broker not found in DB",id.ToString());
     return Tuple.Create(broker, broker.AccountActive, broker.isAdmin);
@@ -36,7 +37,7 @@ public class AuthorizationService
   public async Task<SigninResponseDTO> signinSignupUserAsync(Guid id)
   {
     var response = new SigninResponseDTO();
-    var broker = await _brokerRepository.GetBySpecAsync(new BrokerByIdWithAgencySpec(id));
+    var broker = await _appDbContext.Brokers.Include(b => b.Agency).FirstOrDefaultAsync(b => b.Id == id);
     if (broker == null) throw new InconsistentStateException("SigninSignup","Broker not found in DB",id.ToString());
     //TODO: maybe handle if account is active but subscription is not?
     if (broker.AccountActive)

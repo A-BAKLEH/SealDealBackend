@@ -61,10 +61,10 @@ public class DefaultInfrastructureModule : Module
 
   private void RegisterCommonDependencies(ContainerBuilder builder)
   {
-    builder.RegisterGeneric(typeof(EfRepository<>))
+    /*builder.RegisterGeneric(typeof(EfRepository<>))
       .As(typeof(IRepository<>))
       .As(typeof(IReadRepository<>))
-      .InstancePerLifetimeScope();
+      .InstancePerLifetimeScope();*/
 
     builder
       .RegisterType<Mediator>()

@@ -4,6 +4,7 @@ using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
+using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
@@ -21,13 +22,13 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
   private readonly IStripeSubscriptionService _stripeSubscriptionService;
   private readonly ILogger<AddBrokersRequestHandler> _logger;
   private readonly IMsGraphService _msGraphService;
-  private readonly IRepository<Agency> _repository;
-  public AddBrokersRequestHandler(IStripeSubscriptionService stripeService, IMsGraphService graphService, IRepository<Agency> repository, ILogger<AddBrokersRequestHandler> logger)
+  private readonly AppDbContext _appDbContext;
+  public AddBrokersRequestHandler(IStripeSubscriptionService stripeService, IMsGraphService graphService, AppDbContext appDbContext, ILogger<AddBrokersRequestHandler> logger)
   {
     _stripeSubscriptionService = stripeService;
     _logger = logger;
     _msGraphService = graphService;
-    _repository = repository;
+    _appDbContext = appDbContext;
   }
 
   public async Task<List<Broker>> Handle(AddBrokersRequest request, CancellationToken cancellationToken)
@@ -67,7 +68,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
     agency.AgencyBrokers.AddRange(request.brokers);
     agency.NumberOfBrokersInSubscription = FinalQuantity;
     agency.NumberOfBrokersInDatabase = agency.NumberOfBrokersInDatabase + request.brokers.Count;
-    await _repository.UpdateAsync(agency);
+    await _appDbContext.SaveChangesAsync();
     return failedBrokers;
   }
 }

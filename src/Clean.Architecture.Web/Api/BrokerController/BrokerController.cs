@@ -45,8 +45,8 @@ public class BrokerController : BaseApiController
       _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} or Non-paying tried to add brokers", TagConstants.Unauthorized, id);
       return Unauthorized();
     }
-    //var agencyObject = _agencyRepository.GetById(adminObj.AgencyId);
     var command = new AddBrokersRequest();
+    command.admin = brokerTuple.Item1;
     List<NewBrokerDTO> nonValidBrokers = new();
     foreach (var broker in brokers)
     {
@@ -62,7 +62,6 @@ public class BrokerController : BaseApiController
     if (nonValidBrokers.Count > 0) return BadRequest(nonValidBrokers);
     var failedBrokers = await _mediator.Send(command);
     return Ok(failedBrokers);
-
   }
 
   static bool BrokerDTOValid(NewBrokerDTO brokerDTO)

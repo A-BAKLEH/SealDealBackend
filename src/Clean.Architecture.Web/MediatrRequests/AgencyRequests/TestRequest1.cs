@@ -1,5 +1,6 @@
 ﻿using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.AgencyAggregate.Events;
+using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel;
 using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
@@ -13,11 +14,11 @@ public class TestRequest1 : IRequest, ITransactional
 
 public class TestRequest1Handler : IRequestHandler<TestRequest1>
 {
-  public readonly IRepository<Agency> _repo;
+  public readonly AppDbContext _AppDbContext;
   private readonly IExecutionContextAccessor _accessor;
-  public TestRequest1Handler(IRepository<Agency> repository, IExecutionContextAccessor accessor)
+  public TestRequest1Handler(AppDbContext appDbContext, IExecutionContextAccessor accessor)
   {
-    _repo = repository;
+    _AppDbContext = appDbContext;
     _accessor = accessor;
   }
   public async Task<Unit> Handle(TestRequest1 request, CancellationToken cancellationToken)
