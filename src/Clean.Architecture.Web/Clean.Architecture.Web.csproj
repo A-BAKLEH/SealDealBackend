@@ -44,6 +44,7 @@
     <Folder Include="Handlers\Lead\EventHandlers\" />
     <Folder Include="Handlers\Lead\OutOfRequestNotifs\" />
     <Folder Include="Handlers\Notification\" />
+    <Folder Include="MediatrRequests\EmailRequests\" />
   </ItemGroup>
   
 </Project>

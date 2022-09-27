@@ -26,7 +26,7 @@ public class CheckoutSessionCompletedRequestHandler : IRequestHandler<CheckoutSe
 
   public async Task<Unit> Handle(CheckoutSessionCompletedRequest request, CancellationToken cancellationToken)
   {
-    var agency = await _appDbContext.Agencies.FirstOrDefaultAsync(a => a.LastCheckoutSessionID == request.SessionID);
+    var agency = await _appDbContext.Agencies.OrderByDescending(a => a.Id).FirstOrDefaultAsync(a => a.LastCheckoutSessionID == request.SessionID);
     if (agency == null) throw new InconsistentStateException("HandleCheckoutSessionCompletedCommand", $"Agency with sessionId {request.SessionID} not found");
 
     if (agency.StripeSubscriptionStatus == StripeSubscriptionStatus.NoStripeSubscription)

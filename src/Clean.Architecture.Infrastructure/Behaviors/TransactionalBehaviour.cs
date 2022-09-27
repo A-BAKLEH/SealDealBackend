@@ -7,12 +7,12 @@ namespace Clean.Architecture.Infrastructure.Behaviors;
 public class TransactionalBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : ITransactional, IRequest<TResponse>
 {
-  private AppDbContext _orderContext;
+  private AppDbContext _dbContext;
   private readonly IDomainEventsDispatcher _domainEventsDispatcher;
 
   public TransactionalBehavior(AppDbContext context, IDomainEventsDispatcher dispatcher)
   {
-    _orderContext = context;
+    _dbContext = context;
     _domainEventsDispatcher = dispatcher;
   }
 
@@ -27,7 +27,7 @@ public class TransactionalBehavior<TRequest, TResponse> : IPipelineBehavior<TReq
       //return await _scopeHandler.RunInTransactionScope(()=> next());
       //Begin Transaction is not used cuz maybe nested transactinos created?? internet doesnt think so
       //using var scope =  new TransactionScope(TransactionScopeOption.Required, DefaultTransactionOptions, TransactionScopeAsyncFlowOption.Enabled);
-      using var transaction = _orderContext.Database.BeginTransaction();
+      using var transaction = _dbContext.Database.BeginTransaction();
       var result = await next();
 
       //allows saving inside scope

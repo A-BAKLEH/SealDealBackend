@@ -87,7 +87,8 @@ builder.Services.AddProblemDetails(x =>
   options.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
 });*/
 
-
+//add redis in production instead
+if(builder.Environment.IsDevelopment()) builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {

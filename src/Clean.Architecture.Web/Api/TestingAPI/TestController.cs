@@ -7,6 +7,7 @@ using Clean.Architecture.Core.Domain.LeadAggregate.Specifications;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.Web.Cache.Extensions;
 using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -30,6 +31,17 @@ public class TestController : ControllerBase
     _logger = logger;
 
     _appDbContext = appDbContext;
+  }
+
+  [HttpGet("test-stream")]
+  public async Task<IActionResult> StreamdTest()
+  {
+    var agency = new Agency {Id = 3, AdminStripeId = "stripeid" };
+    var bytes = agency.ToByteArray<Agency>();
+
+    var a1 = bytes.FromByteArray<Agency>();
+
+    return Ok();
   }
 
 

@@ -5,6 +5,7 @@ using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
+using Clean.Architecture.Core.Domain.TasksAggregate;
 using Clean.Architecture.SharedKernel.DomainNotifications;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,6 +36,9 @@ public class AppDbContext : DbContext
   public DbSet<ChangeLeadStatusAction> ChangeLeadStatusActions => Set<ChangeLeadStatusAction>();
   public DbSet<SendEmailAction> SendEmailActions => Set<SendEmailAction>();
   
+  public DbSet<RecurrentTaskBase> RecurrentTasks => Set<RecurrentTaskBase>();
+  public DbSet<FetchEmailsTask> FetchEmailsTasks => Set<FetchEmailsTask>();
+  public DbSet<FetchSmsTask> FetchSmsTasks => Set<FetchSmsTask>();
 
   public DbSet<ActionPlan> ActionPlans => Set<ActionPlan>();
   public DbSet<ActionPlanAssociation> ActionPlanAssociations => Set<ActionPlanAssociation>();

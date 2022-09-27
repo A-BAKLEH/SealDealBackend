@@ -30,7 +30,8 @@ public class TestRequest1Handler : IRequestHandler<TestRequest1>
       NumberOfBrokersInSubscription = 0,
       StripeSubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription
     };
-    await _repo.AddAsync(agency);
+    _AppDbContext.Add(agency);
+    await _AppDbContext.SaveChangesAsync();
     Console.WriteLine($"handler Request id : {_accessor.CorrelationId}");
     agency.AddDomainEvent(new TestEvent { AgencyId = agency.Id});
     return Unit.Value;

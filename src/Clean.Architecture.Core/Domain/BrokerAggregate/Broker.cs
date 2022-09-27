@@ -19,7 +19,6 @@ public class Broker : Entity<Guid>, IAggregateRoot
   public string? PhoneNumber { get; set; }
   public string LoginEmail { get; set; }
   public string? FirstConnectedEmail { get; set; }
-  public string? SecondaryConnectedEmail { get; set; }
   public DateTime Created { get; set; } = DateTime.UtcNow;
   /// <summary>
   /// Notif types that can act as trigger/stoppage/etc in Broker's active Action Plans

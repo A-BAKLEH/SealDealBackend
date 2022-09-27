@@ -9,7 +9,7 @@ public class BrokerConfiguration : IEntityTypeConfiguration<Broker>
   public void Configure(EntityTypeBuilder<Broker> builder)
   {
     builder.Property(b => b.Id).ValueGeneratedNever();
-
+    builder.HasIndex(b => b.FirstConnectedEmail);
   }
 
 }

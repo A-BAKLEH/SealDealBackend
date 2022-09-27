@@ -6,12 +6,12 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
 
-namespace Clean.Architecture.Web.Api.WebhookController;
+namespace Clean.Architecture.Web.Api.StripeController;
 
-public class WebhookController : BaseApiController
+public class StripeWebhookController : BaseApiController
 {
-  private readonly ILogger<WebhookController> _logger;
-  public WebhookController(AuthorizationService authorizeService, IMediator mediator,ILogger<WebhookController> logger) : base(authorizeService, mediator)
+  private readonly ILogger<StripeWebhookController> _logger;
+  public StripeWebhookController(AuthorizationService authorizeService, IMediator mediator,ILogger<StripeWebhookController> logger) : base(authorizeService, mediator)
   {
     _logger = logger;
   }
