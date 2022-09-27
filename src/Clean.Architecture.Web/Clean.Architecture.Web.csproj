@@ -12,10 +12,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="Ardalis.ApiEndpoints" />
-    <PackageReference Include="Ardalis.ListStartupServices" />
-    <PackageReference Include="Ardalis.Result" />
-    <PackageReference Include="Ardalis.Result.AspNetCore" />
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
@@ -37,13 +33,13 @@
   
   <ItemGroup>
     <Folder Include="Filters\" />
-    <Folder Include="Handlers\ActionPlan\EventHandlers\" />
-    <Folder Include="Handlers\ActionPlan\OutOfRequestHandler\" />
-    <Folder Include="Handlers\Agency\OutOfRequestNotifs\" />
-    <Folder Include="Handlers\Broker\EventHandlers\" />
-    <Folder Include="Handlers\Lead\EventHandlers\" />
-    <Folder Include="Handlers\Lead\OutOfRequestNotifs\" />
-    <Folder Include="Handlers\Notification\" />
+    <Folder Include="Handlers\ActionPlanHandlers\EventHandlers\" />
+    <Folder Include="Handlers\ActionPlanHandlers\OutOfRequestHandler\" />
+    <Folder Include="Handlers\AgencyHandlers\OutOfRequestNotifs\" />
+    <Folder Include="Handlers\BrokerHandlers\EventHandlers\" />
+    <Folder Include="Handlers\LeadHandlers\EventHandlers\" />
+    <Folder Include="Handlers\LeadHandlers\OutOfRequestNotifs\" />
+    <Folder Include="Handlers\NotificationHandlers\" />
     <Folder Include="MediatrRequests\EmailRequests\" />
   </ItemGroup>
   

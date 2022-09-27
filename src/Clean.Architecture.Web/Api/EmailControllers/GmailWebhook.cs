@@ -4,6 +4,7 @@ using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.Cache;
 using Clean.Architecture.Web.Cache.Extensions;
 using Clean.Architecture.Web.ControllerServices;
+using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +44,7 @@ public class GmailWebhook : BaseApiController
         if(FetchEmailsTaskCached.taskStatus != HangfireTaskStatus.Scheduled)
         {
             //schedule HAngfire Job and update FetchEmailsTask
+            //var id = BackgroundJob.Schedule<>
             _appDbContext.Attach(FetchEmailsTaskCached);
             await _appDbContext.SaveChangesAsync();    
         }

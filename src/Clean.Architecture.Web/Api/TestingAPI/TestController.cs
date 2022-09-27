@@ -2,8 +2,6 @@
 using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Core.Domain.LeadAggregate;
-using Clean.Architecture.Core.Domain.LeadAggregate.Specifications;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;

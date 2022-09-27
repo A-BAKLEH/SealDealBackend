@@ -1,8 +1,6 @@
 ﻿
-using Clean.Architecture.Core.Domain.AgencyAggregate.Specifications;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using MediatR;
-using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -27,7 +25,6 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
 
   public async Task<Unit> Handle(SubscriptionUpdatedRequest request, CancellationToken cancellationToken)
   {
-    var spec = new AgencyBySubsIDWithBrokers(request.SubscriptionId);
     Agency? agency = null;
     //CheckoutSessionCompleted event might not be fully processed yet
 

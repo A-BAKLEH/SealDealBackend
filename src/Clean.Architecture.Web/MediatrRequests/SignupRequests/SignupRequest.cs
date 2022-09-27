@@ -3,7 +3,6 @@ using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;
-using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 
 namespace Clean.Architecture.Web.MediatrRequests.SignupRequests;

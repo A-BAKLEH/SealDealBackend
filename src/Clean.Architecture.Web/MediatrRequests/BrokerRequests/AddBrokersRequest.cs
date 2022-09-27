@@ -1,14 +1,11 @@
 ﻿
 using Clean.Architecture.Core.Config.Constants.LoggingConstants;
-using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel;
-using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 public class AddBrokersRequest : IRequest<List<Broker>>, ITransactional

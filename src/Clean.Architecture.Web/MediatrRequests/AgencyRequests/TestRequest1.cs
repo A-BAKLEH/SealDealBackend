@@ -2,7 +2,6 @@
 using Clean.Architecture.Core.Domain.AgencyAggregate.Events;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel;
-using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 
 namespace Clean.Architecture.Web.MediatrRequests.AgencyRequests;

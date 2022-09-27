@@ -1,19 +1,18 @@
 ﻿
 using Clean.Architecture.Core.Domain.AgencyAggregate.Events;
 using Clean.Architecture.Core.Domain.BrokerAggregate.Events;
-using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.SharedKernel.Repositories;
 using Clean.Architecture.SharedKernel;
 using MediatR;
+using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 
-namespace Clean.Architecture.Web.Domain.AgencyAggregate.EventHandlers;
+namespace Clean.Architecture.Web.Handlers.AgencyHandlers.EventHandlers;
 public class TestEventHandler : INotificationHandler<TestEvent>
 {
-  private readonly IRepository<Broker> _repo;
-
-  public TestEventHandler(IRepository<Broker> repo, IExecutionContextAccessor accessor)
+  private readonly AppDbContext _appDbContext;
+  public TestEventHandler(AppDbContext appDbContext, IExecutionContextAccessor accessor)
   {
-    _repo = repo;
+    _appDbContext = appDbContext;
     Console.WriteLine($"test event handler id : {accessor.CorrelationId}");
   }
 
@@ -31,7 +30,8 @@ public class TestEventHandler : INotificationHandler<TestEvent>
       LoginEmail = "lol@com",
       LastName = "abdul",
     };
-    await _repo.AddAsync(broker);
+    _appDbContext.Add(broker);
+    await _appDbContext.SaveChangesAsync();
     broker.AddDomainEvent(new BrokerSignedUpEvent { brokerId = broker.Id });
   }
 }

@@ -10,8 +10,6 @@ using Hangfire;
 using Clean.Architecture.Web;
 using Clean.Architecture.Web.Config;
 using Hellang.Middleware.ProblemDetails;
-using Clean.Architecture.Web.Config.ProblemDetails;
-using Clean.Architecture.SharedKernel.BusinessRules;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,7 +51,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddProblemDetails(x =>
 {
   //x.Map<InvalidCommandException>(ex => new InvalidCommandProblemDetails(ex));
-  x.Map<BusinessRuleValidationException>(ex => new BusinessRuleValidationExceptionProblemDetails(ex));
 });
 
 /*builder.Services.AddProblemDetails(options =>
