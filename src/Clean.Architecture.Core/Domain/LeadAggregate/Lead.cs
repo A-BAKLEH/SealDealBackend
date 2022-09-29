@@ -4,7 +4,6 @@ using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.SharedKernel;
-using Clean.Architecture.SharedKernel.Repositories;
 
 namespace Clean.Architecture.Core.Domain.LeadAggregate;
 
@@ -13,7 +12,7 @@ public enum LeadStatus
   New, Active, Client, Closed, Dead
 }
 
-public class Lead : Entity<int>, IAggregateRoot
+public class Lead : Entity<int>
 {
   public int AgencyId { get; set; }
   public Agency Agency { get; set; }

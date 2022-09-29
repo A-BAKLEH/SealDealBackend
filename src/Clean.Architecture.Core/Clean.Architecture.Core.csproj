@@ -8,14 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ardalis.GuardClauses" />
-    <PackageReference Include="Ardalis.Result" />
-    <PackageReference Include="Ardalis.SmartEnum" />
-    <PackageReference Include="Ardalis.Specification" />
     <PackageReference Include="Autofac" />
-    <PackageReference Include="MediatR" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +19,7 @@
     <Folder Include="Domain\ActionPlanAggregate\Actions\ExecuteParamsObjects\" />
     <Folder Include="Domain\ActionPlanAggregate\Events\" />
     <Folder Include="Domain\LeadAggregate\Events\" />
+    <Folder Include="ExternalServiceInterfaces\Hangfire\NewFolder\" />
   </ItemGroup>
 
 </Project>

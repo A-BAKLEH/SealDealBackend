@@ -3,5 +3,5 @@ public interface IDomainEventsDispatcher
 {
   Task DispatchDomainEventsAsync();
 
-  Task EnqueueDomainEventNotificationsAsync();
+  void EnqueueDomainEventNotifications();
 }

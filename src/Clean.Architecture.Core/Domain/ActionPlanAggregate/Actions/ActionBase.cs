@@ -1,6 +1,5 @@
 ﻿
 using Clean.Architecture.SharedKernel;
-using Newtonsoft.Json;
 
 namespace Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
 public abstract class ActionBase: Entity<int>

@@ -1,4 +1,4 @@
-﻿using Clean.Architecture.SharedKernel.BusinessRules;
+﻿
 namespace Clean.Architecture.SharedKernel;
 public abstract class EntityBase
 {
@@ -32,13 +32,5 @@ public abstract class EntityBase
   public void ClearDomainEvents()
   {
     _domainEvents?.Clear();
-  }
-
-  public static void CheckRule(IBusinessRule rule)
-  {
-    if (rule.IsBroken())
-    {
-      throw new BusinessRuleValidationException(rule);
-    }
   }
 }

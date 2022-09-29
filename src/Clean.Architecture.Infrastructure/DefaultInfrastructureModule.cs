@@ -1,17 +1,14 @@
 ﻿using System.Reflection;
 using Autofac;
-using Clean.Architecture.Core.Config;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
 using Clean.Architecture.Infrastructure.Behaviors;
-using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Infrastructure.Decorators;
 using Clean.Architecture.Infrastructure.Dispatching;
 using Clean.Architecture.Infrastructure.ExternalServices;
 using Clean.Architecture.Infrastructure.ExternalServices.Stripe;
 using Clean.Architecture.SharedKernel.DomainNotifications;
-using Clean.Architecture.SharedKernel.Repositories;
 using MediatR;
 using MediatR.Pipeline;
 using Module = Autofac.Module;
@@ -61,16 +58,10 @@ public class DefaultInfrastructureModule : Module
 
   private void RegisterCommonDependencies(ContainerBuilder builder)
   {
-    /*builder.RegisterGeneric(typeof(EfRepository<>))
-      .As(typeof(IRepository<>))
-      .As(typeof(IReadRepository<>))
-      .InstancePerLifetimeScope();*/
-
     builder
       .RegisterType<Mediator>()
       .As<IMediator>()
       .InstancePerLifetimeScope();
-
 
     builder.Register<ServiceFactory>(context =>
     {

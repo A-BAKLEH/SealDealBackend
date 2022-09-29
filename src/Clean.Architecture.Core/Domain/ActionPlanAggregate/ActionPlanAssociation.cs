@@ -1,7 +1,6 @@
 ﻿
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.SharedKernel;
-using Clean.Architecture.SharedKernel.Repositories;
 
 namespace Clean.Architecture.Core.Domain.ActionPlanAggregate;
 public class ActionPlanAssociation: Entity<int>

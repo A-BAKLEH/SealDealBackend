@@ -37,7 +37,7 @@ public class TransactionalBehavior<TRequest, TResponse> : IPipelineBehavior<TReq
       //and awaits new Domain Events and adds Outbox events to DbContext'list
       await _domainEventsDispatcher.DispatchDomainEventsAsync();
       //Enqueue outbox commands
-      await _domainEventsDispatcher.EnqueueDomainEventNotificationsAsync();
+      _domainEventsDispatcher.EnqueueDomainEventNotifications();
       transaction.Commit();
 
       //dispatch domain events just like done with Sample project is fine BUT MAKE SURE DomainEventNotifs

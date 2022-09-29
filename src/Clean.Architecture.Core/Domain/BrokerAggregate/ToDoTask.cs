@@ -4,9 +4,6 @@ namespace Clean.Architecture.Core.Domain.BrokerAggregate;
 
 public class ToDoTask : Entity<int>
 { 
-
-  //public int? AgencyId { get; set; }
-  //public Agency? Agency { get; set; }
   public string TaskText { get; set; }
   public DateTime TaskDueDate { get; set; }
 

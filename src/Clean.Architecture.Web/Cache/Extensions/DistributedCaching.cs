@@ -1,16 +1,26 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
-
+﻿using System.Text.Json;
+using Microsoft.Extensions.Caching.Distributed;
 namespace Clean.Architecture.Web.Cache.Extensions;
 
 public static class DistributedCaching
 {
-  public static async Task SetAsync<T>(this IDistributedCache distributedCache, string key, T value, DistributedCacheEntryOptions options, CancellationToken token = default) where T : class
+  public static async Task<T?> GetFromCacheAsync<T>(this IDistributedCache distributedCache,string key, CancellationToken token = default) where T : class
   {
-    await distributedCache.SetAsync(key, value.ToByteArray<T>(), options, token);
+    var cachedResponse = await distributedCache.GetStringAsync(key, token);
+    return cachedResponse == null ? null : JsonSerializer.Deserialize<T>(cachedResponse);
   }
-  public static async Task<T> GetAsync<T>(this IDistributedCache distributedCache, string key, CancellationToken token = default) where T : class
+  public static async Task SetCacheAsync<T>(this IDistributedCache distributedCache,string key, T value, DistributedCacheEntryOptions options, CancellationToken token = default) where T : class
   {
-    var result = await distributedCache.GetAsync(key, token);
-    return result.FromByteArray<T>();
+    var response = JsonSerializer.Serialize(value);
+    await distributedCache.SetStringAsync(key, response, options, token);
+  }
+
+  public static bool TryGetValue<T>(this IDistributedCache distributedCache, string key, out T? value)
+  {
+    var val = distributedCache.GetString(key);
+    value = default;
+    if (val == null) return false;
+    value = JsonSerializer.Deserialize<T>(val);
+    return true;
   }
 }

@@ -20,7 +20,7 @@ var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformation
 builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
   .WriteTo.Seq("http://localhost:5341", restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
   .Enrich.FromLogContext()
-  .Enrich.WithProperty("AppVersion",version));
+  .Enrich.WithProperty("AppVersion", version));
 
 builder.Services.AddHangfire(builder.Configuration.GetConnectionString("DefaultConnection"));
 /*builder.Services.Configure<CookiePolicyOptions>(options =>
@@ -36,7 +36,7 @@ builder.Services.AddSwaggerGen();
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
-  options.AddPolicy(name: MyAllowSpecificOrigins,policy => { policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();});
+  options.AddPolicy(name: MyAllowSpecificOrigins, policy => { policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddMicrosoftIdentityWebApi(options =>
@@ -85,12 +85,15 @@ builder.Services.AddProblemDetails(x =>
 });*/
 
 //add redis in production instead
-if(builder.Environment.IsDevelopment()) builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
+if (builder.Environment.IsDevelopment())
+{
+  builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
+}
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
   containerBuilder.RegisterModule(new DefaultCoreModule());
-  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development", Assembly.GetExecutingAssembly()) );
+  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development", Assembly.GetExecutingAssembly()));
   containerBuilder.RegisterModule(new WebModule(builder.Environment.EnvironmentName == "Development"));
 });
 //builder.Services.AddApplicationInsightsTelemetry();

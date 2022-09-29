@@ -19,4 +19,11 @@ public abstract class RecurrentTaskBase : Entity<int>
 /// <summary>
 /// will start empty with NoTask then as a task is updated it will be switched between Scheduled and Done
 /// </summary>
-public enum HangfireTaskStatus { NoTask, Scheduled,Done}
+public enum HangfireTaskStatus {
+  NoTask,
+  Scheduled,
+  Done,
+  /// <summary>
+  /// To use only in Cache
+  /// </summary>
+  Processing}

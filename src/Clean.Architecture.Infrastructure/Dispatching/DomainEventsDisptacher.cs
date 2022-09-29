@@ -60,19 +60,8 @@ public class DomainEventsDispatcher : IDomainEventsDispatcher
         });
 
     await Task.WhenAll(tasks);
-
-    /*foreach (var domainEventNotification in domainEventNotifications)
-    {
-        string type = domainEventNotification.GetType().FullName;
-        var data = JsonConvert.SerializeObject(domainEventNotification);
-        OutboxMessage outboxMessage = new OutboxMessage(
-            domainEventNotification.DomainEvent.OccurredOn,
-            type,
-            data);
-        this._ordersContext.OutboxMessages.Add(outboxMessage);
-    }*/
   }
-  public async Task EnqueueDomainEventNotificationsAsync()
+  public void EnqueueDomainEventNotifications()
   {
     if (_ordersContext.DomainEventNotifications == null) return;
     foreach (var domainEventNotification in _ordersContext.DomainEventNotifications)
@@ -87,7 +76,6 @@ public class DomainEventsDispatcher : IDomainEventsDispatcher
       Console.WriteLine("enquing domainEventNotification");
       var id = Hangfire.BackgroundJob.Enqueue<IDomainNotificationProcessor>(x => x.ProcessDomainEventNotificationAsync(domainEventNotification));
       Console.WriteLine($"job id is {id} enqueued into hangfire by thread {Thread.CurrentThread.ManagedThreadId} at {DateTime.UtcNow}");
-      //Hangfire.BackgroundJob.Schedule
     }
     _ordersContext.ClearDomainEventNotifications();
   }

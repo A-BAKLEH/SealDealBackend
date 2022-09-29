@@ -31,17 +31,6 @@ public class TestController : ControllerBase
     _appDbContext = appDbContext;
   }
 
-  [HttpGet("test-stream")]
-  public async Task<IActionResult> StreamdTest()
-  {
-    var agency = new Agency {Id = 3, AdminStripeId = "stripeid" };
-    var bytes = agency.ToByteArray<Agency>();
-
-    var a1 = bytes.FromByteArray<Agency>();
-
-    return Ok();
-  }
-
 
   [HttpGet("test-azuread")]
   public async Task<IActionResult> azureadTest()

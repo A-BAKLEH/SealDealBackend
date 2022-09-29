@@ -1,7 +1,6 @@
 ﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.SharedKernel;
-using Clean.Architecture.SharedKernel.Repositories;
 
 namespace Clean.Architecture.Core.Domain.AgencyAggregate;
 
@@ -9,7 +8,7 @@ public enum StripeSubscriptionStatus {
   SubscriptionCancelled, Active, NoStripeSubscription, SubscriptionPaused, CreatedWaitingForStatus
 }
 
-public class Agency : Entity<int> , IAggregateRoot
+public class Agency : Entity<int>
 { 
   public string AgencyName { get; set; }
 

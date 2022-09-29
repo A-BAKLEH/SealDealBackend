@@ -5,9 +5,6 @@ namespace Clean.Architecture.Core.Domain.BrokerAggregate;
 
 public class Tag : Entity<int>
 { 
-
-  //public int? AgencyId { get; set; }
-  //public Agency? Agency { get; set; }
   public string TagName { get; set; }
 
   public Broker Broker { get; set; }
