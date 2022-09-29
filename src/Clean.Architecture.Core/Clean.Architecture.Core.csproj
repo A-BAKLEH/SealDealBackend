@@ -19,7 +19,6 @@
     <Folder Include="Domain\ActionPlanAggregate\Actions\ExecuteParamsObjects\" />
     <Folder Include="Domain\ActionPlanAggregate\Events\" />
     <Folder Include="Domain\LeadAggregate\Events\" />
-    <Folder Include="ExternalServiceInterfaces\Hangfire\NewFolder\" />
   </ItemGroup>
 
 </Project>
