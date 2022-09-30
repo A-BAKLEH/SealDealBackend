@@ -4,7 +4,7 @@ using Clean.Architecture.SharedKernel;
 namespace Clean.Architecture.Core.Domain.TasksAggregate;
 public abstract class RecurrentTaskBase : Entity<int>
 {
-  public int? BrokerId { get; set; }
+  public Guid? BrokerId { get; set; }
   public Broker Broker { get; set; }
   public string? HangfireTaskId { get; set; }
   public DateTime? ScheduledTime { get; set;}

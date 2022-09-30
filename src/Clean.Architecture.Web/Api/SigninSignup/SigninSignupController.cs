@@ -26,6 +26,8 @@ public class SigninSignupController : BaseApiController
     {
       Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
       var res = await _authorizeService.signinSignupUserAsync(b2cID);
+      //TODO trigger EmailFetch and SMS fetch if not happened in 6 hours.
+      //other fethces from 3rd parties
       return Ok(res);
     }
     //signup
