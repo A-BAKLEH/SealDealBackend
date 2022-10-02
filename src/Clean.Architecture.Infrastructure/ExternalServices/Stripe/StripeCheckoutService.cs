@@ -44,6 +44,6 @@ public class StripeCheckoutService : IStripeCheckoutService
     };
     var session = await service.CreateAsync(options);
     
-    return new CheckoutSessionDTO { SessionId = session.Id, SessionURL = session.Url};
+    return new CheckoutSessionDTO { sessionId = session.Id, sessionURL = session.Url};
   }
 }

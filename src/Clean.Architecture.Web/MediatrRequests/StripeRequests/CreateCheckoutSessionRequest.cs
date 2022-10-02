@@ -27,7 +27,7 @@ public class CreateCheckoutSessionRequestHandler : IRequestHandler<CreateCheckou
   public async Task<CheckoutSessionDTO> Handle(CreateCheckoutSessionRequest request, CancellationToken cancellationToken)
   {
     var checkoutSessionDTO = await _stripeService.CreateStripeCheckoutSessionAsync(request.priceID, request.Quantity);
-    request.agency.LastCheckoutSessionID = checkoutSessionDTO.SessionId;
+    request.agency.LastCheckoutSessionID = checkoutSessionDTO.sessionId;
     await _appDbContext.SaveChangesAsync();
     return checkoutSessionDTO;
   }

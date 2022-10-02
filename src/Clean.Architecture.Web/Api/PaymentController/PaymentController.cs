@@ -45,9 +45,9 @@ public class PaymentController : BaseApiController
       Quantity = req.Quantity >= 1 ? req.Quantity : 1,
     });
 
-    if (string.IsNullOrEmpty(checkoutSessionDTO.SessionId)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID",$"session ID is {checkoutSessionDTO.SessionId}",b2cBrokerId.ToString());
+    if (string.IsNullOrEmpty(checkoutSessionDTO.sessionId)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID",$"session ID is {checkoutSessionDTO.sessionId}",b2cBrokerId.ToString());
     _logger.LogInformation("[{Tag}] Created a CheckoutSession with ID {CheckoutSessionId} for User with UserId '{UserId}' in " +
-      "Agency with AgencyId {AgencyId}", TagConstants.CheckoutSession, checkoutSessionDTO.SessionId, b2cBrokerId.ToString(), AgencyID);
+      "Agency with AgencyId {AgencyId}", TagConstants.CheckoutSession, checkoutSessionDTO.sessionId, b2cBrokerId.ToString(), AgencyID);
     return Ok(checkoutSessionDTO);
   }
 }
