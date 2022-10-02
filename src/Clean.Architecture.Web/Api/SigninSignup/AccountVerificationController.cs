@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Clean.Architecture.Web.Api.SigninSignup;
 
 [Authorize]
-public class AccountVerificationController:BaseApiController
+public class AccountVerificationController : BaseApiController
 {
   private readonly ILogger<AccountVerificationController> _logger;
   public AccountVerificationController(AuthorizationService authorizeService, IMediator mediator, ILogger<AccountVerificationController> logger) : base(authorizeService, mediator)

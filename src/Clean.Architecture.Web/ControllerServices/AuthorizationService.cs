@@ -41,16 +41,16 @@ public class AuthorizationService
     //TODO: maybe handle if account is active but subscription is not?
     if (broker.AccountActive)
     {
-      response.UserAccountStatus = "active";
-      response.SubscriptionStatus = broker.Agency.StripeSubscriptionStatus.ToString();
+      response.userAccountStatus = "active";
+      response.subscriptionStatus = broker.Agency.StripeSubscriptionStatus.ToString();
       response.internalMessage = "ok";
       return response;
     }
     //account not active
     else if(broker.Agency.StripeSubscriptionStatus == StripeSubscriptionStatus.NoStripeSubscription && broker.isAdmin)
     {
-      response.UserAccountStatus = "inactive";
-      response.SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
+      response.userAccountStatus = "inactive";
+      response.subscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
       response.internalMessage = "ok";
       return response;
     }

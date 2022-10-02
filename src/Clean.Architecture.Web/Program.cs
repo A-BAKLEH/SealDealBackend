@@ -121,10 +121,10 @@ app.UseHttpsRedirection();
 //app.UseStaticFiles();
 //app.UseCookiePolicy();
 
-
+app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors(MyAllowSpecificOrigins);
+
 
 app.MapControllers();
 app.MapHangfireDashboard();

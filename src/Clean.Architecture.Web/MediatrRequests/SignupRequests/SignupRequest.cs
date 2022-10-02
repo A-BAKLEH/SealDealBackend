@@ -61,8 +61,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
     await _appDbContext.SaveChangesAsync();
     return new AccountStatusDTO
     {
-      UserAccountStatus = "inactive",
-      SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString(),
+      userAccountStatus = "inactive",
+      subscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString(),
       internalMessage = "justSignedUp"
     };
   }
