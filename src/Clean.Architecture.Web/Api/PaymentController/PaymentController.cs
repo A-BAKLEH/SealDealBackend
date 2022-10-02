@@ -38,16 +38,16 @@ public class PaymentController : BaseApiController
     _logger.LogInformation("[{Tag}] Creating a CheckoutSession for User with UserId '{UserId}' in" +
       " Agency with AgencyId {AgencyId} with PriceID {PriceID} and Quantity {Quantity}",TagConstants.CheckoutSession,b2cBrokerId.ToString(),AgencyID,req.PriceId, req.Quantity);
 
-    var sessionID = await _mediator.Send(new CreateCheckoutSessionRequest
+    var checkoutSessionDTO = await _mediator.Send(new CreateCheckoutSessionRequest
     {
       agency = brokerTuple.Item1.Agency,
       priceID = req.PriceId,
       Quantity = req.Quantity >= 1 ? req.Quantity : 1,
     });
 
-    if (string.IsNullOrEmpty(sessionID)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID",$"session ID is {sessionID}",b2cBrokerId.ToString());
+    if (string.IsNullOrEmpty(checkoutSessionDTO.SessionId)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID",$"session ID is {checkoutSessionDTO.SessionId}",b2cBrokerId.ToString());
     _logger.LogInformation("[{Tag}] Created a CheckoutSession with ID {CheckoutSessionId} for User with UserId '{UserId}' in " +
-      "Agency with AgencyId {AgencyId}", TagConstants.CheckoutSession, sessionID, b2cBrokerId.ToString(), AgencyID);
-    return Ok(new CheckoutSessionResponse { SessionId = sessionID });
+      "Agency with AgencyId {AgencyId}", TagConstants.CheckoutSession, checkoutSessionDTO.SessionId, b2cBrokerId.ToString(), AgencyID);
+    return Ok(checkoutSessionDTO);
   }
 }

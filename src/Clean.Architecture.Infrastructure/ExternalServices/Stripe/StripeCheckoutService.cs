@@ -1,7 +1,7 @@
 ﻿
-using Clean.Architecture.Core.Domain.AgencyAggregate;
+
+using Clean.Architecture.Core.DTOs;
 using Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
-using Clean.Architecture.Infrastructure.Data;
 using Microsoft.Extensions.Configuration;
 using Stripe;
 using Stripe.Checkout;
@@ -21,7 +21,7 @@ public class StripeCheckoutService : IStripeCheckoutService
     CheckoutSuccessURL = _stripeConfigSection.GetSection("CheckoutSessionCreateOptions")["SuccessUrl"];
   }
 
-  public async Task<string> CreateStripeCheckoutSessionAsync(string priceID, int Quantity = 1)
+  public async Task<CheckoutSessionDTO> CreateStripeCheckoutSessionAsync(string priceID, int Quantity = 1)
   {
     var service = new SessionService();
     var options = new SessionCreateOptions
@@ -44,6 +44,6 @@ public class StripeCheckoutService : IStripeCheckoutService
     };
     var session = await service.CreateAsync(options);
     
-    return session.Id;
+    return new CheckoutSessionDTO { SessionId = session.Id, SessionURL = session.Url};
   }
 }

@@ -1,4 +1,6 @@
-﻿namespace Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
+﻿using Clean.Architecture.Core.DTOs;
+
+namespace Clean.Architecture.Core.ExternalServiceInterfaces.StripeInterfaces;
 public interface IStripeCheckoutService
 { 
   /// <summary>
@@ -9,5 +11,5 @@ public interface IStripeCheckoutService
   /// <param name="AgencyID"></param>
   /// <param name="Quantity"></param>
   /// <returns>Created Checkout Session's Id</returns>
-  Task<string> CreateStripeCheckoutSessionAsync(string priceID, int Quantity);
+  Task<CheckoutSessionDTO> CreateStripeCheckoutSessionAsync(string priceID, int Quantity);
 }
