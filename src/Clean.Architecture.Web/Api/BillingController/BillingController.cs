@@ -34,7 +34,7 @@ public class BillingController : BaseApiController
     var portalURL = await _mediator.Send(
       new CreateBillingPortalRequest
       {
-        AgencyStripeId = brokerTuple.Item1.Agency.StripeSubscriptionId,
+        AgencyStripeId = brokerTuple.Item1.Agency.AdminStripeId,
         returnURL = req.ReturnUrl
       });
     _logger.LogInformation("[{Tag}] created Billing portal for user with UserId {UserId} ", TagConstants.BillingPortal,b2cBrokerId);
