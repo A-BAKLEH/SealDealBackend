@@ -65,13 +65,5 @@ public class BrokerController : BaseApiController
     return Ok(failedBrokers);
   }
 
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <returns></returns>
-  //[HttpGet("Get-Tasks")]
-  //public async Task<IActionResult> GetCurrentSubscriptionQuantities()
-  //{
-
-  //}
+  
 }

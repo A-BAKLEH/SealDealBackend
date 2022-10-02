@@ -33,16 +33,17 @@ public class AuthorizationService
     return Tuple.Create(broker, broker.AccountActive, broker.isAdmin);
   }
 
-  public async Task<SigninResponseDTO> signinSignupUserAsync(Guid id)
+  public async Task<AccountStatusDTO> VerifyAccountAsync(Guid id)
   {
-    var response = new SigninResponseDTO();
+    var response = new AccountStatusDTO();
     var broker = await _appDbContext.Brokers.Include(b => b.Agency).FirstOrDefaultAsync(b => b.Id == id);
-    if (broker == null) throw new InconsistentStateException("SigninSignup","Broker not found in DB",id.ToString());
+    if (broker == null) throw new InconsistentStateException("VerifyAccount","Broker not found in DB",id.ToString());
     //TODO: maybe handle if account is active but subscription is not?
     if (broker.AccountActive)
     {
       response.UserAccountStatus = "active";
       response.SubscriptionStatus = broker.Agency.StripeSubscriptionStatus.ToString();
+      response.internalMessage = "ok";
       return response;
     }
     //account not active
@@ -50,6 +51,7 @@ public class AuthorizationService
     {
       response.UserAccountStatus = "inactive";
       response.SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
+      response.internalMessage = "ok";
       return response;
     }
     else

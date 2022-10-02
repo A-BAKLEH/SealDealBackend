@@ -6,7 +6,7 @@ using Clean.Architecture.SharedKernel.Exceptions;
 using MediatR;
 
 namespace Clean.Architecture.Web.MediatrRequests.SignupRequests;
-public class SignupRequest : IRequest<SigninResponseDTO>
+public class SignupRequest : IRequest<AccountStatusDTO>
 {
   public string AgencyName { get; set; }
   public string givenName { get; set; }
@@ -15,7 +15,7 @@ public class SignupRequest : IRequest<SigninResponseDTO>
   public Guid b2cId { get; set; }
 }
 
-public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninResponseDTO>
+public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatusDTO>
 {
   private readonly AppDbContext _appDbContext;
 
@@ -32,7 +32,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninRespons
   /// <param name="request"></param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  public async Task<SigninResponseDTO> Handle(SignupRequest request, CancellationToken cancellationToken)
+  public async Task<AccountStatusDTO> Handle(SignupRequest request, CancellationToken cancellationToken)
   {
     if (_appDbContext.Brokers.FirstOrDefault(b => b.Id == request.b2cId) != null)
     {
@@ -59,10 +59,11 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SigninRespons
     };
     _appDbContext.Add(agency);
     await _appDbContext.SaveChangesAsync();
-    return new SigninResponseDTO
+    return new AccountStatusDTO
     {
       UserAccountStatus = "inactive",
-      SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString()
+      SubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString(),
+      internalMessage = "justSignedUp"
     };
   }
 }
