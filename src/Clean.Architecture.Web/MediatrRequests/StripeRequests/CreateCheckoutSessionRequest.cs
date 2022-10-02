@@ -6,7 +6,7 @@ using Clean.Architecture.SharedKernel;
 using MediatR;
 
 namespace Clean.Architecture.Web.MediatrRequests.StripeRequests;
-public  class CreateCheckoutSessionRequest : IRequest<string>, ITransactional
+public  class CreateCheckoutSessionRequest : IRequest<string>
 {
   public string priceID { get; set; }
   public Agency agency { get; set; }

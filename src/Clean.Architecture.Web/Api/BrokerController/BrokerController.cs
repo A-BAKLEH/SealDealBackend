@@ -7,6 +7,7 @@ using Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Clean.Architecture.Web.ControllerServices.StaticMethods;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
@@ -50,7 +51,7 @@ public class BrokerController : BaseApiController
     List<NewBrokerDTO> nonValidBrokers = new();
     foreach (var broker in brokers)
     {
-      if (BrokerDTOValid(broker)) command.brokers.Add(new Broker
+      if (BrokerHelperMethods.BrokerDTOValid(broker)) command.brokers.Add(new Broker
       {
         FirstName = broker.FirstName,
         LastName = broker.LastName,
@@ -64,25 +65,13 @@ public class BrokerController : BaseApiController
     return Ok(failedBrokers);
   }
 
-  static bool BrokerDTOValid(NewBrokerDTO brokerDTO)
-  {
-    bool valid = true;
-    if (string.IsNullOrWhiteSpace(brokerDTO.FirstName)) { brokerDTO.failureReason += "first name invalid;"; valid = false; }
-    if (string.IsNullOrWhiteSpace(brokerDTO.LastName)) { brokerDTO.failureReason += "first name invalid;"; valid = false; }
-    if (!IsValidEmail(brokerDTO.Email)) { brokerDTO.failureReason += "email invalid;"; valid = false; }
-    return valid;
-  }
+  /// <summary>
+  /// 
+  /// </summary>
+  /// <returns></returns>
+  //[HttpGet("Get-Tasks")]
+  //public async Task<IActionResult> GetCurrentSubscriptionQuantities()
+  //{
 
-  static bool IsValidEmail(string email)
-  {
-    try
-    {
-      var addr = new System.Net.Mail.MailAddress(email);
-      return addr.Address == email && email.Contains('.');
-    }
-    catch
-    {
-      return false;
-    }
-  }
+  //}
 }

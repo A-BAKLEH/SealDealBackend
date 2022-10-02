@@ -17,7 +17,7 @@ public class WebModule : Module
 
   protected override void Load(ContainerBuilder builder)
   {
-    builder.RegisterType(typeof(AuthorizationService)).AsSelf().SingleInstance();
+    builder.RegisterType(typeof(AuthorizationService)).AsSelf().InstancePerLifetimeScope();
 
     builder.RegisterType(typeof(ExecutionContextAccessor)).As(typeof(IExecutionContextAccessor)).SingleInstance();
     builder.RegisterType(typeof(RecTaskProcessor)).As(typeof(IRecTaskProcessor)).InstancePerLifetimeScope();
