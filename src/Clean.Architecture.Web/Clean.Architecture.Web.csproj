@@ -15,6 +15,7 @@
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
+    <PackageReference Include="Microsoft.Azure.SignalR" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" PrivateAssets="All" />
     <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
@@ -32,6 +33,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <Folder Include="ApiModels\DTOs\" />
     <Folder Include="Filters\" />
     <Folder Include="Handlers\ActionPlanHandlers\EventHandlers\" />
     <Folder Include="Handlers\ActionPlanHandlers\OutOfRequestHandler\" />

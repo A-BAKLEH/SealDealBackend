@@ -88,6 +88,7 @@ builder.Services.AddProblemDetails(x =>
 if (builder.Environment.IsDevelopment())
 {
   builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
+  builder.Services.AddSignalR().AddAzureSignalR();
 }
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
@@ -115,7 +116,6 @@ else
   app.UseProblemDetails();
   app.UseHsts();
 }
-//app.UseRouting();
 
 app.UseHttpsRedirection();
 //app.UseStaticFiles();

@@ -12,9 +12,7 @@ public class NotificationConfig : IEntityTypeConfiguration<Notification>
     var options = new JsonSerializerOptions(JsonSerializerDefaults.General);
 
     builder
-        .Property(x => x.NotifData)
-        //.HasColumnName("Values")
-        //.HasColumnType("BLOB")
+        .Property(x => x.NotifProps)
         .HasConversion(
             v => JsonSerializer.Serialize(v, options),
             s => JsonSerializer.Deserialize<Dictionary<string, string>>(s, options)!,

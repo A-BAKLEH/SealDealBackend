@@ -23,13 +23,13 @@ public class Lead : Entity<int>
   public int? Budget { get; set; }
   public DateTime EntryDate { get; set; } = DateTime.UtcNow;
   public LeadStatus LeadStatus { get; set; } = LeadStatus.New;
-  public Broker Broker { get; set; }
+  public Broker? Broker { get; set; }
   public Guid? BrokerId { get; set; }
-  public List<Area> AreasOfInterest { get; set; }
-  public List<LeadListing> ListingsOfInterest { get; set; }
-  public List<Note> Notes { get; set; }
-  public List<Tag> Tags { get; set; }
-  public List<ActionPlanAssociation> ActionPlanAssociations { get; set; }
-  public List<Notification> LeadHistoryEvents { get; set; }
+  public List<Area>? AreasOfInterest { get; set; }
+  public List<LeadListing>? ListingsOfInterest { get; set; }
+  public List<Note>? Notes { get; set; }
+  public List<Tag>? Tags { get; set; }
+  public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }
+  public List<Notification>? LeadHistoryEvents { get; set; }
 }
 

@@ -34,6 +34,7 @@ public class SigninSignupController : BaseApiController
     var agencyName = l.Find(x => x.Type == "extension_AgencyName").Value;
     var id = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var signinResponseDTO = await _mediator.Send(new SignupRequest
+
     {
       AgencyName = agencyName,
       givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value,
