@@ -1,16 +1,8 @@
-﻿using Clean.Architecture.Core.Domain.NotificationAggregate;
+﻿using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 
 namespace Clean.Architecture.Web.ApiModels.APIResponses;
 
 public class NotifsResponseDTO
-{
-
-  //fetch 
-  public List<Notification> notifications { get; set; }
-
-}
-
-public class NotifList
-{
-
+{ 
+  public List<WrapperNotifDashboard> data { get; set; }
 }

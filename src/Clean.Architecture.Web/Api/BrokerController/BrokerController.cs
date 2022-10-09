@@ -1,22 +1,25 @@
 ﻿
 using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Web.ApiModels;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Clean.Architecture.Web.ControllerServices.StaticMethods;
+using Clean.Architecture.Web.ApiModels.RequestDTOs;
+using Clean.Architecture.Web.ControllerServices.QuickServices;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
 public class BrokerController : BaseApiController
 {
   private readonly ILogger<BrokerController> _logger;
-  public BrokerController(AuthorizationService authorizeService, IMediator mediator, ILogger<BrokerController> logger) : base(authorizeService, mediator)
+  private readonly BrokerTagsQService _brokerTagsQService;
+  public BrokerController(AuthorizationService authorizeService, IMediator mediator, BrokerTagsQService brokerTagsQService, ILogger<BrokerController> logger) : base(authorizeService, mediator)
   {
     _logger = logger;
+    _brokerTagsQService = brokerTagsQService;
   }
 
   /*[HttpGet("get-subscription-quantities")]
@@ -65,5 +68,26 @@ public class BrokerController : BaseApiController
     return Ok(failedBrokers);
   }
 
-  
+  [HttpPost("Create-Tag/{tagname}")]
+  public async Task<IActionResult> CreateTag(string tagname)
+  {
+    //Not checking active, permissions
+    var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var result = await _mediator.Send(new CreateBrokerTagRequest { BrokerId = brokerId, TagName = tagname });
+    if (result.Success) return Ok();
+    return BadRequest(result);
+  }
+
+  [HttpGet("Get-Tags")]
+  public async Task<IActionResult> GetTags()
+  {
+    //Not checking active, permissions
+    var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+
+    var tags = await _brokerTagsQService.GetBrokerTags(brokerId);
+    if (tags == null) return NotFound();
+    return Ok(tags);
+  }
+
+
 }

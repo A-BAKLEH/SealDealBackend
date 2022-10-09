@@ -1,4 +1,4 @@
-﻿using Clean.Architecture.Web.ApiModels;
+﻿using Clean.Architecture.Web.ApiModels.RequestDTOs;
 
 namespace Clean.Architecture.Web.ControllerServices.StaticMethods;
 

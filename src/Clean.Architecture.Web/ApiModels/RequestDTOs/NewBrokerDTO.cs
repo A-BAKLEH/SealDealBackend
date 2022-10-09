@@ -1,4 +1,4 @@
-﻿namespace Clean.Architecture.Web.ApiModels;
+﻿namespace Clean.Architecture.Web.ApiModels.RequestDTOs;
 
 public class NewBrokerDTO
 {

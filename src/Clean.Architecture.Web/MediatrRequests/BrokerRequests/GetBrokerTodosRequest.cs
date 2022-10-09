@@ -1,5 +1,6 @@
 ﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,7 @@ public class GetBrokerTodosRequestHandler : IRequestHandler<GetBrokerTodosReques
   {
     _appDbContext = appDbContext;
   }
+  //TODO optimize
   public async Task<List<ToDoTask>> Handle(GetBrokerTodosRequest request, CancellationToken cancellationToken)
   {
     var todos = await _appDbContext.ToDoTasks.Where(todo => todo.BrokerId == request.BrokerId).ToListAsync();
