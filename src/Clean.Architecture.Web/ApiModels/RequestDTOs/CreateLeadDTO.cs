@@ -7,5 +7,6 @@ public class CreateLeadDTO
   public string? PhoneNumber { get; set; }
   public string? Email { get; set; }
   public int? Budget { get; set; }
+  public string? leadNote { get; set; }
 
 }

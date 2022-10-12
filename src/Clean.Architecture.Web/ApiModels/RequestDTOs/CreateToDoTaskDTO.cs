@@ -2,7 +2,11 @@
 
 public class CreateToDoTaskDTO
 {
-  public string taskText { get; set; }
+  /// <summary>
+  /// can be null
+  /// </summary>
+  public string? Description { get; set; }
+  public string TaskName { get; set; }
   public DateTime dueTime { get; set; }
   public int? leadId { get; set; }
 

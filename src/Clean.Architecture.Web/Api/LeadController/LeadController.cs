@@ -27,7 +27,7 @@ public class LeadController : BaseApiController
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
     if (!brokerTuple.Item2)
     {
-      _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+      _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
       return Unauthorized();
     }
     var broker = brokerTuple.Item1;

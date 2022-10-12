@@ -25,7 +25,8 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
       BrokerId = request.BrokerID,
       LeadId = request.createToDoTaskDTO.leadId,
       TaskDueDate = request.createToDoTaskDTO.dueTime,
-      TaskText = request.createToDoTaskDTO.taskText,
+      Description = request.createToDoTaskDTO.Description,
+      TaskName = request.createToDoTaskDTO.TaskName
     });
     await _appDbContext.SaveChangesAsync();
     return Unit.Value;

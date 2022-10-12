@@ -4,7 +4,11 @@ namespace Clean.Architecture.Core.Domain.BrokerAggregate;
 
 public class ToDoTask : Entity<int>
 { 
-  public string TaskText { get; set; }
+  /// <summary>
+  /// description
+  /// </summary>
+  public string? Description { get; set; }
+  public string TaskName { get; set; }
   public DateTime TaskDueDate { get; set; }
 
   public Guid BrokerId { get; set; }

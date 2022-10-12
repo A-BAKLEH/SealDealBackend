@@ -1,19 +1,15 @@
 ﻿using Clean.Architecture.Core.Domain.ActionPlanAggregate;
 using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
-using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.Web.Cache.Extensions;
 using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 using Clean.Architecture.Web.MediatrRequests.NotifsRequests;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
 [Route("api/[controller]")]
@@ -80,6 +76,14 @@ public class TestController : ControllerBase
   public async Task<IActionResult> TestNewSchema()
   {
     await _mediator.Send(new TestRequest1 { name = "abdul" });
+    return Ok();
+  }
+
+  [HttpPost("test-date")]
+  public async Task<IActionResult> TestFster([FromBody] DateTestDTO dto)
+  {
+    var a = _appDbContext.Agencies.Where(a => a.Id == 3).FirstOrDefault();
+    Console.WriteLine(a.SignupDateTime);
     return Ok();
   }
 
@@ -328,6 +332,9 @@ public class TestController : ControllerBase
     return Ok(NotifWrappersList);
   }
 
-
+  public class DateTestDTO
+  {
+    public DateTime ddate { get; set; }
+  }
 
 }

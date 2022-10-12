@@ -24,7 +24,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest>
   {
     foreach (var dto in request.createLeadDTOs)
     {
-      _appDbContext.Leads.Add(new Lead
+      var lead = new Lead
       {
         AgencyId = request.AgencyId,
         BrokerId = request.BrokerId,
@@ -33,7 +33,13 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest>
         LeadFirstName = dto.LeadFirstName ?? "-",
         LeadLastName = dto.LeadLastName,
         PhoneNumber = dto.PhoneNumber,
-      });
+      };
+      if(dto.leadNote != null)
+      {
+        //TODO insecure to input text directly, check how to store, display notes
+        lead.Notes = new List<Note> { new Note { NotesText = dto.leadNote } };
+      }
+      _appDbContext.Leads.Add(lead);
     }
     await _appDbContext.SaveChangesAsync();
 
