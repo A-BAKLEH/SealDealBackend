@@ -1,4 +1,6 @@
-﻿using Clean.Architecture.Core.DTOs.ProcessingDTOs;
+﻿using Azure.Core;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +15,7 @@ public class BrokerTagsQService
     _appDbContext = appDbContext;
   }
 
-  public async Task<BrokerTagsDTO>? GetBrokerTags(Guid brokerId)
+  public async Task<BrokerTagsDTO>? GetBrokerTagsAsync(Guid brokerId)
   {
     var res = await _appDbContext.Tags.Where(t => t.BrokerId == brokerId).Select(t => new TagDTO
     {
@@ -24,5 +26,20 @@ public class BrokerTagsQService
     return new BrokerTagsDTO { tags = res };
   }
 
+  public async Task<CreateTagResultDTO> CreateBrokerTagAsync(Guid brokerId, string tagName)
+  {
+    CreateTagResultDTO result = new();
 
+    if (_appDbContext.Tags.Any(t => t.BrokerId == brokerId && t.TagName == tagName))
+    {
+      result.Success = false;
+      result.message = "tag already exists";
+    }
+    var tag = new Tag { BrokerId = brokerId, TagName = tagName };
+    _appDbContext.Tags.Add(tag);
+    await _appDbContext.SaveChangesAsync();
+    result.Success = true;
+    result.tag = tag;
+    return result;
+  }
 }

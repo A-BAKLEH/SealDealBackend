@@ -84,7 +84,7 @@ public class BrokerController : BaseApiController
     //Not checking active, permissions
     var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
 
-    var tags = await _brokerTagsQService.GetBrokerTags(brokerId);
+    var tags = await _brokerTagsQService.GetBrokerTagsAsync(brokerId);
     if (tags == null) return NotFound();
     return Ok(tags);
   }

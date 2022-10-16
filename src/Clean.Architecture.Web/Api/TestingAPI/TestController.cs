@@ -79,6 +79,14 @@ public class TestController : ControllerBase
     return Ok();
   }
 
+  [HttpGet("test-get/{id?}")]
+  public async Task<IActionResult> TestGet(int? id = null)
+  {
+    
+    Console.WriteLine(id);
+    return Ok();
+  }
+
   [HttpPost("test-date")]
   public async Task<IActionResult> TestFster([FromBody] DateTestDTO dto)
   {

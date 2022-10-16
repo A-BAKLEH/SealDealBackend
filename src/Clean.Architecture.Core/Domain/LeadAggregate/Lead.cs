@@ -22,14 +22,44 @@ public class Lead : Entity<int>
   public string? Email { get; set; }
   public int? Budget { get; set; }
   public DateTime EntryDate { get; set; } = DateTime.UtcNow;
+  public LeadSource source { get; set; }
+  public LeadType leadType { get; set; }
+  /// <summary>
+  /// name of website for example
+  /// </summary>
+  public string? leadSourceDetails { get; set; }
   public LeadStatus LeadStatus { get; set; } = LeadStatus.New;
+  /// <summary>
+  /// just a string for now, dont use areasOfInterest
+  /// </summary>
+  public string? Areas { get;set; }
   public Broker? Broker { get; set; }
   public Guid? BrokerId { get; set; }
   public List<Area>? AreasOfInterest { get; set; }
+  /// <summary>
+  /// only for listings that belong to the agency
+  /// </summary>
   public List<LeadListing>? ListingsOfInterest { get; set; }
-  public List<Note>? Notes { get; set; }
+  public Note? Note { get; set; }
   public List<Tag>? Tags { get; set; }
   public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }
   public List<Notification>? LeadHistoryEvents { get; set; }
+}
+public enum LeadSource
+{
+  manual, website, unknown
+}
+
+public enum LeadType
+{
+  /// <summary>
+  /// someone who wants to find a property to Buy
+  /// </summary>
+  Buyer,
+  /// <summary>
+  /// someone who wants to find a property to rent
+  /// </summary>
+  Renter,
+  Unknown
 }
 

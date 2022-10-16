@@ -1,9 +1,9 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
-using Clean.Architecture.Core.Domain.LeadAggregate;
+using Clean.Architecture.Web.ApiModels.APIResponses.Lead;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
+using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.MediatrRequests.LeadRequests;
-using Clean.Architecture.Web.MediatrRequests.NotifsRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,9 +14,12 @@ namespace Clean.Architecture.Web.Api.LeadController;
 public class LeadController : BaseApiController
 {
   private readonly ILogger<LeadController> _logger;
-  public LeadController(AuthorizationService authorizeService, IMediator mediator, ILogger<LeadController> logger) : base(authorizeService, mediator)
+  private readonly LeadQService _leadQService;
+  public LeadController(AuthorizationService authorizeService, IMediator mediator,
+    ILogger<LeadController> logger, LeadQService leadQService) : base(authorizeService, mediator)
   {
     _logger = logger;
+    _leadQService = leadQService;
   }
 
   //new
@@ -40,4 +43,80 @@ public class LeadController : BaseApiController
 
     return Ok();
   }
+
+  /// <summary>
+  /// for Allah Lead, gets all lead's info, no paging for now
+  /// </summary>
+  /// <param name="id">id of the lead</param>
+  /// <param name="includeEvents">1 to include Notifs, 0 to not include</param>
+  /// <returns></returns>
+  [HttpGet("Get-AllahLead/{id}/{includeEvents}")]
+  public async Task<IActionResult> GetAllahLead(int id, int includeEvents)
+  {
+    var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
+      return Unauthorized();
+    }
+    var broker = brokerTuple.Item1;
+    var lead = await _mediator.Send(new GetAllahLeadRequest
+    { AgencyId = brokerTuple.Item1.AgencyId,
+      BrokerId = brokerid,
+      leadId = id,
+      includeNotifs = includeEvents == 1 ? true :  false
+    });
+    if(lead == null) return NotFound();
+    return Ok(lead);
+  }
+
+  /// <summary>
+  /// will eventually implement paging
+  /// </summary>
+  /// <param name="leadid"></param>
+  /// <param name="lastid"></param>
+  /// <returns></returns>
+  [HttpGet("Get-LeadEvents/{leadid}/{lastid}")]
+  public async Task<IActionResult> GetLeadEvents(int leadid, int lastid)
+  {
+    var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
+      return Unauthorized();
+    }
+
+    var notifs = await _mediator.Send(new GetLeadEventsRequest
+    { 
+      BrokerId = brokerid,
+      leadId = leadid,
+      lastNotifID = lastid
+    });
+    if (notifs == null || !notifs.Any()) return NotFound();
+    var res = new LeadEventsResponseDTO { events = notifs };
+    return Ok(res);
+  }
+
+  /// <summary>
+  /// for leads list, implements paging later, now will just return all leads
+  /// </summary>
+  /// <returns></returns>
+  [HttpGet("Get-Leads/")]
+  public async Task<IActionResult> GetLeads()
+  {
+    var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
+      return Unauthorized();
+    }
+
+    var leads = await _leadQService.GetLeadsAsync(brokerid);
+    if(leads == null || !leads.Any()) return NotFound();
+    return Ok(leads);
+  }
+
 }
