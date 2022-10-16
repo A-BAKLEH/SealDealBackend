@@ -14,10 +14,11 @@ public class Listing : Entity<int>
   public Agency Agency { get; set; }
   public string Address { get; set; }
   public DateTime DateOfListing { get; set; }
-  public ListingStatus Status { get; set; }
+  public ListingStatus Status { get; set; } = ListingStatus.Listed;
   public int Price { get; set; }
   public Guid? BrokerId { get; set; }
-  public Broker AssignedBroker { get; set; }
+  public Broker? AssignedBroker { get; set; }
+  public string? URL { get; set; }
 
   //public List<Lead> InterestedLeads { get; set; }
   public List<LeadListing> InterestedLeads { get; set; }

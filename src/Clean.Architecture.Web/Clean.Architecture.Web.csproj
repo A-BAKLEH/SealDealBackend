@@ -5,7 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <OutputType>Exe</OutputType>
-    <WebProjectMode>true</WebProjectMode>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     <Nullable>enable</Nullable>
     <Version>1.0.0</Version>
     <ImplicitUsings>enable</ImplicitUsings>

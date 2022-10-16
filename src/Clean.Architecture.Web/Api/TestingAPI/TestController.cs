@@ -1,6 +1,7 @@
 ﻿using Clean.Architecture.Core.Domain.ActionPlanAggregate;
 using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
@@ -10,6 +11,7 @@ using Clean.Architecture.Web.MediatrRequests.NotifsRequests;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Graph;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
 [Route("api/[controller]")]
@@ -84,6 +86,45 @@ public class TestController : ControllerBase
   {
     
     Console.WriteLine(id);
+    return Ok();
+  }
+
+  [HttpGet("test-create-leads")]
+  public async Task<IActionResult> TestCreateLead()
+  {
+    _appDbContext.Leads.Add(new Lead
+    {
+      AgencyId =3,
+      Budget = 1000,
+      Email = "lol@hotmail123.com",
+      EntryDate = DateTime.Now,
+      LeadFirstName = "abdul",
+      LeadLastName = "john",
+      LeadStatus = LeadStatus.New,
+      PhoneNumber = "513"
+    });
+    _appDbContext.Leads.Add(new Lead
+    {
+      AgencyId = 3,
+      Budget = 10003,
+      Email = "lol@hotmai32l.com",
+      EntryDate = DateTime.Now,
+      LeadFirstName = "sadfasdf",
+      LeadLastName = "wal",
+      LeadStatus = LeadStatus.New,
+      PhoneNumber = "514"
+    });
+    _appDbContext.SaveChanges();
+    return Ok();
+  }
+  [HttpGet("test-count")]
+  public async Task<IActionResult> TestCount()
+  {
+    var res = _appDbContext.Agencies.Where(a => a.Id == 3)
+      .Select(a => new { a.SignupDateTime, a.Leads.Count })
+      .FirstOrDefault();
+
+    Console.WriteLine(res.Count);
     return Ok();
   }
 

@@ -103,7 +103,7 @@ public class LeadController : BaseApiController
   /// for leads list, implements paging later, now will just return all leads
   /// </summary>
   /// <returns></returns>
-  [HttpGet("Get-Leads/")]
+  [HttpGet("Get-Leads")]
   public async Task<IActionResult> GetLeads()
   {
     var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Clean.Architecture.Web.ControllerServices.StaticMethods;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
+using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
@@ -87,6 +88,26 @@ public class BrokerController : BaseApiController
     var tags = await _brokerTagsQService.GetBrokerTagsAsync(brokerId);
     if (tags == null) return NotFound();
     return Ok(tags);
+  }
+
+  /// <summary>
+  /// used by admin only
+  /// </summary>
+  /// <returns></returns>
+  [HttpGet("Get-Brokers-List")]
+  public async Task<IActionResult> GetBrokers()
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item3 || !brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} or Non-paying tried to add brokers", TagConstants.Unauthorized, id);
+      return Unauthorized();
+    }
+    var brokers = await _brokerTagsQService.GetBrokersByAdmin(brokerTuple.Item1.AgencyId);
+    if (brokers == null || !brokers.Any()) return NotFound();
+    var res = new BrokersList { brokers = brokers };
+    return Ok(res);
   }
 
 

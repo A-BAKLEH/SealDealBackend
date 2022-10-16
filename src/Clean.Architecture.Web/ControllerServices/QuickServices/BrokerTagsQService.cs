@@ -1,4 +1,7 @@
-﻿using Azure.Core;
+﻿using System.Collections.Generic;
+using System.Net.Cache;
+using Azure.Core;
+using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
@@ -41,5 +44,48 @@ public class BrokerTagsQService
     result.Success = true;
     result.tag = tag;
     return result;
+  }
+
+  public async Task<List<BrokerForListDTO>> GetBrokersByAdmin(int AgencyId)
+  {
+    var brokers = await _appDbContext.Brokers
+      .OrderByDescending(b => b.Created)
+      .Where(b => b.AgencyId == AgencyId && b.isAdmin == false)
+      .Select(b => new BrokerForListDTO
+      {
+        AccountActive = b.AccountActive,
+        FirstName = b.FirstName,
+        Id = b.Id,
+        LastName = b.LastName,
+        SigninEmail = b.LoginEmail,
+        created = b.Created,
+        LeadsCount = b.Leads.Count,
+        ListingsCount = b.Listings.Count,
+        PhoneNumber = b.PhoneNumber
+      })
+      .ToListAsync();
+    return brokers;
+  }
+
+  public async Task<List<ListingDTO>> GetBrokersListings(Guid brokerId, bool includeSold)
+  {
+    var query = _appDbContext.Listings
+      .OrderByDescending(l => l.DateOfListing)
+      .Where(l => l.BrokerId == brokerId);
+
+    if (!includeSold) query = query.Where(l =>l.Status == ListingStatus.Listed);
+
+    List<ListingDTO> listings = await query
+      .Select(l => new ListingDTO
+      {
+        Address = l.Address,
+        DateOfListing = l.DateOfListing,
+        ListingURL = l.URL,
+        Price = l.Price,
+        Status = l.Status.ToString(),
+        InterestedLeadsCount = l.InterestedLeads.Count,
+      })
+      .ToListAsync();
+    return listings;
   }
 }
