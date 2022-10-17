@@ -6,8 +6,11 @@ using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.Web.ApiModels.RequestDTOs;
+using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 using Clean.Architecture.Web.MediatrRequests.NotifsRequests;
+using Humanizer;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,13 +27,16 @@ public class TestController : ControllerBase
   private readonly IMsGraphService _graphService;
 
   private readonly AppDbContext _appDbContext;
+  private readonly TemplatesQService _templatesQService;
+
   public TestController(IMediator mediator, ILogger<TestController> logger,
-     AppDbContext appDbContext, IMsGraphService msGraphService)
+     AppDbContext appDbContext, IMsGraphService msGraphService, TemplatesQService templatesQService)
   {
     _mediator = mediator;
     _logger = logger;
 
     _appDbContext = appDbContext;
+    _templatesQService = templatesQService;
   }
 
 
@@ -44,33 +50,33 @@ public class TestController : ControllerBase
   [HttpGet("test-signup")]
   public async Task<IActionResult> SigninSignupTest()
   {
-    var agency = _appDbContext.Agencies.Include(a => a.AgencyBrokers).ThenInclude(b => b.ActionPlans).FirstOrDefault(a => a.Id == 1);
-    var emailtemp = new EmailTemplate
-    { EmailTemplateSubject = "wlak", EmailTemplateText = "salut habibi qu'est ce pasee" };
-    agency.AgencyBrokers[0].EmailTemplates = new List<EmailTemplate> { emailtemp };
-    var act1 = new SendEmailAction
-    {
-      ActionLevel = 1,
-      NextActionDelay = "1:0:0",
-    };
-    act1.ActionProperties[SendEmailAction.EmailTemplateIdKey] = "1";
+    //var agency = _appDbContext.Agencies.Include(a => a.AgencyBrokers).ThenInclude(b => b.ActionPlans).FirstOrDefault(a => a.Id == 1);
+    //var emailtemp = new EmailTemplate
+    //{ EmailTemplateSubject = "wlak", EmailTemplateText = "salut habibi qu'est ce pasee" };
+    //agency.AgencyBrokers[0].EmailTemplates = new List<EmailTemplate> { emailtemp };
+    //var act1 = new SendEmailAction
+    //{
+    //  ActionLevel = 1,
+    //  NextActionDelay = "1:0:0",
+    //};
+    //act1.ActionProperties[SendEmailAction.EmailTemplateIdKey] = "1";
 
-    var actionplan = new ActionPlan
-    {
-      ActionsCount = 1,
-      AssignToLead = true,
-      isActive = true,
-      StopPlanOnInteraction = true,
-      Title = "first plan",
-      NotifsToListenTo = NotifType.EmailReceived | NotifType.SmsReceived | NotifType.CallReceived,
-      Triggers = NotifType.LeadAssigned,
-      Actions = new List<ActionBase>
-      {
-        act1
-      }
-    };
-    agency.AgencyBrokers[0].ActionPlans.Add(actionplan);
-    _appDbContext.SaveChanges();
+    //var actionplan = new ActionPlan
+    //{
+    //  ActionsCount = 1,
+    //  AssignToLead = true,
+    //  isActive = true,
+    //  StopPlanOnInteraction = true,
+    //  Title = "first plan",
+    //  NotifsToListenTo = NotifType.EmailReceived | NotifType.SmsReceived | NotifType.CallReceived,
+    //  Triggers = NotifType.LeadAssigned,
+    //  Actions = new List<ActionBase>
+    //  {
+    //    act1
+    //  }
+    //};
+    //agency.AgencyBrokers[0].ActionPlans.Add(actionplan);
+    //_appDbContext.SaveChanges();
     return Ok();
   }
 
@@ -78,6 +84,23 @@ public class TestController : ControllerBase
   public async Task<IActionResult> TestNewSchema()
   {
     await _mediator.Send(new TestRequest1 { name = "abdul" });
+    return Ok();
+  }
+
+
+  [HttpGet("createTemaplate")]
+  public async Task<IActionResult> TestTemplate()
+  {
+    var CreateTemplateDto = new CreateTemplateDTO{subject = "this is emails subject", TemplateType = "e", text = "hello abdul wassup" };
+    var template = await _templatesQService.CreateTemplateAsync(CreateTemplateDto, Guid.Parse("1B935034-6F92-41C7-99D0-A41181A7DF54"));
+    return Ok();
+  }
+
+  [HttpGet("GetTemplates")]
+  public async Task<IActionResult> TestGetTemplates()
+  {
+
+    var templatesDTO = await _templatesQService.GetAllTemplatesAsync(Guid.Parse("1B935034-6F92-41C7-99D0-A41181A7DF54"));
     return Ok();
   }
 

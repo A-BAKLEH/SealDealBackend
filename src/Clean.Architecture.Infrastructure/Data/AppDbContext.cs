@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
   public DbSet<LeadListing> LeadListing => Set<LeadListing>();
   public DbSet<Area> Areas => Set<Area>();
   public DbSet<Broker> Brokers => Set<Broker>();
+  public DbSet<Template> Templates => Set<Template>();
   public DbSet<SmsTemplate> SmsTemplates => Set<SmsTemplate>();
   public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
   public DbSet<Tag> Tags => Set<Tag>();
