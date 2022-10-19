@@ -8,4 +8,5 @@ public class CreateTemplateDTO
   public string TemplateType { get; set; }
   public string? subject { get; set; }
   public string text { get; set; }
+  public string TemplateName { get; set; }
 }

@@ -27,7 +27,8 @@ public class TemplatesQService
         EmailTemplateSubject = dto.subject,
         Modified = DateTime.UtcNow,
         templateText = dto.text,
-        TimesUsed = 0
+        TimesUsed = 0,
+        Title = dto.TemplateName
       };
     }
     else
@@ -37,7 +38,8 @@ public class TemplatesQService
         BrokerId = brokerId,
         Modified = DateTime.UtcNow,
         templateText = dto.text,
-        TimesUsed = 0
+        TimesUsed = 0,
+        Title = dto.TemplateName,
       };
     }
     _appDbContext.Templates.Add(template);
@@ -57,6 +59,7 @@ public class TemplatesQService
         subject = x.EmailTemplateSubject,
         templateText = x.templateText,
         TimesUsed = x.TimesUsed,
+        Title = x.Title,
       })
       .ToListAsync();
     var Smstemplates = await _appDbContext.SmsTemplates
@@ -68,6 +71,7 @@ public class TemplatesQService
         Modified = x.Modified,
         templateText = x.templateText,
         TimesUsed = x.TimesUsed,
+        Title= x.Title,
       })
       .ToListAsync();
     AllTemplatesDTO allTemplatesDTO = new AllTemplatesDTO

@@ -21,7 +21,7 @@ public class LeadQService
         Budget = l.Budget,
         Email = l.Email,
         EntryDate = l.EntryDate,
-        LeadFirstName = l.LeadLastName,
+        LeadFirstName = l.LeadFirstName,
         LeadId = l.Id,
         LeadLastName = l.LeadLastName,
         leadSourceDetails = l.leadSourceDetails,

@@ -1,6 +1,5 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Core.Constants;
-using Clean.Architecture.Web.ApiModels.APIResponses.BadRequests;
 using Clean.Architecture.Web.ApiModels.APIResponses.Templates;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
