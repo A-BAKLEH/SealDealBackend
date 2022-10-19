@@ -16,12 +16,10 @@ public class Listing : Entity<int>
   public DateTime DateOfListing { get; set; }
   public ListingStatus Status { get; set; } = ListingStatus.Listed;
   public int Price { get; set; }
-  public Guid? BrokerId { get; set; }
-  public Broker? AssignedBroker { get; set; }
+  public int AssignedBrokersCount { get; set; } = 0;
+  public List<BrokerListingAssignment>? BrokersAssigned { get; set; }
   public string? URL { get; set; }
-
-  //public List<Lead> InterestedLeads { get; set; }
-  public List<LeadListing> InterestedLeads { get; set; }
+  public List<Lead>? LeadsGenerated { get; set; }
 
 }
 

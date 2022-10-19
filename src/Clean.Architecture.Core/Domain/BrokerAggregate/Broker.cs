@@ -25,10 +25,8 @@ public class Broker : Entity<Guid>
   /// </summary>
   public NotifType? NotifsForActionPlans { get; set; }
   public List<Lead>? Leads { get; set; }
-  public List<Listing>? Listings { get; set; }
+  public List<BrokerListingAssignment>? AssignedListings { get; set; }
   public List<Template>? Templates { get; set; }
-  //public List<SmsTemplate>? SmsTemplates { get; set; }
-  //public List<EmailTemplate>? EmailTemplates { get; set; }
   public List<ToDoTask>? Tasks { get; set; }
   public List<Tag>? BrokerTags { get; set; }
   public List<ActionPlan>? ActionPlans { get; set; }

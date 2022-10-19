@@ -2,7 +2,7 @@
 
 namespace Clean.Architecture.Web.ApiModels.APIResponses.Listing;
 
-public class BrokersListingsDTO
+public class AgencyListingsDTO
 {
-  public List<BrokerListingDTO> listings { get; set; }
+  public List<AgencyListingDTO> listings { get; set; }
 }

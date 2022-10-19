@@ -1,8 +1,8 @@
 ﻿namespace Clean.Architecture.Core.DTOs.ProcessingDTOs;
-public class LeadListingDTO
+public class LeadOriginalListingDTO
 {
-  public string? ClientComments { get; set; }
   public int ListingId { get; set; }
+  public string ListingStatus { get; set; }
   public string Address { get; set; }
   public int Price { get; set; }
 }

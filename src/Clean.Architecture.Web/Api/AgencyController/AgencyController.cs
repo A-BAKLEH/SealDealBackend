@@ -30,15 +30,15 @@ public class AgencyController : BaseApiController
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-    if (!brokerTuple.Item3)
+    if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
-      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
       return Unauthorized();
     }
     var listings = await _agencyQService.GetAgencyListings(brokerTuple.Item1.AgencyId, includeSold == 1 ? true : false);
 
     if (listings == null || !listings.Any()) return NotFound();
-    var respnse = new BrokersListingsDTO { listings = listings };
+    var respnse = new AgencyListingsDTO { listings = listings };
     return Ok(respnse);
   }
 

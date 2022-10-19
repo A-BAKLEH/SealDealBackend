@@ -9,11 +9,11 @@ public class CreateLeadDTO
   public int? Budget { get; set; }
   public string? leadNote { get; set; }
   /// <summary>
-  /// rent or buy
+  /// renter or buyer or Unknown
   /// </summary>
   public string? leadType { get; set; }
   /// <summary>
-  /// manual or automated
+  /// manualBroker, emailAuto,SmsAuto, adminAssign, unknown
   /// </summary>
   public string? leadSource { get; set; }
   /// <summary>
@@ -26,9 +26,9 @@ public class CreateLeadDTO
   /// </summary>
   public string? Areas { get; set; }
   /// <summary>
-  /// coma-seprated list of integers for this agency's listings
+  /// ID of the listing which brought the lead
   /// </summary>
-  public List<int>? ListingsOfInterstIds { get; set; }
+  public int? ListingOfInterstId { get; set; }
 
   /// <summary>
   /// existing tags to assign to this lead

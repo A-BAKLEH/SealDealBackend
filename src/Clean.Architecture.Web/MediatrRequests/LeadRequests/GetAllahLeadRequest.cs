@@ -45,13 +45,13 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
           APStatus = ass.ThisActionPlanStatus,
           APName = ass.ActionPlan.Title
         }),
-        ThisAgencyListingsOfInterest = l.ListingsOfInterest.Select(listing => new LeadListingDTO
-        {
-          Address = listing.Listing.Address,
-          Price = listing.Listing.Price,
-          ClientComments = listing.ClientComments,
-          ListingId = listing.ListingId
-        })
+        //ThisAgencyListingsOfInterest = l.ListingsOfInterest.Select(listing => new LeadListingDTO
+        //{
+        //  Address = listing.Listing.Address,
+        //  Price = listing.Listing.Price,
+        //  ClientComments = listing.ClientComments,
+        //  ListingId = listing.ListingId
+        //})
       }).FirstOrDefaultAsync(cancellationToken);
     if (lead == null) return null;
 

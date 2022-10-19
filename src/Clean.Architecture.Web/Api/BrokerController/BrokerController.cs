@@ -47,7 +47,7 @@ public class BrokerController : BaseApiController
     var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
     if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
-      _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} or Non-paying tried to add brokers", TagConstants.Unauthorized, id);
+      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to add brokers", TagConstants.Unauthorized, id);
       return Unauthorized();
     }
     var command = new AddBrokersRequest();

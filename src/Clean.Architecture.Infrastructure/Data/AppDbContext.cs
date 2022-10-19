@@ -20,7 +20,7 @@ public class AppDbContext : DbContext
   }
   public DbSet<Agency> Agencies => Set<Agency>();
   public DbSet<Listing> Listings => Set<Listing>();
-  public DbSet<LeadListing> LeadListing => Set<LeadListing>();
+  public DbSet<BrokerListingAssignment> BrokerListingAssignments => Set<BrokerListingAssignment>();
   public DbSet<Area> Areas => Set<Area>();
   public DbSet<Broker> Brokers => Set<Broker>();
   public DbSet<Template> Templates => Set<Template>();

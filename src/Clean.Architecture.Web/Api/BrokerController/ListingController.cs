@@ -31,17 +31,17 @@ public class ListingController : BaseApiController
   /// <returns>listings assigned to broker only. If admin calls it, will return listings that are assigned
   /// explicitly to him, not all agency's listings
   /// associatedto other brokers</returns>
-  [HttpGet("MyListings/{includeSold}")]
+  [HttpGet("MyListings")]
   public async Task<IActionResult> GetBrokerListings(int includeSold)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
     if (!brokerTuple.Item2)
     {
-      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get broker's Listings", TagConstants.Inactive, id);
       return Unauthorized();
     }
-    var listings = await _brokerTagsQService.GetBrokersListings(id,includeSold == 1 ? true : false);
+    var listings = await _brokerTagsQService.GetBrokersListings(id);
     
     if (listings == null || !listings.Any()) return NotFound();
     var respnse = new BrokersListingsDTO { listings = listings };
@@ -75,7 +75,7 @@ public class ListingController : BaseApiController
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
     if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
-      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to detach Listing from broker", TagConstants.Inactive, id);
       return Unauthorized();
     }
 

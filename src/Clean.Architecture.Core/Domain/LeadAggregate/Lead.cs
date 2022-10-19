@@ -37,9 +37,10 @@ public class Lead : Entity<int>
   public Guid? BrokerId { get; set; }
   public List<Area>? AreasOfInterest { get; set; }
   /// <summary>
-  /// only for listings that belong to the agency
+  /// lisitng that brought the lead
   /// </summary>
-  public List<LeadListing>? ListingsOfInterest { get; set; }
+  public int? ListingId { get; set; }
+  public Listing? Listing { get; set; }
   public Note? Note { get; set; }
   public List<Tag>? Tags { get; set; }
   public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }
@@ -47,7 +48,7 @@ public class Lead : Entity<int>
 }
 public enum LeadSource
 {
-  manual, website, unknown
+  manualBroker, emailAuto,SmsAuto, adminAssign, unknown
 }
 
 public enum LeadType

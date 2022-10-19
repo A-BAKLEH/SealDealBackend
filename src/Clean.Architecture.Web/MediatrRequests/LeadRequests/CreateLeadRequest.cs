@@ -26,7 +26,8 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest>
   {
     foreach (var dto in request.createLeadDTOs)
     {
-
+      bool sourceExists = Enum.TryParse<LeadSource>(dto.leadSource, true, out var leadSource);
+      bool typeExists = Enum.TryParse<LeadType>(dto.leadType, true, out var leadType);
       var lead = new Lead
       {
         AgencyId = request.AgencyId,
@@ -38,22 +39,17 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest>
         PhoneNumber = dto.PhoneNumber,
         Areas = dto.Areas,
         leadSourceDetails = dto.leadSourceDetails,
-        leadType = dto.leadType == null ? LeadType.Unknown : dto.leadType.ToLower().Contains("buy") ? LeadType.Buyer : LeadType.Renter,
-        source = dto.leadSource == null ? LeadSource.unknown : dto.leadSource.ToLower().Contains("manual") ? LeadSource.manual : LeadSource.website
+        leadType = typeExists ? leadType : LeadType.Unknown,
+        source = sourceExists ? leadSource : LeadSource.unknown
       };
       if (dto.TagsIds != null && dto.TagsIds.Any())
       {
         var tags = await _appDbContext.Tags.Where(t => t.BrokerId == request.BrokerId && dto.TagsIds.Contains(t.Id)).ToListAsync();
         lead.Tags = tags;
       }
-      if (dto.ListingsOfInterstIds != null && dto.ListingsOfInterstIds.Any())
+      if (dto.ListingOfInterstId != null)
       {
-        var listings = await _appDbContext.Listings.Where(l => l.BrokerId == request.BrokerId && dto.ListingsOfInterstIds.Contains(l.Id)).ToListAsync();
-        foreach (var listing in listings)
-        {
-          _appDbContext.LeadListing.Add(new LeadListing { Lead = lead, Listing = listing });
-
-        }
+        lead.ListingId = dto.ListingOfInterstId;
       }
       if (dto.leadNote != null)
       {

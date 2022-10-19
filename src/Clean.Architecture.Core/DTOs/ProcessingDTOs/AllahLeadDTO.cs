@@ -15,7 +15,7 @@ public class AllahLeadDTO
   public string? leadSourceDetails { get; set;}
   public LeadStatus LeadStatus { get; set; }
   //public IEnumerable<AreaDTO>? AreasOfInterest { get; set; }
-  public IEnumerable<LeadListingDTO>? ThisAgencyListingsOfInterest { get; set; }
+  //public IEnumerable<LeadListingDTO>? OriginalListing { get; set; }
   public string? Areas { get; set; }
   public Note? Note { get; set; }
   public IEnumerable<TagDTO>? Tags { get; set; }

@@ -60,32 +60,30 @@ public class BrokerTagsQService
         SigninEmail = b.LoginEmail,
         created = b.Created,
         LeadsCount = b.Leads.Count,
-        ListingsCount = b.Listings.Count,
+        ListingsCount = b.AssignedListings.Count,
         PhoneNumber = b.PhoneNumber
       })
       .ToListAsync();
     return brokers;
   }
 
-  public async Task<List<ListingDTO>> GetBrokersListings(Guid brokerId, bool includeSold)
+  public async Task<List<BrokerListingDTO>> GetBrokersListings(Guid brokerId)
   {
-    var query = _appDbContext.Listings
-      .OrderByDescending(l => l.DateOfListing)
-      .Where(l => l.BrokerId == brokerId);
 
-    if (!includeSold) query = query.Where(l =>l.Status == ListingStatus.Listed);
-
-    List<ListingDTO> listings = await query
-      .Select(l => new ListingDTO
+    var listings = await _appDbContext.BrokerListingAssignments
+      .Where(b => b.BrokerId == brokerId)
+      .OrderByDescending(a => a.assignmentDate)
+      .Select(l => new BrokerListingDTO
       {
-        Address = l.Address,
-        DateOfListing = l.DateOfListing,
-        ListingURL = l.URL,
-        Price = l.Price,
-        Status = l.Status.ToString(),
-        InterestedLeadsCount = l.InterestedLeads.Count,
-      })
-      .ToListAsync();
+        Address = l.Listing.Address,
+        DateOfListing = l.Listing.DateOfListing,
+        ListingURL = l.Listing.URL,
+        Price = l.Listing.Price,
+        Status = l.Listing.Status.ToString(),
+        DateAssignedToMe = l.assignmentDate,
+        AssignedBrokersCount = l.Listing.BrokersAssigned.Count
+      }).ToListAsync();
+      
     return listings;
   }
 }
