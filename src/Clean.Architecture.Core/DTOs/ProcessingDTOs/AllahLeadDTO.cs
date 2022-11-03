@@ -11,9 +11,9 @@ public class AllahLeadDTO
   public int? Budget { get; set; }
   public DateTime EntryDate { get; set; }
   public LeadSource leadSource { get; set;  }
-  public LeadType leadType { get; set; }
+  public string leadType { get; set; }
   public string? leadSourceDetails { get; set;}
-  public LeadStatus LeadStatus { get; set; }
+  public string LeadStatus { get; set; }
   //public IEnumerable<AreaDTO>? AreasOfInterest { get; set; }
   //public IEnumerable<LeadListingDTO>? OriginalListing { get; set; }
   public string? Areas { get; set; }
