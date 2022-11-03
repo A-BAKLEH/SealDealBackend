@@ -8,12 +8,13 @@ using Stripe.BillingPortal;
 namespace Clean.Architecture.Infrastructure.ExternalServices.Stripe;
 public class StripeBillingPortalService : IStripeBillingPortalService
 {
-  private readonly IConfigurationSection _stripeConfigSection;
+  //api key initialized in Container
+  //private readonly IConfigurationSection _stripeConfigSection;
   public StripeBillingPortalService(IConfiguration config)
   {
-    _stripeConfigSection = config.GetSection("StripeOptions");
+    //_stripeConfigSection = config.GetSection("StripeOptions");
 
-    StripeConfiguration.ApiKey = _stripeConfigSection["APIKey"];
+    //StripeConfiguration.ApiKey = _stripeConfigSection["APIKey"];
   }
   public async Task<string> CreateStripeBillingSessionAsync(string AdminStripeId, string returnURL)
   {

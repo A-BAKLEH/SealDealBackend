@@ -15,8 +15,8 @@ public class StripeCheckoutService : IStripeCheckoutService
   public StripeCheckoutService(IConfiguration config)
   {
     _stripeConfigSection = config.GetSection("StripeOptions");
-
-    StripeConfiguration.ApiKey = _stripeConfigSection["APIKey"];
+    //api key initialized in Container
+    //StripeConfiguration.ApiKey = _stripeConfigSection["APIKey"];
     CheckoutCancelURL = _stripeConfigSection.GetSection("CheckoutSessionCreateOptions")["CancelUrl"];
     CheckoutSuccessURL = _stripeConfigSection.GetSection("CheckoutSessionCreateOptions")["SuccessUrl"];
   }

@@ -11,6 +11,8 @@ using Clean.Architecture.Infrastructure.ExternalServices.Stripe;
 using Clean.Architecture.SharedKernel.DomainNotifications;
 using MediatR;
 using MediatR.Pipeline;
+using Microsoft.Extensions.Configuration;
+using Stripe;
 using Module = Autofac.Module;
 
 namespace Clean.Architecture.Infrastructure;
@@ -19,9 +21,11 @@ public class DefaultInfrastructureModule : Module
 {
   private readonly bool _isDevelopment = false;
   private readonly List<Assembly> _assemblies = new List<Assembly>();
+  private readonly IConfiguration _config;
 
-  public DefaultInfrastructureModule(bool isDevelopment, Assembly? callingAssembly = null)
+  public DefaultInfrastructureModule(bool isDevelopment, IConfiguration config, Assembly? callingAssembly = null)
   {
+    _config = config;
     _isDevelopment = isDevelopment;
     var coreAssembly =
       Assembly.GetAssembly(typeof(Agency)); // TODO: Replace "Project" with any type from your Core project
@@ -58,6 +62,9 @@ public class DefaultInfrastructureModule : Module
 
   private void RegisterCommonDependencies(ContainerBuilder builder)
   {
+    var _stripeConfigSection = _config.GetSection("StripeOptions");
+    StripeConfiguration.ApiKey = _stripeConfigSection["APIKey"];
+
     builder
       .RegisterType<Mediator>()
       .As<IMediator>()

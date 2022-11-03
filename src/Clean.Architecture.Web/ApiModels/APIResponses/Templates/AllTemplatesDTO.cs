@@ -4,5 +4,5 @@ namespace Clean.Architecture.Web.ApiModels.APIResponses.Templates;
 public class AllTemplatesDTO
 {
   public List<EmailTemplateDTO> emailTemplates { get; set; }
-  public List<TemplateBaseDTO> smsTemplates { get; set; }
+  public List<SmsTemplateDTO> smsTemplates { get; set; }
 }

@@ -22,7 +22,6 @@ public class LeadController : BaseApiController
     _leadQService = leadQService;
   }
 
-  //new
   [HttpPost("Create-Lead")]
   public async Task<IActionResult> CreateLead([FromBody] IEnumerable<CreateLeadDTO> createLeadDTO)
   {

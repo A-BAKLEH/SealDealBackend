@@ -1,6 +1,7 @@
 ﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels.APIResponses.Templates;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,10 @@ public class TemplatesQService
 
   public async Task<Template> CreateTemplateAsync(CreateTemplateDTO dto, Guid brokerId)
   {
+    if(_appDbContext.Templates.Any(t => t.BrokerId == brokerId && t.Title == dto.TemplateName))
+    {
+      throw new CustomBadRequestException($"template already exists with name '{dto.TemplateName}'");
+    }
     Template template;
     if (dto.TemplateType == "e")
     {
@@ -65,7 +70,7 @@ public class TemplatesQService
     var Smstemplates = await _appDbContext.SmsTemplates
       .OrderByDescending(t => t.Modified)
       .Where(t => t.BrokerId == brokerId)
-      .Select(x => new TemplateBaseDTO
+      .Select(x => new SmsTemplateDTO
       {
         id = x.Id,
         Modified = x.Modified,

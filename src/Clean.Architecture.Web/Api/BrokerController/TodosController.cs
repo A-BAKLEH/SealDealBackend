@@ -24,6 +24,7 @@ public class TodosController : BaseApiController
     var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
 
     var todos = await _mediator.Send(new GetBrokerTodosRequest { BrokerId = brokerId });
+    if (todos == null || !todos.Any()) return NotFound();
     var response = new TodoTasksDTO { todos = todos };
     return Ok(response);
   }

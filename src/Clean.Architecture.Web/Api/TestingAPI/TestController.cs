@@ -43,7 +43,8 @@ public class TestController : ControllerBase
   [HttpGet("test-azuread")]
   public async Task<IActionResult> azureadTest()
   {
-
+    var id = Guid.Parse("1B935034-6F92-41C7-99D0-A41181A7DF54");
+    var templatesDTO = await _templatesQService.GetAllTemplatesAsync(id);
     return Ok();
   }
 

@@ -11,6 +11,8 @@ using Clean.Architecture.Web;
 using Clean.Architecture.Web.Config;
 using Hellang.Middleware.ProblemDetails;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
+using Clean.Architecture.SharedKernel.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,41 +50,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddProblemDetails(x =>
+builder.Services.AddProblemDetails(options =>
 {
-  //x.Map<InvalidCommandException>(ex => new InvalidCommandProblemDetails(ex));
-});
-
-/*builder.Services.AddProblemDetails(options =>
-{
-  // Only include exception details in a development environment. There's really no need
-  // to set this as it's the default behavior. It's just included here for completeness :)
-  options.IncludeExceptionDetails = (ctx, ex) => builder.Environment.IsDevelopment();
-
-  // This will map UserNotFoundException to the 404 Not Found status code and return custom problem details.
-  options.Map<UserNotFoundException>(ex => new ProblemDetails
+  options.Map<CustomBadRequestException>(ex => new ProblemDetails
   {
-    Title = "Could not find user",
-    Status = StatusCodes.Status404NotFound,
+    Title = "Custom Bad Request",
+    Status = StatusCodes.Status400BadRequest,
     Detail = ex.Message,
   });
-
-  // This will map NotImplementedException to the 501 Not Implemented status code.
-  options.MapToStatusCode<NotImplementedException>(StatusCodes.Status501NotImplemented);
-
-  // You can configure the middleware to re-throw certain types of exceptions, all exceptions or based on a predicate.
-  // This is useful if you have upstream middleware that  needs to do additional handling of exceptions.
-  options.Rethrow<NotSupportedException>();
-
-  // You can configure the middleware to ingore any exceptions of the specified type.
-  // This is useful if you have upstream middleware that  needs to do additional handling of exceptions.
-  // Note that unlike Rethrow, additional information will not be added to the exception.
-  options.Ignore<DivideByZeroException>();
-
-  // Because exceptions are handled polymorphically, this will act as a "catch all" mapping, which is why it's added last.
-  // If an exception other than NotImplementedException and HttpRequestException is thrown, this will handle it.
-  options.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
-});*/
+});
 
 //add redis in production instead
 if (builder.Environment.IsDevelopment())
@@ -94,7 +70,7 @@ if (builder.Environment.IsDevelopment())
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
   containerBuilder.RegisterModule(new DefaultCoreModule());
-  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development", Assembly.GetExecutingAssembly()));
+  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development",builder.Configuration,Assembly.GetExecutingAssembly()));
   containerBuilder.RegisterModule(new WebModule(builder.Environment.EnvironmentName == "Development"));
 });
 //builder.Services.AddApplicationInsightsTelemetry();

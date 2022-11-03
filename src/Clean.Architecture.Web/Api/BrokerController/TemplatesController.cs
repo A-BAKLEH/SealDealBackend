@@ -1,5 +1,6 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Core.Constants;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Web.ApiModels.APIResponses.Templates;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
@@ -42,7 +43,7 @@ public class TemplatesController : BaseApiController
       return Unauthorized();
     }
 
-    var templatesDTO = _templatesQService.GetAllTemplatesAsync(id);
+    var templatesDTO = await _templatesQService.GetAllTemplatesAsync(id);
     return Ok(templatesDTO);
   }
 
@@ -58,8 +59,8 @@ public class TemplatesController : BaseApiController
     }
 
     var template = await _templatesQService.CreateTemplateAsync(dto, id);
-
-    return Ok(template);
+    if(dto.TemplateType == "e") return Ok((EmailTemplate)template);
+    return Ok((SmsTemplate)template);
   }
 
 }
