@@ -35,12 +35,12 @@ public class TodosController : BaseApiController
     //Not checking active, permissions
     var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
 
-    await _mediator.Send(new CreateTodoTaskRequest
+    var todo = await _mediator.Send(new CreateTodoTaskRequest
     {
       BrokerID = brokerId,
       createToDoTaskDTO = createToDoTaskDTO
     });
 
-    return Ok();
+    return Ok(todo);
   }
 }

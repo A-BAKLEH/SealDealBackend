@@ -30,17 +30,17 @@ public class LeadController : BaseApiController
     if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
-      return Unauthorized();
+      return Forbid();
     }
     var broker = brokerTuple.Item1;
-    await _mediator.Send(new CreateLeadRequest
+    var leads = await _mediator.Send(new CreateLeadRequest
     {
       AgencyId = broker.AgencyId,
       BrokerId = broker.Id,
       createLeadDTOs = createLeadDTO
     });
 
-    return Ok();
+    return Ok(leads);
   }
 
   /// <summary>
@@ -57,7 +57,7 @@ public class LeadController : BaseApiController
     if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
-      return Unauthorized();
+      return Forbid();
     }
     var broker = brokerTuple.Item1;
     var lead = await _mediator.Send(new GetAllahLeadRequest
@@ -84,7 +84,7 @@ public class LeadController : BaseApiController
     if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
-      return Unauthorized();
+      return Forbid();
     }
 
     var notifs = await _mediator.Send(new GetLeadEventsRequest
@@ -110,7 +110,7 @@ public class LeadController : BaseApiController
     if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
-      return Unauthorized();
+      return Forbid();
     }
 
     var leads = await _leadQService.GetLeadsAsync(brokerid);

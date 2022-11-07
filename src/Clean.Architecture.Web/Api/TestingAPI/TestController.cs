@@ -1,11 +1,13 @@
 ﻿using Clean.Architecture.Core.Domain.ActionPlanAggregate;
 using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
+using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
@@ -38,8 +40,20 @@ public class TestController : ControllerBase
     _appDbContext = appDbContext;
     _templatesQService = templatesQService;
   }
+  
 
-
+  [HttpGet("test-exceptions")]
+  public async Task<IActionResult> exceptionTest()
+  {
+    var exc = new CustomBadRequestException("details lolol", "title lol");
+    //exc.Errors["leadname"] = "no lead name";
+    //exc.Errors["phone"] = "bad format";
+    exc.ErrorsJSON = new Agency { Id = 1};
+    throw exc;
+    /*List<Agency> lis = new();
+    lis.Add(new Agency {Id = 1 });*/
+    //return BadRequest(lis);
+  }
   [HttpGet("test-azuread")]
   public async Task<IActionResult> azureadTest()
   {

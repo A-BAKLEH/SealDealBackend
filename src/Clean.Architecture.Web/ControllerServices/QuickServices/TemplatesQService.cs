@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
+﻿using Clean.Architecture.Core.Constants.ProblemDetailsTitles;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;
@@ -21,7 +22,7 @@ public class TemplatesQService
   {
     if(_appDbContext.Templates.Any(t => t.BrokerId == brokerId && t.Title == dto.TemplateName))
     {
-      throw new CustomBadRequestException($"template already exists with name '{dto.TemplateName}'");
+      throw new CustomBadRequestException($"template already exists with name '{dto.TemplateName}'", ProblemDetailsTitles.AlreadyExists);
     }
     Template template;
     if (dto.TemplateType == "e")
@@ -54,7 +55,7 @@ public class TemplatesQService
 
   public async Task<AllTemplatesDTO> GetAllTemplatesAsync(Guid brokerId)
   {
-    var Emailtemplates = await _appDbContext.EmailTemplates
+    /*var Emailtemplates = await _appDbContext.EmailTemplates
       .OrderByDescending(t => t.Modified)
       .Where(t => t.BrokerId == brokerId)
       .Select(x => new EmailTemplateDTO
@@ -78,12 +79,17 @@ public class TemplatesQService
         TimesUsed = x.TimesUsed,
         Title= x.Title,
       })
+      .ToListAsync();*/
+    var templates = await _appDbContext.Templates
+      .OrderByDescending(t => t.Modified)
+      .Where(t => t.BrokerId == brokerId)
       .ToListAsync();
-    AllTemplatesDTO allTemplatesDTO = new AllTemplatesDTO
+    AllTemplatesDTO allTemplatesDTO = new AllTemplatesDTO();
+    foreach (var template in templates)
     {
-      emailTemplates = Emailtemplates,
-      smsTemplates = Smstemplates
-    };
+      allTemplatesDTO.allTemplates.Add(template.MapToDTO());
+    }
+
     return allTemplatesDTO;
   }
 }

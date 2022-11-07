@@ -37,7 +37,7 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
         Thread.Sleep(800);
       }
       //add HangfireRetry
-      else throw new InconsistentStateException("subscriptionUpdated-NoAgencyWithSubscriptionID", $"No agency found with subscriptionId {request.SubscriptionId}, new status is {request.SubsStatus}");
+      else throw new InconsistentStateException("subscriptionUpdated-NoAgencyWithSubscriptionID", $"No agency found with subscriptionId {request.SubscriptionId}, new status is {request.SubsStatus}","No Matching Agency");
     }
     //Subs just created with CheckoutSessionCompleted Event
     if (agency.StripeSubscriptionStatus == StripeSubscriptionStatus.CreatedWaitingForStatus)

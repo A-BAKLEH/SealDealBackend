@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="MediatR" />
     <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Hellang.Middleware.ProblemDetails" />
   </ItemGroup>
 
 </Project>

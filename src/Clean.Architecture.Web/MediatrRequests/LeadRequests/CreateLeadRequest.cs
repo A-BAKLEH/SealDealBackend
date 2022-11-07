@@ -7,14 +7,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web.MediatrRequests.LeadRequests;
 
-public class CreateLeadRequest : IRequest
+public class CreateLeadRequest : IRequest<List<Lead>>
 {
   public Guid BrokerId { get; set; }
   public int AgencyId { get; set; }
   public IEnumerable<CreateLeadDTO> createLeadDTOs { get; set; }
 }
 
-public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest>
+public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, List<Lead>>
 {
   private readonly AppDbContext _appDbContext;
   public CreateLeadRequestHandler(AppDbContext appDbContext)
@@ -22,8 +22,9 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest>
     _appDbContext = appDbContext;
   }
 
-  public async Task<Unit> Handle(CreateLeadRequest request, CancellationToken cancellationToken)
+  public async Task<List<Lead>> Handle(CreateLeadRequest request, CancellationToken cancellationToken)
   {
+    List<Lead> added = new();
     foreach (var dto in request.createLeadDTOs)
     {
       bool sourceExists = Enum.TryParse<LeadSource>(dto.leadSource, true, out var leadSource);
@@ -65,9 +66,10 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest>
         }
       }
       _appDbContext.Leads.Add(lead);
+      added.Add(lead);
     }
     await _appDbContext.SaveChangesAsync();
 
-    return Unit.Value;
+    return added;
   }
 }

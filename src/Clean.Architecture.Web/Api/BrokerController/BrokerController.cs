@@ -10,6 +10,8 @@ using Clean.Architecture.Web.ControllerServices.StaticMethods;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
+using Clean.Architecture.SharedKernel.Exceptions.CustomProblemDetails;
+using Clean.Architecture.Core.Constants.ProblemDetailsTitles;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
@@ -48,7 +50,7 @@ public class BrokerController : BaseApiController
     if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to add brokers", TagConstants.Unauthorized, id);
-      return Unauthorized();
+      return Forbid();
     }
     var command = new AddBrokersRequest();
     command.admin = brokerTuple.Item1;
@@ -59,14 +61,37 @@ public class BrokerController : BaseApiController
       {
         FirstName = broker.FirstName,
         LastName = broker.LastName,
-       LoginEmail = broker.Email,
+        LoginEmail = broker.Email,
         PhoneNumber = broker.PhoneNumber
       });
       else nonValidBrokers.Add(broker);
     }
-    if (nonValidBrokers.Count > 0) return BadRequest(nonValidBrokers);
+    if (nonValidBrokers.Count > 0)
+    {
+      var res1 = new BadRequestProblemDetails
+      {
+        Title = ProblemDetailsTitles.InvalidInput,
+        Detail = "Initial validation for some brokers failed, no brokers added",
+        Status = 400,
+        Errors = nonValidBrokers
+      };
+      return BadRequest(res1);
+    }
     var failedBrokers = await _mediator.Send(command);
-    return Ok(failedBrokers);
+    //some or all brokers failed adding to B2C
+    //TODO later add specific problems if possible, such as duplicate B2C email
+    if(failedBrokers != null && failedBrokers.Any())
+    {
+      var res2 = new BadRequestProblemDetails
+      {
+        Title = ProblemDetailsTitles.B2CAccountAddFailure,
+        Detail = "B2C adding failed for following brokers",
+        Status = 400,
+        Errors = failedBrokers
+      };
+      return BadRequest(res2);
+    }
+    return Ok();
   }
 
   [HttpPost("Create-Tag/{tagname}")]
@@ -74,9 +99,8 @@ public class BrokerController : BaseApiController
   {
     //Not checking active, permissions
     var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var result = await _mediator.Send(new CreateBrokerTagRequest { BrokerId = brokerId, TagName = tagname });
-    if (result.Success) return Ok();
-    return BadRequest(result);
+    var tagDTO= await _mediator.Send(new CreateBrokerTagRequest { BrokerId = brokerId, TagName = tagname });
+    return Ok(tagDTO);
   }
 
   [HttpGet("Get-Tags")]

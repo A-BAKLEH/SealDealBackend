@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
+using Clean.Architecture.Core.Constants.ProblemDetailsTitles;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Microsoft.EntityFrameworkCore;
 
@@ -69,14 +71,18 @@ public class AgencyQService
     return listing;
   }
 
-  public async Task<string?> AssignListingToBroker(int listingId, Guid brokerId)
+  public async Task AssignListingToBroker(int listingId, Guid brokerId)
   {
     
     var listing = _appDbContext.Listings.Where(l => l.Id == listingId)
       .Include(l => l.BrokersAssigned)
       .FirstOrDefault();
-    if (listing == null) return "listing Not Found";
-    else if (listing.BrokersAssigned != null && listing.BrokersAssigned.Any(x => x.BrokerId == brokerId)) return "listing already assigned to Broker";
+    if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound,404);
+    else if (listing.BrokersAssigned != null && listing.BrokersAssigned.Any(x => x.BrokerId == brokerId))
+    {
+      throw new CustomBadRequestException("Already Assigned", ProblemDetailsTitles.ListingAlreadyAssigned);
+    }
+      
     else
     {
       BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow,BrokerId = brokerId}; 
@@ -86,24 +92,21 @@ public class AgencyQService
 
       listing.AssignedBrokersCount++;
       await _appDbContext.SaveChangesAsync();
-      return null;
     }
-    
   }
 
-  public async Task<string?> DetachBrokerFromListing(int listingId, Guid brokerId)
+  public async Task DetachBrokerFromListing(int listingId, Guid brokerId)
   {
 
     var listing = _appDbContext.Listings.Where(l => l.Id == listingId)
       .Include(l => l.BrokersAssigned).FirstOrDefault();
-    if (listing == null) return "listing Not Found";
-    else if (listing.BrokersAssigned != null && !listing.BrokersAssigned.Any(l => l.BrokerId == brokerId)) return "listing already not related to broker";
+    if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound, 404);
+    else if (listing.BrokersAssigned != null && !listing.BrokersAssigned.Any(l => l.BrokerId == brokerId)) return;
     else
     {
       listing.BrokersAssigned.RemoveAll(b => b.BrokerId == brokerId);
       listing.AssignedBrokersCount--;
       await _appDbContext.SaveChangesAsync();
-      return null;
     }
     
   }

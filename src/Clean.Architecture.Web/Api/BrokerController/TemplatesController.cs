@@ -40,7 +40,7 @@ public class TemplatesController : BaseApiController
     if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
-      return Unauthorized();
+      return Forbid();
     }
 
     var templatesDTO = await _templatesQService.GetAllTemplatesAsync(id);
@@ -55,12 +55,17 @@ public class TemplatesController : BaseApiController
     if ( !brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
-      return Unauthorized();
+      return Forbid();
     }
 
     var template = await _templatesQService.CreateTemplateAsync(dto, id);
-    if(dto.TemplateType == "e") return Ok((EmailTemplate)template);
-    return Ok((SmsTemplate)template);
+    if (dto.TemplateType == "e")
+    {
+      EmailTemplate temp1 = (EmailTemplate)template;
+      return Ok(temp1);
+    }
+    SmsTemplate temp2 = (SmsTemplate)template;
+    return Ok(temp2);
   }
 
 }

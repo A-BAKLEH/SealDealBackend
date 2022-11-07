@@ -29,7 +29,7 @@ public class NotificationsController : BaseApiController
     if ( !brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
-      return Unauthorized();
+      return Forbid();
     }
     NotifsResponseDTO response;
     //TODO separate admin request from broker request

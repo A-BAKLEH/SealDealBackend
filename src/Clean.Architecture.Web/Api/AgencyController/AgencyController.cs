@@ -24,7 +24,8 @@ public class AgencyController : BaseApiController
   /// </summary>
   /// <param name="includeSold">1 means true</param>
   /// <param name="lastListingId"></param>
-  /// <returns></returns>
+  /// <returns>
+  /// </returns>
   [HttpGet("AllListings/{includeSold}/{lastListingId}")]
   public async Task<IActionResult> GetAgencyListings(int includeSold, int lastListingId)
   {
@@ -33,7 +34,7 @@ public class AgencyController : BaseApiController
     if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
-      return Unauthorized();
+      return Forbid();
     }
     var listings = await _agencyQService.GetAgencyListings(brokerTuple.Item1.AgencyId, includeSold == 1 ? true : false);
 
@@ -50,7 +51,7 @@ public class AgencyController : BaseApiController
     if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
-      return Unauthorized();
+      return Forbid();
     }
 
     var listing = await _agencyQService.CreateListing(brokerTuple.Item1.AgencyId, dto);

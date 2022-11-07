@@ -13,6 +13,8 @@ using Hellang.Middleware.ProblemDetails;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Clean.Architecture.SharedKernel.Exceptions;
+using Clean.Architecture.SharedKernel.Exceptions.CustomProblemDetails;
+using Microsoft.Graph.TermStore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,12 +54,22 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddProblemDetails(options =>
 {
-  options.Map<CustomBadRequestException>(ex => new ProblemDetails
+  options.IncludeExceptionDetails = (ctx, env) => false;
+
+  options.Map<CustomBadRequestException>(ex => new BadRequestProblemDetails
   {
-    Title = "Custom Bad Request",
-    Status = StatusCodes.Status400BadRequest,
-    Detail = ex.Message,
+    Title = ex.title,
+    Status = ex.errorCode,
+    Detail = ex.details,
+    Errors = ex.ErrorsJSON
   });
+  options.Map<InconsistentStateException>(ex => new ProblemDetails
+  {
+    Title = ex.title,
+    Status = ex.errorCode,
+    Detail = ex.details,
+  });
+  
 });
 
 //add redis in production instead
@@ -80,7 +92,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationMiddleware>();
-
+app.UseProblemDetails();
 if (app.Environment.IsDevelopment())
 {
   app.UseSwagger();
@@ -89,13 +101,11 @@ if (app.Environment.IsDevelopment())
 else
 {
   //app.UseExceptionHandler();
-  app.UseProblemDetails();
+  //app.UseProblemDetails();
   app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-//app.UseStaticFiles();
-//app.UseCookiePolicy();
 
 app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();

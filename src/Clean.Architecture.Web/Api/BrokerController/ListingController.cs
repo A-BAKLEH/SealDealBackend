@@ -39,7 +39,7 @@ public class ListingController : BaseApiController
     if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get broker's Listings", TagConstants.Inactive, id);
-      return Unauthorized();
+      return Forbid();
     }
     var listings = await _brokerTagsQService.GetBrokersListings(id);
     
@@ -57,15 +57,10 @@ public class ListingController : BaseApiController
     if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
-      return Unauthorized();
+      return Forbid();
     }
 
-    var response = await _agencyQService.AssignListingToBroker(listingid, brokerId);
-    if (response != null)
-    {
-      var details = new BadRequestDetails { message = response };
-      return BadRequest(details);
-    }
+    await _agencyQService.AssignListingToBroker(listingid, brokerId);
     return Ok();
   }
   [HttpDelete("DetachFromBroker/{listingid}/{brokerid}")]
@@ -79,12 +74,8 @@ public class ListingController : BaseApiController
       return Unauthorized();
     }
 
-    var response = await _agencyQService.DetachBrokerFromListing(listingid, brokerId);
-    if (response != null)
-    {
-      var details = new BadRequestDetails { message = response };
-      return BadRequest(details);
-    }
+    await _agencyQService.DetachBrokerFromListing(listingid, brokerId);
+
     return Ok();
   }
 }

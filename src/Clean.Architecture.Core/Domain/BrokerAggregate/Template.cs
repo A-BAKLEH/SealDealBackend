@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.SharedKernel;
+﻿using Clean.Architecture.Core.DTOs.ProcessingDTOs;
+using Clean.Architecture.SharedKernel;
 
 namespace Clean.Architecture.Core.Domain.BrokerAggregate;
 public abstract class Template : Entity<int>
@@ -9,4 +10,6 @@ public abstract class Template : Entity<int>
   public DateTime Modified { get; set; }
   public int? TimesUsed { get; set; }
   public string Title { get; set; }
+
+  public abstract TemplateDTO MapToDTO();
 }

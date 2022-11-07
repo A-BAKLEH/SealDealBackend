@@ -5,12 +5,12 @@ using MediatR;
 
 namespace Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 
-public class CreateTodoTaskRequest : IRequest
+public class CreateTodoTaskRequest : IRequest<ToDoTask>
 {
   public Guid BrokerID { get; set; }
   public CreateToDoTaskDTO createToDoTaskDTO { get; set; }
 }
-public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskRequest>
+public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskRequest, ToDoTask>
 {
   private readonly AppDbContext _appDbContext;
   public CreateTodoTaskRequestHandler(AppDbContext appDbContext)
@@ -18,18 +18,19 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
     _appDbContext = appDbContext;
   }
 
-  public async Task<Unit> Handle(CreateTodoTaskRequest request, CancellationToken cancellationToken)
+  public async Task<ToDoTask> Handle(CreateTodoTaskRequest request, CancellationToken cancellationToken)
   {
-    _appDbContext.ToDoTasks.Add(new ToDoTask
+    var todo = new ToDoTask
     {
       BrokerId = request.BrokerID,
       LeadId = request.createToDoTaskDTO.leadId,
       TaskDueDate = request.createToDoTaskDTO.dueTime,
       Description = request.createToDoTaskDTO.Description,
       TaskName = request.createToDoTaskDTO.TaskName
-    });
+    };
+    _appDbContext.ToDoTasks.Add(todo);
     await _appDbContext.SaveChangesAsync();
-    return Unit.Value;
+    return todo;
   }
 }
 

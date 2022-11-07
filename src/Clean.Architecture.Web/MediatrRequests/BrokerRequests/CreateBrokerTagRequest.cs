@@ -1,18 +1,20 @@
-﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
+﻿using Clean.Architecture.Core.Constants.ProblemDetailsTitles;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
+using Clean.Architecture.SharedKernel.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 
-public class CreateBrokerTagRequest : IRequest<CreateTagResultDTO>
+public class CreateBrokerTagRequest : IRequest<TagDTO>
 {
   public Guid BrokerId { get; set; }
   public string TagName { get; set; }
 }
 
-public class CreateBrokerTagRequestHandler : IRequestHandler<CreateBrokerTagRequest, CreateTagResultDTO>
+public class CreateBrokerTagRequestHandler : IRequestHandler<CreateBrokerTagRequest, TagDTO>
 {
   private readonly AppDbContext _appDbContext;
   public CreateBrokerTagRequestHandler(AppDbContext appDbContext)
@@ -27,8 +29,8 @@ public class CreateBrokerTagRequestHandler : IRequestHandler<CreateBrokerTagRequ
   /// </summary>
   /// <param name="request"></param>
   /// <param name="cancellationToken"></param>
-  /// <returns>true if success, false if tag already exists with this name</returns>
-  public async Task<CreateTagResultDTO> Handle(CreateBrokerTagRequest request, CancellationToken cancellationToken)
+  /// <returns></returns>
+  public async Task<TagDTO> Handle(CreateBrokerTagRequest request, CancellationToken cancellationToken)
   {
     CreateTagResultDTO result = new();
 
@@ -36,11 +38,13 @@ public class CreateBrokerTagRequestHandler : IRequestHandler<CreateBrokerTagRequ
     {
       result.Success = false;
       result.message = "tag already exists";
+      throw new CustomBadRequestException("tag with name already exists", ProblemDetailsTitles.TagAlreadyExists);
     }
-    _appDbContext.Tags.Add(new Tag { BrokerId = request.BrokerId, TagName = request.TagName});
+    var tagToAdd = new Tag { BrokerId = request.BrokerId, TagName = request.TagName };
+    _appDbContext.Tags.Add(tagToAdd);
     await _appDbContext.SaveChangesAsync();
-    result.Success = true;
-    return result;
+    
+    return new TagDTO { id = tagToAdd.Id, name = tagToAdd.TagName};
   }
 }
 

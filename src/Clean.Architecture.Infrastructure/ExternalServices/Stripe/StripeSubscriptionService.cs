@@ -13,7 +13,7 @@ internal class StripeSubscriptionService : IStripeSubscriptionService
     var stripeSubs = await service.GetAsync(SubsId);
     var quant = stripeSubs.Items.Data[0].Quantity;
     if (quant != CurrentQuantity) throw new InconsistentStateException("AddSubscriptionQuantity",$"DB Stripe Subs" +
-      $" Quantity is {CurrentQuantity};Stripe actual quantity is {quant}");
+      $" Quantity is {CurrentQuantity};Stripe actual quantity is {quant}", "Stripe Sync Error");
 
     var items = new List<SubscriptionItemOptions>
     {
