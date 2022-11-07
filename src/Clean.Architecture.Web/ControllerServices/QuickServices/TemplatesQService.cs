@@ -18,7 +18,7 @@ public class TemplatesQService
     _appDbContext = appDbContext;
   }
 
-  public async Task<Template> CreateTemplateAsync(CreateTemplateDTO dto, Guid brokerId)
+  public async Task<TemplateDTO> CreateTemplateAsync(CreateTemplateDTO dto, Guid brokerId)
   {
     if(_appDbContext.Templates.Any(t => t.BrokerId == brokerId && t.Title == dto.TemplateName))
     {
@@ -50,7 +50,8 @@ public class TemplatesQService
     }
     _appDbContext.Templates.Add(template);
     await _appDbContext.SaveChangesAsync();
-    return template;
+    //return template;
+    return template.MapToDTO();
   }
 
   public async Task<AllTemplatesDTO> GetAllTemplatesAsync(Guid brokerId)

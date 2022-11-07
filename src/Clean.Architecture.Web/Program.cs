@@ -14,7 +14,6 @@ using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Exceptions.CustomProblemDetails;
-using Microsoft.Graph.TermStore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,11 +26,7 @@ builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Con
   .Enrich.WithProperty("AppVersion", version));
 
 builder.Services.AddHangfire(builder.Configuration.GetConnectionString("DefaultConnection"));
-/*builder.Services.Configure<CookiePolicyOptions>(options =>
-{
-  options.CheckConsentNeeded = context => true;
-  options.MinimumSameSitePolicy = SameSiteMode.None;
-});*/
+
 builder.Services.AddControllers();
 builder.Services.AddDbContext(builder.Configuration.GetConnectionString("DefaultConnection"));
 builder.Services.AddEndpointsApiExplorer();

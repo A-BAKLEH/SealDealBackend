@@ -1,6 +1,5 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Core.Constants;
-using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Web.ApiModels.APIResponses.Templates;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
@@ -14,8 +13,7 @@ namespace Clean.Architecture.Web.Api.BrokerController;
 public class TemplatesController : BaseApiController
 {
   private readonly ILogger<TemplatesController> _logger;
-  //private readonly BrokerTagsQService _brokerTagsQService;
-  //private readonly AgencyQService _agencyQService;
+
   private readonly TemplatesQService _templatesQService;
   public TemplatesController(AuthorizationService authorizeService, IMediator mediator,
     ILogger<TemplatesController> logger, TemplatesQService templatesQService) : base(authorizeService, mediator)
@@ -59,13 +57,14 @@ public class TemplatesController : BaseApiController
     }
 
     var template = await _templatesQService.CreateTemplateAsync(dto, id);
-    if (dto.TemplateType == "e")
-    {
-      EmailTemplate temp1 = (EmailTemplate)template;
-      return Ok(temp1);
-    }
-    SmsTemplate temp2 = (SmsTemplate)template;
-    return Ok(temp2);
+    //if (dto.TemplateType == "e")
+    //{
+    //  EmailTemplate temp1 = (EmailTemplate)template;
+    //  return Ok(temp1);
+    //}
+    //SmsTemplate temp2 = (SmsTemplate)template;
+    //return Ok(temp2);
+    return Ok(template);
   }
 
 }
