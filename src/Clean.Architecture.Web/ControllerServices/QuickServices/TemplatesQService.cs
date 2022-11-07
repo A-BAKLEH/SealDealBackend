@@ -20,13 +20,19 @@ public class TemplatesQService
 
   public async Task<TemplateDTO> CreateTemplateAsync(CreateTemplateDTO dto, Guid brokerId)
   {
-    if(_appDbContext.Templates.Any(t => t.BrokerId == brokerId && t.Title == dto.TemplateName))
+    if (_appDbContext.Templates.Any(t => t.BrokerId == brokerId && t.Title == dto.TemplateName))
     {
       throw new CustomBadRequestException($"template already exists with name '{dto.TemplateName}'", ProblemDetailsTitles.AlreadyExists);
+    }
+    if (string.IsNullOrWhiteSpace(dto.text) || string.IsNullOrWhiteSpace(dto.TemplateName)
+      || string.IsNullOrWhiteSpace(dto.TemplateName) || string.IsNullOrWhiteSpace(dto.TemplateType))
+    {
+      throw new CustomBadRequestException("empty input", ProblemDetailsTitles.EmptyInput);
     }
     Template template;
     if (dto.TemplateType == "e")
     {
+      if (string.IsNullOrWhiteSpace(dto.subject)) throw new CustomBadRequestException("empty input", ProblemDetailsTitles.EmptyInput);
       template = new EmailTemplate
       {
         BrokerId = brokerId,

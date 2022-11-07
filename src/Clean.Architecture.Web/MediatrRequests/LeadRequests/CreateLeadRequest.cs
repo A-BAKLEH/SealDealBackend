@@ -1,5 +1,6 @@
 ﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
+using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using MediatR;
@@ -7,14 +8,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web.MediatrRequests.LeadRequests;
 
-public class CreateLeadRequest : IRequest<List<Lead>>
+public class CreateLeadRequest : IRequest<IEnumerable<LeadForListDTO>>
 {
   public Guid BrokerId { get; set; }
   public int AgencyId { get; set; }
   public IEnumerable<CreateLeadDTO> createLeadDTOs { get; set; }
 }
 
-public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, List<Lead>>
+public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, IEnumerable<LeadForListDTO>>
 {
   private readonly AppDbContext _appDbContext;
   public CreateLeadRequestHandler(AppDbContext appDbContext)
@@ -22,7 +23,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, List<
     _appDbContext = appDbContext;
   }
 
-  public async Task<List<Lead>> Handle(CreateLeadRequest request, CancellationToken cancellationToken)
+  public async Task<IEnumerable<LeadForListDTO>> Handle(CreateLeadRequest request, CancellationToken cancellationToken)
   {
     List<Lead> added = new();
     foreach (var dto in request.createLeadDTOs)
@@ -69,7 +70,22 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, List<
       added.Add(lead);
     }
     await _appDbContext.SaveChangesAsync();
-
-    return added;
+    var response = added.Select(x => new LeadForListDTO
+    {
+      Budget = x.Budget,
+      Email = x.Email,
+      EntryDate = x.EntryDate,
+      LeadFirstName = x.LeadFirstName,
+      LeadId = x.Id,
+      LeadLastName = x.LeadLastName,
+      source = x.source.ToString(),
+      leadSourceDetails = x.leadSourceDetails,
+      LeadStatus = x.LeadStatus.ToString(),
+      leadType = x.leadType.ToString(),
+      PhoneNumber = x.PhoneNumber,
+      Note = x.Note == null ? null : new NoteDTO { id = x.Note.Id, NoteText = x.Note.NotesText },
+      Tags = x.Tags == null ? null : x.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName})
+    });
+    return response;
   }
 }

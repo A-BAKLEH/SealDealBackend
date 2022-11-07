@@ -2,6 +2,7 @@
 public static class ProblemDetailsTitles
 {
   public const string AlreadyExists = "AlreadyExists";
+  public const string EmptyInput = "EmptyInput";
 
   public const string InvalidInput = "InvalidInput";
   public const string B2CAccountAddFailure = "B2CAccountAddFailure";

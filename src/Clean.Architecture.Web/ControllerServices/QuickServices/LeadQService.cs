@@ -28,7 +28,8 @@ public class LeadQService
         LeadStatus = l.LeadStatus.ToString(),
         leadType = l.leadType.ToString(),
         PhoneNumber = l.PhoneNumber,
-        source = l.source.ToString()
+        source = l.source.ToString(),
+        Tags = l.Tags.Select( t => new TagDTO { id =t.Id, name = t.TagName })
       }).ToListAsync();
 
     return leads;

@@ -12,5 +12,14 @@ public class LeadForListDTO
   public string leadType { get; set; }
   public string? leadSourceDetails { get; set; }
   public string LeadStatus { get; set; }
+  public NoteDTO? Note { get; set; }
+  public IEnumerable<TagDTO>? Tags { get; set; }
 
 }
+
+public class NoteDTO
+{
+  public int id { get; set; }
+  public string NoteText { get; set; }
+}
+
