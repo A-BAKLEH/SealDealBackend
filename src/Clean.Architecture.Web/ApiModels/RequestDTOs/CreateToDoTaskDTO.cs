@@ -1,4 +1,5 @@
 ﻿namespace Clean.Architecture.Web.ApiModels.RequestDTOs;
+using System.ComponentModel.DataAnnotations;
 
 public class CreateToDoTaskDTO
 {
@@ -6,7 +7,11 @@ public class CreateToDoTaskDTO
   /// can be null
   /// </summary>
   public string? Description { get; set; }
+
+  [Required(AllowEmptyStrings = false)]
   public string TaskName { get; set; }
+
+  [Required]
   public DateTime dueTime { get; set; }
   public int? leadId { get; set; }
 

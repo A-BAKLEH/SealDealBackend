@@ -38,5 +38,5 @@ public class CreateLeadDTO
   /// new tag to add and assign to this lead
   /// 
   /// </summary>
-  public string TagToAdd { get; set; }
+  public string? TagToAdd { get; set; }
 }
