@@ -63,6 +63,7 @@ public class AgencyQService
       AgencyId = AgencyId,
       Price = dto.Price,
       URL = dto.URL,
+      Status = dto.Status == "l" ?  ListingStatus.Listed : ListingStatus.Sold,
       AssignedBrokersCount = brokersCount,
       BrokersAssigned = brokers
     };

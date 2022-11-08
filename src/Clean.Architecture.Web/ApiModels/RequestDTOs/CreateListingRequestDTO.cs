@@ -7,4 +7,8 @@ public class CreateListingRequestDTO
   public List<Guid>? AssignedBrokersIds { get; set; }
   public string? URL { get; set; }
   public string Address { get; set; }
+  /// <summary>
+  /// listed l , sold s
+  /// </summary>
+  public string Status { get; set; }
 }
