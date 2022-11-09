@@ -17,8 +17,8 @@ public class TransactionalBehavior<TRequest, TResponse> : IPipelineBehavior<TReq
   }
 
   public async Task<TResponse> Handle
-  (TRequest request, CancellationToken cancellationToken,
-   RequestHandlerDelegate<TResponse> next)
+  (TRequest request,
+   RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
   {
     try
     {
