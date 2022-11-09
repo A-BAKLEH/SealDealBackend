@@ -7,7 +7,6 @@ namespace Clean.Architecture.Core.Domain.NotificationAggregate;
 /// </summary>
 public class Notification : Entity<int>
 {
-  //brokerNotifs : todoTask soon, listing assigned,
   public Guid BrokerId { get; set; }
   public int? LeadId { get; set; }
   public Lead? lead { get; set; }
