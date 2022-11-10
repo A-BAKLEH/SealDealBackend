@@ -44,7 +44,7 @@ public class AgencyQService
       .ToListAsync();
     return listings;
   }
-  public async Task<Listing> CreateListing(int AgencyId, CreateListingRequestDTO dto)
+  public async Task<AgencyListingDTO> CreateListing(int AgencyId, CreateListingRequestDTO dto)
   {
     int brokersCount = 0;
     List<BrokerListingAssignment> brokers = new();
@@ -69,7 +69,20 @@ public class AgencyQService
     };
     _appDbContext.Listings.Add(listing);
     await _appDbContext.SaveChangesAsync();
-    return listing;
+    var listingDTO = new AgencyListingDTO
+    {
+      Address= listing.Address,
+      DateOfListing = listing.DateOfListing,
+      GeneratedLeadsCount = 0,
+      ListingURL = listing.URL,
+      Price = listing.Price,
+      Status = listing.Status.ToString(),
+      AssignedBrokers = listing.BrokersAssigned.Select(b => new BrokerPerListingDTO
+      {
+        BrokerId = b.BrokerId,
+      })
+    };
+    return listingDTO;
   }
 
   public async Task AssignListingToBroker(int listingId, Guid brokerId)
