@@ -40,7 +40,13 @@ public class TestController : ControllerBase
     _appDbContext = appDbContext;
     _templatesQService = templatesQService;
   }
-  
+
+  [HttpGet("test-json")]
+  public async Task<IActionResult> testJSON()
+  {
+   // _appDbContext.TestEntity1.Add();
+    return Ok();
+  }
 
   [HttpGet("test-exceptions")]
   public async Task<IActionResult> exceptionTest()

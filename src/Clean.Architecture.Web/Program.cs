@@ -14,6 +14,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Exceptions.CustomProblemDetails;
+using Clean.Architecture.Web.SignalRInfra;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,8 +104,11 @@ else
 app.UseHttpsRedirection();
 
 app.UseCors(MyAllowSpecificOrigins);
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<NotifsHub>("/notifs");
 
 
 app.MapControllers();

@@ -6,6 +6,7 @@ using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.Domain.TasksAggregate;
+using Clean.Architecture.Core.Domain.TestAggregate;
 using Clean.Architecture.SharedKernel.DomainNotifications;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,13 @@ public class AppDbContext : DbContext
       : base(options)
   {
   }
+
+  //test
+  public DbSet<TestBase> TestBase => Set<TestBase>();
+  public DbSet<TestEntity1> TestEntity1 => Set<TestEntity1>();
+  public DbSet<TestEntity2> TestEntity2 => Set<TestEntity2>();
+
+  //---------
   public DbSet<Agency> Agencies => Set<Agency>();
   public DbSet<Listing> Listings => Set<Listing>();
   public DbSet<BrokerListingAssignment> BrokerListingAssignments => Set<BrokerListingAssignment>();
