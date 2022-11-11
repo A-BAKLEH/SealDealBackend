@@ -55,6 +55,7 @@ public class TestController : ControllerBase
         two = new Core.Domain.TestAggregate.Test2Props { prop_2_2 = "lol2"}
       }
     });
+    _appDbContext.SaveChanges();
     return Ok();
   }
 
