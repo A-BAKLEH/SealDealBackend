@@ -44,7 +44,17 @@ public class TestController : ControllerBase
   [HttpGet("test-json")]
   public async Task<IActionResult> testJSON()
   {
-   // _appDbContext.TestEntity1.Add();
+    _appDbContext.TestEntity1.Add(new Core.Domain.TestAggregate.TestEntity1 { testJSON = new Core.Domain.TestAggregate.TestJSON
+    {
+      one = new Core.Domain.TestAggregate.Test1Props { prop1 = "lol"}
+    } });
+    _appDbContext.TestEntity2.Add(new Core.Domain.TestAggregate.TestEntity2
+    {
+      testJSON = new Core.Domain.TestAggregate.TestJSON
+      {
+        two = new Core.Domain.TestAggregate.Test2Props { prop_2_2 = "lol2"}
+      }
+    });
     return Ok();
   }
 
