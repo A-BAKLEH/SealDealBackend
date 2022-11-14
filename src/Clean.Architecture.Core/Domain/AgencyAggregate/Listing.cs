@@ -12,7 +12,7 @@ public class Listing : Entity<int>
 {
   public int AgencyId { get; set; }
   public Agency Agency { get; set; }
-  public string Address { get; set; }
+  public Address Address { get; set; }
   public DateTime DateOfListing { get; set; }
   public ListingStatus Status { get; set; } = ListingStatus.Listed;
   public int Price { get; set; }

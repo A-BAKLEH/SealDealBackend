@@ -59,6 +59,14 @@ public class TestController : ControllerBase
     return Ok();
   }
 
+  [HttpPost("test-inputvalid")]
+  public async Task<IActionResult> inputvalidTest([FromBody] NewBrokerDTO dto)
+  {
+    Console.WriteLine("lol");
+    
+    return Ok();
+  }
+
   [HttpGet("test-exceptions")]
   public async Task<IActionResult> exceptionTest()
   {

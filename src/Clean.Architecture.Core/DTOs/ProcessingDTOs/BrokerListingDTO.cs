@@ -1,7 +1,9 @@
-﻿namespace Clean.Architecture.Core.DTOs.ProcessingDTOs;
+﻿using Clean.Architecture.Core.Domain.AgencyAggregate;
+
+namespace Clean.Architecture.Core.DTOs.ProcessingDTOs;
 public class BrokerListingDTO
 {
-  public string Address { get; set; }
+  public Address Address { get; set; }
   public DateTime DateOfListing { get; set; }
   public string Status { get; set; }
   public int Price { get; set; }

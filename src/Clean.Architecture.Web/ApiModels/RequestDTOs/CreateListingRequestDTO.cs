@@ -6,9 +6,7 @@ public class CreateListingRequestDTO
   public int Price { get; set; }
   public List<Guid>? AssignedBrokersIds { get; set; }
   public string? URL { get; set; }
-
-  [Required(AllowEmptyStrings = false)]
-  public string Address { get; set; }
+  public AddressCreateDTO Address { get; set; }
   /// <summary>
   /// listed l , sold s
   /// </summary>

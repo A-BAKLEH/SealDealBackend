@@ -51,19 +51,29 @@ public class AgencyQService
     if (dto.AssignedBrokersIds != null && dto.AssignedBrokersIds.Any())
     {
       brokersCount += dto.AssignedBrokersIds.Count;
-      foreach(var b in dto.AssignedBrokersIds)
+      foreach (var b in dto.AssignedBrokersIds)
       {
-        brokers.Add(new BrokerListingAssignment { assignmentDate = DateTime.UtcNow,BrokerId = b});
+        brokers.Add(new BrokerListingAssignment { assignmentDate = DateTime.UtcNow, BrokerId = b });
       }
     }
 
     var listing = new Listing
-    { Address = dto.Address,
+    {
+      Address = new Address
+      {
+        AppartmentNo = dto.Address.AppartmentNo,
+        BuildingNumber = dto.Address.BuildingNumber,
+        City = dto.Address.City,
+        Country = dto.Address.Country,
+        PostalCode = dto.Address.PostalCode,
+        ProvinceState = dto.Address.ProvinceState,
+        Street = dto.Address.Street,
+      },
       DateOfListing = dto.DateOfListing,
       AgencyId = AgencyId,
       Price = dto.Price,
       URL = dto.URL,
-      Status = dto.Status == "l" ?  ListingStatus.Listed : ListingStatus.Sold,
+      Status = dto.Status == "l" ? ListingStatus.Listed : ListingStatus.Sold,
       AssignedBrokersCount = brokersCount,
       BrokersAssigned = brokers
     };
@@ -71,7 +81,7 @@ public class AgencyQService
     await _appDbContext.SaveChangesAsync();
     var listingDTO = new AgencyListingDTO
     {
-      Address= listing.Address,
+      Address = listing.Address,
       DateOfListing = listing.DateOfListing,
       GeneratedLeadsCount = 0,
       ListingURL = listing.URL,
@@ -87,21 +97,21 @@ public class AgencyQService
 
   public async Task AssignListingToBroker(int listingId, Guid brokerId)
   {
-    
+
     var listing = _appDbContext.Listings.Where(l => l.Id == listingId)
       .Include(l => l.BrokersAssigned)
       .FirstOrDefault();
-    if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound,404);
+    if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound, 404);
     else if (listing.BrokersAssigned != null && listing.BrokersAssigned.Any(x => x.BrokerId == brokerId))
     {
       throw new CustomBadRequestException("Already Assigned", ProblemDetailsTitles.ListingAlreadyAssigned);
     }
-      
+
     else
     {
-      BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow,BrokerId = brokerId}; 
-      
-      if(listing.BrokersAssigned != null) listing.BrokersAssigned.Add(brokerlisting);
+      BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow, BrokerId = brokerId };
+
+      if (listing.BrokersAssigned != null) listing.BrokersAssigned.Add(brokerlisting);
       else listing.BrokersAssigned = new List<BrokerListingAssignment> { brokerlisting };
 
       listing.AssignedBrokersCount++;
@@ -122,6 +132,6 @@ public class AgencyQService
       listing.AssignedBrokersCount--;
       await _appDbContext.SaveChangesAsync();
     }
-    
+
   }
 }
