@@ -1,7 +1,5 @@
-﻿using Clean.Architecture.Core.Domain.ActionPlanAggregate;
-using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
+﻿
 using Clean.Architecture.Core.Domain.AgencyAggregate;
-using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
@@ -9,16 +7,23 @@ using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
+using Clean.Architecture.Web.Cache;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 using Clean.Architecture.Web.MediatrRequests.NotifsRequests;
-using Humanizer;
+using Clean.Architecture.Web.Cache;
+using Clean.Architecture.Web.Cache.Extensions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using Microsoft.Graph;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
+
+
 [Route("api/[controller]")]
 [ApiController]
 public class TestController : ControllerBase
@@ -30,15 +35,21 @@ public class TestController : ControllerBase
 
   private readonly AppDbContext _appDbContext;
   private readonly TemplatesQService _templatesQService;
+  private readonly IDistributedCache _distributedCache;
+  private readonly BrokerTagsQService _brokerTagsQService;
+  private readonly AgencyQService _agencyQService;
 
   public TestController(IMediator mediator, ILogger<TestController> logger,
-     AppDbContext appDbContext, IMsGraphService msGraphService, TemplatesQService templatesQService)
+     AppDbContext appDbContext, IMsGraphService msGraphService, TemplatesQService templatesQService,
+     IDistributedCache _distributedCache, BrokerTagsQService brokerTagsQService, AgencyQService agencyQService)
   {
     _mediator = mediator;
     _logger = logger;
-
+    this._distributedCache = _distributedCache;
     _appDbContext = appDbContext;
     _templatesQService = templatesQService;
+    _brokerTagsQService= brokerTagsQService;
+    _agencyQService= agencyQService;
   }
 
   [HttpGet("test-json")]
@@ -58,12 +69,10 @@ public class TestController : ControllerBase
     _appDbContext.SaveChanges();
     return Ok();
   }
-
-  [HttpPost("test-inputvalid")]
-  public async Task<IActionResult> inputvalidTest([FromBody] NewBrokerDTO dto)
+  [HttpPost("test-cache")]
+  public async Task<IActionResult> cacheTest()
   {
-    Console.WriteLine("lol");
-    
+    await _distributedCache.SetCacheAsync<string>("testkey1", "testvalue1testvalue1");
     return Ok();
   }
 
@@ -120,11 +129,12 @@ public class TestController : ControllerBase
     return Ok();
   }
 
-  [HttpGet("test-schema")]
+  [HttpGet("test-getlistings")]
   public async Task<IActionResult> TestNewSchema()
   {
-    await _mediator.Send(new TestRequest1 { name = "abdul" });
-    return Ok();
+    //var listings = _brokerTagsQService.GetBrokersListings(Guid.Parse(""));
+    var listings = await _agencyQService.GetAgencyListings(3,true);
+    return Ok(listings);
   }
 
 

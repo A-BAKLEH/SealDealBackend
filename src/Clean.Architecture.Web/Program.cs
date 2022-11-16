@@ -44,7 +44,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                       builder.Configuration.Bind("AzureAdB2C", options);
                       options.TokenValidationParameters.NameClaimType = "name";
                     },
-                    options => { builder.Configuration.Bind("AzureAdB2C", options); });
+                      options =>
+                      {
+                        builder.Configuration.Bind("AzureAdB2C", options);
+                      }
+                      );
 
 builder.Services.AddHttpContextAccessor();
 
@@ -65,20 +69,30 @@ builder.Services.AddProblemDetails(options =>
     Status = ex.errorCode,
     Detail = ex.details,
   });
-  
+
 });
 
 //add redis in production instead
 if (builder.Environment.IsDevelopment())
 {
-  builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
+  builder.Services.AddStackExchangeRedisCache(options =>
+  {
+    //options.Configuration = builder.Configuration.GetConnectionString("redis");
+    options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
+    {
+      EndPoints = { "redis-17282.c56.east-us.azure.cloud.redislabs.com:17282" },
+      Password = "m2qOkNVxZXxhXAwncrC5l0vpaCiBj3dc"
+    };
+    //options.InstanceName = "test1";
+  });
+  //builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
   builder.Services.AddSignalR().AddAzureSignalR();
 }
 
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 {
   containerBuilder.RegisterModule(new DefaultCoreModule());
-  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development",builder.Configuration,Assembly.GetExecutingAssembly()));
+  containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development", builder.Configuration, Assembly.GetExecutingAssembly()));
   containerBuilder.RegisterModule(new WebModule(builder.Environment.EnvironmentName == "Development"));
 });
 //builder.Services.AddApplicationInsightsTelemetry();

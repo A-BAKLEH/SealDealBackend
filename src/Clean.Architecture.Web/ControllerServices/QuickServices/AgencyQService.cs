@@ -40,7 +40,7 @@ public class AgencyQService
           firstName = b.Broker.FirstName,
           lastName = b.Broker.LastName
         })
-      })
+      }).AsNoTracking()
       .ToListAsync();
     return listings;
   }

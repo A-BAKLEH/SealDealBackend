@@ -82,7 +82,7 @@ public class BrokerTagsQService
         Status = l.Listing.Status.ToString(),
         DateAssignedToMe = l.assignmentDate,
         AssignedBrokersCount = l.Listing.BrokersAssigned.Count
-      }).ToListAsync();
+      }).AsNoTracking().ToListAsync();
       
     return listings;
   }

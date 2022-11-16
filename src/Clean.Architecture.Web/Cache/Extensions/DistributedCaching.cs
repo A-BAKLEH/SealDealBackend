@@ -9,9 +9,10 @@ public static class DistributedCaching
     var cachedResponse = await distributedCache.GetStringAsync(key, token);
     return cachedResponse == null ? null : JsonSerializer.Deserialize<T>(cachedResponse);
   }
-  public static async Task SetCacheAsync<T>(this IDistributedCache distributedCache,string key, T value, DistributedCacheEntryOptions options, CancellationToken token = default) where T : class
+  public static async Task SetCacheAsync<T>(this IDistributedCache distributedCache,string key, T value, DistributedCacheEntryOptions? options = null , CancellationToken token = default) where T : class
   {
     var response = JsonSerializer.Serialize(value);
+    if(options == null) options = new DistributedCacheEntryOptions();
     await distributedCache.SetStringAsync(key, response, options, token);
   }
 
