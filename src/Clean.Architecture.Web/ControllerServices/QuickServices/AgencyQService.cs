@@ -61,13 +61,11 @@ public class AgencyQService
     {
       Address = new Address
       {
-        AppartmentNo = dto.Address.AppartmentNo,
-        BuildingNumber = dto.Address.BuildingNumber,
+        StreetAddress = dto.Address.StreetAddress,
         City = dto.Address.City,
         Country = dto.Address.Country,
         PostalCode = dto.Address.PostalCode,
         ProvinceState = dto.Address.ProvinceState,
-        Street = dto.Address.Street,
       },
       DateOfListing = dto.DateOfListing,
       AgencyId = AgencyId,
