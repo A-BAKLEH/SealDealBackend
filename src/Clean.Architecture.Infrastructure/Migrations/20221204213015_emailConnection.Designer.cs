@@ -4,6 +4,7 @@ using Clean.Architecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Clean.Architecture.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221204213015_emailConnection")]
+    partial class emailConnection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -219,10 +222,6 @@ namespace Clean.Architecture.Infrastructure.Migrations
 
                     b.Property<int>("NumberOfBrokersInSubscription")
                         .HasColumnType("int");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("SignupDateTime")
                         .HasColumnType("datetime2");
@@ -807,44 +806,6 @@ namespace Clean.Architecture.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("ActionPlan");
-                });
-
-            modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Agency", b =>
-                {
-                    b.OwnsOne("Clean.Architecture.Core.Domain.AgencyAggregate.Address", "Address", b1 =>
-                        {
-                            b1.Property<int>("AgencyId")
-                                .HasColumnType("int");
-
-                            b1.Property<string>("City")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.Property<string>("Country")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.Property<string>("PostalCode")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.Property<string>("ProvinceState")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.Property<string>("StreetAddress")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.HasKey("AgencyId");
-
-                            b1.ToTable("Agencies");
-
-                            b1.WithOwner()
-                                .HasForeignKey("AgencyId");
-                        });
-
-                    b.Navigation("Address");
                 });
 
             modelBuilder.Entity("Clean.Architecture.Core.Domain.AgencyAggregate.Area", b =>

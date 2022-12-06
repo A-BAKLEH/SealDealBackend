@@ -19,6 +19,7 @@ public class Notification : Entity<int>
   public NotifType NotifType { get; set; }
 
   /// <summary>
+  /// For in-app events: straightforward
   /// For lead interactions: Read either in SealDeal or in email client / mobile Sms app , call Answered 
   /// when false: email Unread, Sms not replied to/ unread(depends on how easy to check on phone), call missed 
   /// </summary>

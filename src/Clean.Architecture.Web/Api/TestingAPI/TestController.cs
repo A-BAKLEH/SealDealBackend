@@ -31,17 +31,17 @@ public class TestController : ControllerBase
 
   private readonly IMediator _mediator;
   private readonly ILogger<TestController> _logger;
-  private readonly IMsGraphService _graphService;
+  private readonly IB2CGraphService _graphService;
 
   private readonly AppDbContext _appDbContext;
   private readonly TemplatesQService _templatesQService;
   private readonly IDistributedCache _distributedCache;
-  private readonly BrokerTagsQService _brokerTagsQService;
+  private readonly BrokerQService _brokerTagsQService;
   private readonly AgencyQService _agencyQService;
 
   public TestController(IMediator mediator, ILogger<TestController> logger,
-     AppDbContext appDbContext, IMsGraphService msGraphService, TemplatesQService templatesQService,
-     IDistributedCache _distributedCache, BrokerTagsQService brokerTagsQService, AgencyQService agencyQService)
+     AppDbContext appDbContext, IB2CGraphService msGraphService, TemplatesQService templatesQService,
+     IDistributedCache _distributedCache, BrokerQService brokerTagsQService, AgencyQService agencyQService)
   {
     _mediator = mediator;
     _logger = logger;

@@ -18,14 +18,15 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
 {
   private readonly IStripeSubscriptionService _stripeSubscriptionService;
   private readonly ILogger<AddBrokersRequestHandler> _logger;
-  private readonly IMsGraphService _msGraphService;
+  private readonly IB2CGraphService _msGraphService;
   private readonly AppDbContext _appDbContext;
-  public AddBrokersRequestHandler(IStripeSubscriptionService stripeService, IMsGraphService graphService, AppDbContext appDbContext, ILogger<AddBrokersRequestHandler> logger)
+  public AddBrokersRequestHandler(IStripeSubscriptionService stripeService, IB2CGraphService graphService, AppDbContext appDbContext, ILogger<AddBrokersRequestHandler> logger)
   {
     _stripeSubscriptionService = stripeService;
     _logger = logger;
     _msGraphService = graphService;
     _appDbContext = appDbContext;
+
   }
 
   public async Task<List<Broker>> Handle(AddBrokersRequest request, CancellationToken cancellationToken)

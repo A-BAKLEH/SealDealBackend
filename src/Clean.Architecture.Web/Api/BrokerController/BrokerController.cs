@@ -18,8 +18,8 @@ namespace Clean.Architecture.Web.Api.BrokerController;
 public class BrokerController : BaseApiController
 {
   private readonly ILogger<BrokerController> _logger;
-  private readonly BrokerTagsQService _brokerTagsQService;
-  public BrokerController(AuthorizationService authorizeService, IMediator mediator, BrokerTagsQService brokerTagsQService, ILogger<BrokerController> logger) : base(authorizeService, mediator)
+  private readonly BrokerQService _brokerTagsQService;
+  public BrokerController(AuthorizationService authorizeService, IMediator mediator, BrokerQService brokerTagsQService, ILogger<BrokerController> logger) : base(authorizeService, mediator)
   {
     _logger = logger;
     _brokerTagsQService = brokerTagsQService;

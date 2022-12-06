@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Net.Cache;
-using Azure.Core;
-using Clean.Architecture.Core.Domain.AgencyAggregate;
-using Clean.Architecture.Core.Domain.BrokerAggregate;
+﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
@@ -10,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Architecture.Web.ControllerServices.QuickServices;
 
-public class BrokerTagsQService
+public class BrokerQService
 {
   private readonly AppDbContext _appDbContext;
-  public BrokerTagsQService(AppDbContext appDbContext)
+  public BrokerQService(AppDbContext appDbContext)
   {
     _appDbContext = appDbContext;
   }

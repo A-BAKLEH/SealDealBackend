@@ -18,7 +18,8 @@ public class Broker : Entity<Guid>
   public Boolean AccountActive { get; set; }
   public string? PhoneNumber { get; set; }
   public string LoginEmail { get; set; }
-  public string FirstConnectedEmail { get; set; } = "";
+  public string? FirstConnectedEmail { get; set; }
+  public ConnectedEmailStatus? ConnectedEmailStatus { get; set; }
   public DateTime Created { get; set; } = DateTime.UtcNow;
   /// <summary>
   /// Notif types that can act as trigger/stoppage/etc in Broker's active Action Plans
@@ -31,4 +32,9 @@ public class Broker : Entity<Guid>
   public List<Tag>? BrokerTags { get; set; }
   public List<ActionPlan>? ActionPlans { get; set; }
   public List<RecurrentTaskBase>? RecurrentTasks { get; set; }
+}
+
+public enum ConnectedEmailStatus
+{
+  Good, Error
 }

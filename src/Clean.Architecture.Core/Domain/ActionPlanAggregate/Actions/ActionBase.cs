@@ -15,6 +15,7 @@ public abstract class ActionBase: Entity<int>
   //public int? ParentActionId { get; set; }
 
   //public ActionBase NextAction { get; set; }
+
   //public int? NextActionId { get; set; }
 
   /// <summary>

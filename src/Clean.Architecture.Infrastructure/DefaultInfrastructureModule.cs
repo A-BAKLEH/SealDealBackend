@@ -128,9 +128,13 @@ public class DefaultInfrastructureModule : Module
     .As<IStripeSubscriptionService>()
     .InstancePerLifetimeScope();
 
-    builder.RegisterType<MsGraphService>()
-    .As<IMsGraphService>()
+    builder.RegisterType<B2CGraphService>()
+    .As<IB2CGraphService>()
     .InstancePerLifetimeScope();
+
+    builder.RegisterType<ADGraphWrapper>()
+      .AsSelf()
+      .InstancePerLifetimeScope();
   }
 
   private void RegisterDevelopmentOnlyDependencies(ContainerBuilder builder)

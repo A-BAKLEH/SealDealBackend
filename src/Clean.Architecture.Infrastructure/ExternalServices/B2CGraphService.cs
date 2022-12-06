@@ -6,15 +6,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
 
 namespace Clean.Architecture.Infrastructure.ExternalServices;
-public class MsGraphService : IMsGraphService
+public class B2CGraphService : IB2CGraphService
 {
 
   public GraphServiceClient _graphClient;
   //private readonly IConfigurationSection _MsGraphConfigSection;
-  public MsGraphService(IConfiguration config)
+  public B2CGraphService(IConfiguration config)
   {
 
-    var configSection = config.GetSection("MsGraphOptions");
+    var configSection = config.GetSection("B2CGraphOptions");
     var scopes = new[] { "https://graph.microsoft.com/.default" };
     var tenantId = configSection["tenantId"];
     var clientId = configSection["clientId"];

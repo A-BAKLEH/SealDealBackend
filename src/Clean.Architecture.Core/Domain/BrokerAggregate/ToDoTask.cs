@@ -1,4 +1,5 @@
-﻿using Clean.Architecture.Core.Domain.LeadAggregate;
+﻿
+using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.SharedKernel;
 namespace Clean.Architecture.Core.Domain.BrokerAggregate;
 

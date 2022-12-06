@@ -12,6 +12,13 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <Compile Remove="Filters\**" />
+    <Content Remove="Filters\**" />
+    <EmbeddedResource Remove="Filters\**" />
+    <None Remove="Filters\**" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
@@ -34,7 +41,6 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="Filters\" />
     <Folder Include="Handlers\ActionPlanHandlers\EventHandlers\" />
     <Folder Include="Handlers\ActionPlanHandlers\OutOfRequestHandler\" />
     <Folder Include="Handlers\AgencyHandlers\OutOfRequestNotifs\" />

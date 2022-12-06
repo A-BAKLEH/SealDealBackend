@@ -32,6 +32,7 @@ public class GetNotifsDashboardRequestHandler : IRequestHandler<GetNotifsDashboa
   {
     var NotifResponseDTO = new NotifsResponseDTO();
 
+    //by searching for these, implicitly limiting to NotifyBroker=true
     int notifTypeFilter = (int)(NotifType.EmailReceived | NotifType.SmsReceived | NotifType.CallReceived | NotifType.LeadStatusChange);
 
     var NotifWrappersList = await _appDbContext.Notifications

@@ -13,10 +13,10 @@ namespace Clean.Architecture.Web.Api.BrokerController;
 public class ListingController : BaseApiController
 {
   private readonly ILogger<ListingController> _logger;
-  private readonly BrokerTagsQService _brokerTagsQService; 
+  private readonly BrokerQService _brokerTagsQService; 
   private readonly AgencyQService _agencyQService;
   public ListingController(AuthorizationService authorizeService, IMediator mediator,
-    BrokerTagsQService brokerTagsQService,
+    BrokerQService brokerTagsQService,
     AgencyQService agencyQService,
     ILogger<ListingController> logger) : base(authorizeService, mediator)
   {
