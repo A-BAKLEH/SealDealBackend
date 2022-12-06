@@ -19,11 +19,11 @@ public class NotifsHub : Hub
       await Clients.Client(Context.ConnectionId)
              .SendAsync("echo", name, $"{message} (echo from server)");
 
-  public override Task OnConnectedAsync()
-  {
-    var id = Guid.Parse(Context.User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = _authorizationService.AuthorizeUser(id, true).Result;
-    Console.WriteLine("signalR user: "+brokerTuple.Item1.LoginEmail);
-    return Task.CompletedTask;
-  }
+  //public override Task OnConnectedAsync()
+  //{
+  //  var id = Guid.Parse(Context.User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+  //  var brokerTuple = _authorizationService.AuthorizeUser(id, true).Result;
+  //  Console.WriteLine("signalR user: "+brokerTuple.Item1.LoginEmail);
+  //  return Task.CompletedTask;
+  //}
 }

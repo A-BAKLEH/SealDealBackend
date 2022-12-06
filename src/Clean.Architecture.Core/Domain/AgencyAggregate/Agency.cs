@@ -12,7 +12,7 @@ public class Agency : Entity<int>
 { 
   public string AgencyName { get; set; }
   public Address? Address { get; set; }
-  public string PhoneNumber { get; set; }
+  public string? PhoneNumber { get; set; }
   public DateTime SignupDateTime { get; set; } = DateTime.UtcNow;
 
   public string? AdminStripeId { get; set; }
