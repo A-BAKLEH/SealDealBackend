@@ -2,8 +2,6 @@
 using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs;
 using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.SharedKernel.Exceptions;
-using Clean.Architecture.Web.Api.SigninSignup;
 using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 
@@ -21,9 +19,9 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
 {
   private readonly AppDbContext _appDbContext;
   private readonly AuthorizationService _authorizeService;
-  private readonly Logger<SignupRequestHandler> _logger;
+  private readonly ILogger<SignupRequestHandler> _logger;
 
-  public SignupRequestHandler(AppDbContext appDbContext, AuthorizationService authorizeService, Logger<SignupRequestHandler> logger)
+  public SignupRequestHandler(AppDbContext appDbContext, AuthorizationService authorizeService, ILogger<SignupRequestHandler> logger)
   {
     _appDbContext = appDbContext;
     _authorizeService = authorizeService;

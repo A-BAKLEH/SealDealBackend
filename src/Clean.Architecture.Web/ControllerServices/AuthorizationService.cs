@@ -33,12 +33,22 @@ public class AuthorizationService
     return Tuple.Create(broker, broker.AccountActive, broker.isAdmin);
   }
 
-  public async Task<AccountStatusDTO> VerifyAccountAsync(Guid id)
+  /// <summary>
+  /// will create agency and broker if createAgencyIfNotExists == true and agency does not exist
+  /// </summary>
+  /// <param name="id"></param>
+  /// <param name="createAgencyIfNotExists"></param>
+  /// <returns></returns>
+  /// <exception cref="InconsistentStateException"></exception>
+  public async Task<AccountStatusDTO> VerifyAccountAsync(Guid id, bool createAgencyIfNotExists = false)
   {
     var response = new AccountStatusDTO();
     var broker = await _appDbContext.Brokers.Include(b => b.Agency).FirstOrDefaultAsync(b => b.Id == id);
-    if (broker == null) throw new InconsistentStateException("VerifyAccount","Broker not found in DB",id.ToString());
-    //TODO: maybe handle if account is active but subscription is not?
+    if (broker == null)
+    {
+      throw new InconsistentStateException("VerifyAccount", "Broker not found in DB", id.ToString());
+    }
+      //TODO: maybe handle if account is active but subscription is not?
     if (broker.AccountActive)
     {
       response.userAccountStatus = "active";

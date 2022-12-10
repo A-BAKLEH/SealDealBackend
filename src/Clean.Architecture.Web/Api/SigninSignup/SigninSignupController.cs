@@ -31,7 +31,7 @@ public class SigninSignupController : BaseApiController
     if (newUserClaim == null)
     {
       Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-      var res = await _authorizeService.VerifyAccountAsync(b2cID);
+      var res = await _authorizeService.VerifyAccountAsync(b2cID, true);
       //TODO trigger EmailFetch and SMS fetch if not happened in 6 hours.
       //other fethces from 3rd parties
       return Ok(res);
@@ -40,7 +40,6 @@ public class SigninSignupController : BaseApiController
     var agencyName = l.Find(x => x.Type == "extension_AgencyName").Value;
     var id = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var signinResponseDTO = await _mediator.Send(new SignupRequest
-
     {
       AgencyName = agencyName,
       givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value,
