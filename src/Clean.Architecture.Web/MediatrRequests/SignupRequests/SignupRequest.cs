@@ -3,6 +3,8 @@ using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Core.DTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;
+using Clean.Architecture.Web.Api.SigninSignup;
+using Clean.Architecture.Web.ControllerServices;
 using MediatR;
 
 namespace Clean.Architecture.Web.MediatrRequests.SignupRequests;
@@ -18,10 +20,14 @@ public class SignupRequest : IRequest<AccountStatusDTO>
 public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatusDTO>
 {
   private readonly AppDbContext _appDbContext;
+  private readonly AuthorizationService _authorizeService;
+  private readonly Logger<SignupRequestHandler> _logger;
 
-  public SignupRequestHandler(AppDbContext appDbContext)
+  public SignupRequestHandler(AppDbContext appDbContext, AuthorizationService authorizeService, Logger<SignupRequestHandler> logger)
   {
     _appDbContext = appDbContext;
+    _authorizeService = authorizeService;
+    _logger = logger;
   }
 
   /// <summary>
@@ -37,7 +43,11 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
     if (_appDbContext.Brokers.FirstOrDefault(b => b.Id == request.b2cId) != null)
     {
       //log warning 
-      throw new InconsistentStateException("SignupRequest-UserAlreadyInDatabase","broker with B2C ID already exists in Brokers table", request.b2cId.ToString());
+      //throw new InconsistentStateException("SignupRequest-UserAlreadyInDatabase","broker with B2C ID already exists in Brokers table", request.b2cId.ToString());
+      _logger.LogWarning("broker with B2C ID already exists in Brokers table");
+      var accountStatus = await this._authorizeService.VerifyAccountAsync(request.b2cId);
+
+      return accountStatus;
     }
     var broker = new Broker()
     {
