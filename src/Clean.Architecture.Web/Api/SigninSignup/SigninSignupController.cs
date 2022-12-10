@@ -25,6 +25,7 @@ public class SigninSignupController : BaseApiController
   [HttpGet("signin-signup")]
   public async Task<IActionResult> SigninSingup()
   {
+    _logger.LogWarning("SIGNIN SIGNUP CALLED Ya hbibi");
     var l = User.Claims.ToList();
     var newUserClaim = l.Find(x => x.Type == "newUser");
     //signin only
