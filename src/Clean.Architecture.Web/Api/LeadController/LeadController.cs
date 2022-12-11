@@ -22,7 +22,7 @@ public class LeadController : BaseApiController
     _leadQService = leadQService;
   }
 
-  [HttpPost("Create-Lead")]
+  [HttpPost]
   public async Task<IActionResult> CreateLead([FromBody] IEnumerable<CreateLeadDTO> createLeadDTO)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
@@ -49,7 +49,7 @@ public class LeadController : BaseApiController
   /// <param name="id">id of the lead</param>
   /// <param name="includeEvents">1 to include Notifs, 0 to not include</param>
   /// <returns></returns>
-  [HttpGet("Get-AllahLead/{id}/{includeEvents}")]
+  [HttpGet("AllahLead/{id}/{includeEvents}")]
   public async Task<IActionResult> GetAllahLead(int id, int includeEvents)
   {
     var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
@@ -76,7 +76,7 @@ public class LeadController : BaseApiController
   /// <param name="leadid"></param>
   /// <param name="lastid"></param>
   /// <returns></returns>
-  [HttpGet("Get-LeadEvents/{leadid}/{lastid}")]
+  [HttpGet("Events/{leadid}/{lastid}")]
   public async Task<IActionResult> GetLeadEvents(int leadid, int lastid)
   {
     var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
@@ -102,7 +102,7 @@ public class LeadController : BaseApiController
   /// for leads list, implements paging later, now will just return all leads
   /// </summary>
   /// <returns></returns>
-  [HttpGet("Get-Leads")]
+  [HttpGet("MyLeads")]
   public async Task<IActionResult> GetLeads()
   {
     var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);

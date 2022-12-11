@@ -42,7 +42,7 @@ public class BrokerController : BaseApiController
       BrokersQuantity = brokerTuple.Item1.Agency.NumberOfBrokersInDatabase
     });*/
 
-  [HttpPost("add-brokers")]
+  [HttpPost]
   public async Task<IActionResult> AddBrokers([FromBody] IEnumerable<NewBrokerDTO> brokers)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
@@ -94,31 +94,11 @@ public class BrokerController : BaseApiController
     return Ok();
   }
 
-  [HttpPost("Create-Tag/{tagname}")]
-  public async Task<IActionResult> CreateTag(string tagname)
-  {
-    //Not checking active, permissions
-    var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var tagDTO= await _mediator.Send(new CreateBrokerTagRequest { BrokerId = brokerId, TagName = tagname });
-    return Ok(tagDTO);
-  }
-
-  [HttpGet("Get-Tags")]
-  public async Task<IActionResult> GetTags()
-  {
-    //Not checking active, permissions
-    var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-
-    var tags = await _brokerTagsQService.GetBrokerTagsAsync(brokerId);
-    if (tags == null) return NotFound();
-    return Ok(tags);
-  }
-
   /// <summary>
   /// used by admin only
   /// </summary>
   /// <returns></returns>
-  [HttpGet("Get-Brokers-List")]
+  [HttpGet("All")]
   public async Task<IActionResult> GetBrokers()
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);

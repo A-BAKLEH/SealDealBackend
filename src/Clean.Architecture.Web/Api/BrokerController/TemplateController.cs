@@ -10,13 +10,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
-public class TemplatesController : BaseApiController
+public class TemplateController : BaseApiController
 {
-  private readonly ILogger<TemplatesController> _logger;
+  private readonly ILogger<TemplateController> _logger;
 
   private readonly TemplatesQService _templatesQService;
-  public TemplatesController(AuthorizationService authorizeService, IMediator mediator,
-    ILogger<TemplatesController> logger, TemplatesQService templatesQService) : base(authorizeService, mediator)
+  public TemplateController(AuthorizationService authorizeService, IMediator mediator,
+    ILogger<TemplateController> logger, TemplatesQService templatesQService) : base(authorizeService, mediator)
   {
     _logger = logger;
     _templatesQService = templatesQService;
@@ -30,7 +30,7 @@ public class TemplatesController : BaseApiController
   }
 
 
-  [HttpGet("AllTemplates")]
+  [HttpGet("MyTemplates")]
   public async Task<IActionResult> GetAllTemplates()
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
@@ -45,7 +45,7 @@ public class TemplatesController : BaseApiController
     return Ok(templatesDTO);
   }
 
-  [HttpPost("Template")]
+  [HttpPost]
   public async Task<IActionResult> CreateBrokerTemplate([FromBody] CreateTemplateDTO dto)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);

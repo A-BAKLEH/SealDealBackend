@@ -7,19 +7,13 @@ using Clean.Architecture.Core.ExternalServiceInterfaces;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
-using Clean.Architecture.Web.Cache;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
-using Clean.Architecture.Web.MediatrRequests.AgencyRequests;
 using Clean.Architecture.Web.MediatrRequests.NotifsRequests;
-using Clean.Architecture.Web.Cache;
 using Clean.Architecture.Web.Cache.Extensions;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Options;
-using Microsoft.Graph;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
 
@@ -133,8 +127,8 @@ public class TestController : ControllerBase
   public async Task<IActionResult> TestNewSchema()
   {
     //var listings = _brokerTagsQService.GetBrokersListings(Guid.Parse(""));
-    var listings = await _agencyQService.GetAgencyListings(3,true);
-    return Ok(listings);
+    //var listings = await _agencyQService.GetAgencyListings(3,true);
+    return Ok();
   }
 
 

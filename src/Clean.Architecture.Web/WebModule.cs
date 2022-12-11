@@ -21,7 +21,10 @@ public class WebModule : Module
     builder.RegisterType(typeof(AuthorizationService)).AsSelf().InstancePerLifetimeScope();
     builder.RegisterType(typeof(BrokerQService)).AsSelf().InstancePerLifetimeScope();
     builder.RegisterType(typeof(LeadQService)).AsSelf().InstancePerLifetimeScope();
-    builder.RegisterType(typeof(AgencyQService)).AsSelf().InstancePerLifetimeScope(); 
+    builder.RegisterType(typeof(AgencyQService)).AsSelf().InstancePerLifetimeScope();
+    builder.RegisterType(typeof(ListingQService)).AsSelf().InstancePerLifetimeScope(); 
+    builder.RegisterType(typeof(TagQService)).AsSelf().InstancePerLifetimeScope();
+
     builder.RegisterType(typeof(TemplatesQService)).AsSelf().InstancePerLifetimeScope(); 
     builder.RegisterType(typeof(MSFTEmailQService)).AsSelf().InstancePerLifetimeScope();
 

@@ -1,5 +1,4 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
-using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.MediatrRequests.SignupRequests;
@@ -13,16 +12,15 @@ namespace Clean.Architecture.Web.Api.SigninSignup;
 public class SigninSignupController : BaseApiController
 {
   private readonly ILogger<SigninSignupController> _logger;
-  private readonly MSFTEmailQService _MSFTEmailQService;
+  
   public SigninSignupController(AuthorizationService authorizeService, IMediator mediator,
     ILogger<SigninSignupController> logger,
     MSFTEmailQService emailQService) : base(authorizeService, mediator)
   {
     _logger = logger;
-    _MSFTEmailQService = emailQService;
   }
 
-  [HttpGet("signin-signup")]
+  [HttpGet]
   public async Task<IActionResult> SigninSingup()
   {
     _logger.LogWarning("SIGNIN SIGNUP CALLED Ya hbibi");
@@ -50,45 +48,5 @@ public class SigninSignupController : BaseApiController
     });
     _logger.LogInformation("[{Tag}] New Agency Signed up with name {AgencyName} and admin B2cId {UserId}", TagConstants.AgencySignup,agencyName,id);
     return Ok(signinResponseDTO);
-  }
-
-
-  [HttpPost("ConnectEmail")]
-  public async Task<IActionResult> ConnectEmail([FromBody] ConnectEmailDTO dto)
-  {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id,true);
-    if (!brokerTuple.Item2)
-    {
-      _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
-      return Forbid();
-    }
-    if(dto.EmailProvider == "m")
-    {
-      await _MSFTEmailQService.ConnectEmail(brokerTuple.Item1,dto.Email, dto.TenantId);
-    }
-    
-    return Ok();
-  }
-
-  /// <summary>
-  /// admin consented
-  /// </summary>
-  /// <param name="dto"></param>
-  /// <returns></returns>
-  [HttpPost("/MSFT/AdminConsent")]
-  public async Task<IActionResult> AdminConsentedMSFT([FromBody] AdminConsentDTO dto)
-  {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
-    if (!brokerTuple.Item2 || !brokerTuple.Item3)
-    {
-      _logger.LogWarning("[{Tag}] inactive User or non-admin with UserId {UserId} tried to handle admin consented", TagConstants.Inactive, id);
-      return Forbid();
-    }
-
-    await _MSFTEmailQService.HandleAdminConsented(brokerTuple.Item1, dto.Email, dto.TenantId);
-
-    return Ok();
   }
 }

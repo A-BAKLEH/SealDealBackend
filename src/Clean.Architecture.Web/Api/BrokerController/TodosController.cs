@@ -17,7 +17,7 @@ public class TodosController : BaseApiController
     _logger = logger;
   }
 
-  [HttpGet("Get-ToDos")]
+  [HttpGet("MyTodos")]
   public async Task<IActionResult> GetBrokerToDos()
   {
     //Not checking active, permissions
@@ -29,7 +29,7 @@ public class TodosController : BaseApiController
     return Ok(response);
   }
 
-  [HttpPost("Create-ToDo")]
+  [HttpPost]
   public async Task<IActionResult> CreateBrokerToDo([FromBody] CreateToDoTaskDTO createToDoTaskDTO)
   {
     //Not checking active, permissions

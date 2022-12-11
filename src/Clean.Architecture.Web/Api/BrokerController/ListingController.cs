@@ -1,5 +1,4 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
-using Clean.Architecture.Web.ApiModels.APIResponses.BadRequests;
 using Clean.Architecture.Web.ApiModels.APIResponses.Listing;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
@@ -14,16 +13,57 @@ public class ListingController : BaseApiController
 {
   private readonly ILogger<ListingController> _logger;
   private readonly BrokerQService _brokerTagsQService; 
-  private readonly AgencyQService _agencyQService;
+  private readonly ListingQService _listingQService;
   public ListingController(AuthorizationService authorizeService, IMediator mediator,
     BrokerQService brokerTagsQService,
     AgencyQService agencyQService,
+    ListingQService listingQService,
     ILogger<ListingController> logger) : base(authorizeService, mediator)
   {
     _logger = logger;
     _brokerTagsQService = brokerTagsQService;
-    _agencyQService = agencyQService;
+    _listingQService = listingQService;
   }
+
+  /// <summary>
+  /// will later implement paging
+  /// </summary>
+  /// <param name="includeSold">1 means true</param>
+  /// <param name="lastListingId"></param>
+  /// <returns>
+  /// </returns>
+  [HttpGet("All/{includeSold}/{lastListingId}")]
+  public async Task<IActionResult> GetAgencyListings(int includeSold, int lastListingId)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item3 || !brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
+      return Forbid();
+    }
+    var listings = await _listingQService.GetAgencyListings(brokerTuple.Item1.AgencyId, includeSold == 1 ? true : false);
+
+    if (listings == null || !listings.Any()) return NotFound();
+    var respnse = new AgencyListingsDTO { listings = listings };
+    return Ok(respnse);
+  }
+
+  [HttpPost]
+  public async Task<IActionResult> CreateAgencyListing([FromBody] CreateListingRequestDTO dto)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item3 || !brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+      return Forbid();
+    }
+
+    var listing = await _listingQService.CreateListing(brokerTuple.Item1.AgencyId, dto);
+    return Ok(listing);
+  }
+
 
   /// <summary>
   /// 
@@ -60,7 +100,7 @@ public class ListingController : BaseApiController
       return Forbid();
     }
 
-    await _agencyQService.AssignListingToBroker(listingid, brokerId);
+    await _listingQService.AssignListingToBroker(listingid, brokerId);
     return Ok();
   }
   [HttpDelete("DetachFromBroker/{listingid}/{brokerid}")]
@@ -74,7 +114,7 @@ public class ListingController : BaseApiController
       return Unauthorized();
     }
 
-    await _agencyQService.DetachBrokerFromListing(listingid, brokerId);
+    await _listingQService.DetachBrokerFromListing(listingid, brokerId);
 
     return Ok();
   }

@@ -18,10 +18,10 @@ public class NotificationsController : BaseApiController
   }
 
   /// <summary>
-  /// To be called by dashboard
+  /// Notifs for dashboard table
   /// </summary>
   /// <returns></returns>
-  [HttpGet("Get-Notifs")]
+  [HttpGet("BrokerNotifs")]
   public async Task<IActionResult> GetBrokerNotifs()
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
