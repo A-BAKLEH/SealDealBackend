@@ -1,6 +1,6 @@
 ﻿using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 
-namespace Clean.Architecture.Core.Domain.BrokerAggregate;
+namespace Clean.Architecture.Core.Domain.BrokerAggregate.Templates;
 
 public class EmailTemplate : Template
 {
@@ -11,12 +11,12 @@ public class EmailTemplate : Template
     Console.WriteLine("executing from EmailTemplate");
     var dto = new TemplateDTO
     {
-      id = this.Id,
-      Modified = this.Modified,
-      subject = this.EmailTemplateSubject,
-      templateText = this.templateText,
-      TimesUsed = this.TimesUsed,
-      Title = this.Title,
+      id = Id,
+      Modified = Modified,
+      subject = EmailTemplateSubject,
+      templateText = templateText,
+      TimesUsed = TimesUsed,
+      Title = Title,
       type = "e"
     };
     return dto;

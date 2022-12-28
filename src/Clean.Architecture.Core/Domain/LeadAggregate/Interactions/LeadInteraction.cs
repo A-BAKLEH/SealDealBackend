@@ -1,0 +1,37 @@
+﻿using Clean.Architecture.Core.Domain.NotificationAggregate;
+using Clean.Architecture.SharedKernel;
+
+namespace Clean.Architecture.Core.Domain.LeadAggregate.Interactions;
+public abstract class LeadInteraction : Entity<int>
+{
+  public int LeadId { get; set; }
+
+  /// <summary>
+  /// maybe remove
+  /// </summary>
+  public NotifType type { get; set; }
+
+  /// <summary>
+  /// true if lead initiated interaction
+  /// </summary>
+  public bool isReceived { get; set; }
+
+  /// <summary>
+  /// of underlying event
+  /// </summary>
+  public DateTime Timestamp { get; set; }
+
+  /// <summary>
+  /// Read for email, read for sms, went through (picked up) for call
+  /// </summary>
+  public bool isRead { set; get; }
+
+  /// <summary>
+  /// sms text for sms,
+  /// "call duration,broker comment" for call =
+  /// email id for email
+  /// </summary>
+  public string? data { get; set; }  
+
+
+}

@@ -4,6 +4,7 @@ using Clean.Architecture.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Clean.Architecture.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20221222000140_emailConnection2")]
+    partial class emailConnection2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -311,8 +314,14 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Property<int>("AgencyId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ConnectedEmailStatus")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("FirstConnectedEmail")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -381,25 +390,6 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Property<int>("EmailStatus")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("FirstSync")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("GraphSubscriptionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("LastSync")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("SubsExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SubsRenewalJobId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("SyncScheduled")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("isMSFT")
                         .HasColumnType("bit");
 
@@ -407,12 +397,10 @@ namespace Clean.Architecture.Infrastructure.Migrations
 
                     b.HasIndex("BrokerId");
 
-                    b.HasIndex("GraphSubscriptionId");
-
                     b.ToTable("ConnectedEmails");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection.FolderSync", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection.EmailSubs", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -423,23 +411,36 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Property<int>("ConnectedEmailId")
                         .HasColumnType("int");
 
-                    b.Property<string>("DeltaToken")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FolderId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("FirstSyncTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("FolderName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("FolderSyncToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("GraphSubscriptionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("HangfireRenewalJobId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastSyncTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("SubsExpireTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("SubscriptionWorking")
+                        .HasColumnType("bit");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ConnectedEmailId");
 
-                    b.ToTable("FolderSyncs");
+                    b.ToTable("EmailSubscriptions");
                 });
 
             modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.Tag", b =>
@@ -1075,10 +1076,10 @@ namespace Clean.Architecture.Infrastructure.Migrations
                     b.Navigation("Broker");
                 });
 
-            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection.FolderSync", b =>
+            modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection.EmailSubs", b =>
                 {
                     b.HasOne("Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection.ConnectedEmail", null)
-                        .WithMany("FolderSyncs")
+                        .WithMany("EmailSubscriptions")
                         .HasForeignKey("ConnectedEmailId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1322,7 +1323,7 @@ namespace Clean.Architecture.Infrastructure.Migrations
 
             modelBuilder.Entity("Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection.ConnectedEmail", b =>
                 {
-                    b.Navigation("FolderSyncs");
+                    b.Navigation("EmailSubscriptions");
                 });
 
             modelBuilder.Entity("Clean.Architecture.Core.Domain.LeadAggregate.Lead", b =>

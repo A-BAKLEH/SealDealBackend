@@ -72,6 +72,10 @@ builder.Services.AddProblemDetails(options =>
 
 });
 
+if(builder.Environment.IsEnvironment("Test"))
+{
+
+}
 //add redis in production instead
 if (builder.Environment.IsDevelopment())
 {

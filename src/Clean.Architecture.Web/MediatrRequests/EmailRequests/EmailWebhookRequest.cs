@@ -28,7 +28,7 @@ public class EmailWebhookRequestHandler : IRequestHandler<EmailWebhookRequest>
 
   public async Task<Unit> Handle(EmailWebhookRequest request, CancellationToken cancellationToken)
   {
-    var Options = new DistributedCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(12));
+    /*var Options = new DistributedCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromHours(12));
     BrokerCacheIndex brokerCacheIndex = null;
     FetchEmailsTask fetchEmailsTask1 = null;
     bool fetchEmailsTaskFromDb = false;
@@ -90,7 +90,7 @@ public class EmailWebhookRequestHandler : IRequestHandler<EmailWebhookRequest>
     else
     {
       if (fetchEmailsTaskFromDb) await _distributedCache.SetCacheAsync<FetchEmailsTask>(request.email, fetchEmailsTask1, Options);
-    }
+    }*/
     return Unit.Value;
   }
 }

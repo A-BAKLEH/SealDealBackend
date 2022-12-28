@@ -1,15 +1,7 @@
-﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
-using Clean.Architecture.Core.Domain.TasksAggregate;
-using Clean.Architecture.Infrastructure.Data;
-using Clean.Architecture.Web.Cache;
-using Clean.Architecture.Web.Cache.Extensions;
+﻿using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.ControllerServices;
-using Clean.Architecture.Web.MediatrRequests.EmailRequests;
-using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Clean.Architecture.Web.Api.EmailControllers;
@@ -35,9 +27,9 @@ public class GmailWebhook : BaseApiController
     //this is a broker's connected email
     var email = "someone@gmail.com";
     //TODO change error message
-    _ = _mediator.Send(new EmailWebhookRequest { isGmail = true, email = email }).
+    /*_ = _mediator.Send(new EmailWebhookRequest { isGmail = true, email = email }).
       ContinueWith(t => _logger.LogError("error",t.Exception),
-        TaskContinuationOptions.OnlyOnFaulted);
+        TaskContinuationOptions.OnlyOnFaulted);*/
     return Ok();
    }
     //-> use Hisotry.List(token) API to get a list of {emailId, type of notif (added, deleted, whatever)}

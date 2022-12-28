@@ -3,7 +3,7 @@ using Clean.Architecture.SharedKernel;
 
 namespace Clean.Architecture.Core.Domain.NotificationAggregate;
 /// <summary>
-/// Represents an event that happened in the app
+/// Represents an event that happened in the app, always related to a broker but can also relate to lead
 /// </summary>
 public class Notification : Entity<int>
 {
@@ -11,10 +11,8 @@ public class Notification : Entity<int>
   public int? LeadId { get; set; }
   public Lead? lead { get; set; }
 
-
   public DateTime NotifCreatedAt { get; set; } = DateTime.UtcNow;
   public DateTime UnderlyingEventTimeStamp { get; set; }
-
 
   public NotifType NotifType { get; set; }
 
@@ -24,11 +22,14 @@ public class Notification : Entity<int>
   /// when false: email Unread, Sms not replied to/ unread(depends on how easy to check on phone), call missed 
   /// </summary>
   public bool ReadByBroker { get; set; } = false;
+
   /// <summary>
   /// set to true to keep reminding el hmar to check it out until ReadByBroker is true
   /// true if notifType: sms received, 
   /// </summary>
   public bool NotifyBroker { get; set; }
+
+  //----------- TODO maybe REMOVE -------
   /// <summary>
   /// Action Plans handling status
   /// </summary>
@@ -36,16 +37,10 @@ public class Notification : Entity<int>
   /// <summary>
   /// JSON string:string format only for now. later can create cutsom serializer
   /// props related to the resource like for email : subject, CCS, threadId
+  /// can contain: brokercomment, other data
   /// </summary>
   public Dictionary<string, string> NotifProps { get; set; } = new();
-  /// <summary>
-  /// sms or email text
-  /// </summary>
-  public string? NotifData { get; set; }
-  /// <summary>
-  /// comment manually inserted by broker on the event
-  /// </summary>
-  public string? BrokerComment { get; set; }
+
 }
 public enum NotifHandlingStatus { Success, Error,UnHandled}
 
@@ -81,12 +76,20 @@ public enum NotifType
   /// data: 
   /// </summary>
   ListingAssigned = 128,
+  ListingUnAssigned = 256,
   /// <summary>
-  /// data: who added lead, source
+  /// also means lead created
+  /// data: who created Lead (automatic, broker name (your name), admin or specific admin name ),
+  /// source name if came from website
   /// </summary>
-  LeadAssigned = 256,
+  LeadAssigned = 512,
+  /// <summary>
+  /// will only be possible after admin manually assigns lead to a broker
+  /// </summary>
+  LeadUnAssigned = 1024,
   /// <summary>
   /// data: triggger
   /// </summary>
-  ActionPlanStarted = 512,
+  ActionPlanStarted = 2048,
+  ActionPlanFinished = 4096,
 }

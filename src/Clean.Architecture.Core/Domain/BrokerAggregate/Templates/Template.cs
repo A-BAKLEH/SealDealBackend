@@ -1,10 +1,10 @@
 ﻿using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.SharedKernel;
 
-namespace Clean.Architecture.Core.Domain.BrokerAggregate;
+namespace Clean.Architecture.Core.Domain.BrokerAggregate.Templates;
 public abstract class Template : Entity<int>
 {
-  public string templateText{ get; set; }
+  public string templateText { get; set; }
   public Broker Broker { get; set; }
   public Guid BrokerId { get; set; }
   public DateTime Modified { get; set; }

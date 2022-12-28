@@ -2,6 +2,7 @@
 using Clean.Architecture.Core.Domain.ActionPlanAggregate;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.Domain.LeadAggregate.Interactions;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.SharedKernel;
 
@@ -45,6 +46,7 @@ public class Lead : Entity<int>
   public List<Tag>? Tags { get; set; }
   public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }
   public List<Notification>? LeadHistoryEvents { get; set; }
+  public List<LeadInteraction>? LeadInteractions { get; set; }
 }
 public enum LeadSource
 {

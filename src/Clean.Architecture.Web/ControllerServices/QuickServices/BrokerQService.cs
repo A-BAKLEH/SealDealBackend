@@ -18,7 +18,7 @@ public class BrokerQService
   {
     var brokers = await _appDbContext.Brokers
       .OrderByDescending(b => b.Created)
-      .Where(b => b.AgencyId == AgencyId && b.isAdmin == false)
+      .Where(b => b.AgencyId == AgencyId)
       .Select(b => new BrokerForListDTO
       {
         AccountActive = b.AccountActive,

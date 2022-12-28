@@ -17,4 +17,5 @@ public static class ProblemDetailsTitles
   //Email Connection
   public const string StartAdminConsentFlow = "start admin consent flow";
   public const string AgencyAdminMustConsent = "agency admin must consent to email permissions";
+  public const string EmailAlreadyConnected = "email already connected";
 }

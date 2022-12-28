@@ -14,6 +14,9 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Clean.Architecture.Core.Constants;
+using Clean.Architecture.Infrastructure.ExternalServices;
+using Microsoft.Graph;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
 
@@ -26,6 +29,7 @@ public class TestController : ControllerBase
   private readonly IMediator _mediator;
   private readonly ILogger<TestController> _logger;
   private readonly IB2CGraphService _graphService;
+  private readonly ADGraphWrapper _adGraphWrapper;
 
   private readonly AppDbContext _appDbContext;
   private readonly TemplatesQService _templatesQService;
@@ -33,7 +37,7 @@ public class TestController : ControllerBase
   private readonly BrokerQService _brokerTagsQService;
   private readonly AgencyQService _agencyQService;
 
-  public TestController(IMediator mediator, ILogger<TestController> logger,
+  public TestController(IMediator mediator, ILogger<TestController> logger, ADGraphWrapper aDGraph,
      AppDbContext appDbContext, IB2CGraphService msGraphService, TemplatesQService templatesQService,
      IDistributedCache _distributedCache, BrokerQService brokerTagsQService, AgencyQService agencyQService)
   {
@@ -44,6 +48,7 @@ public class TestController : ControllerBase
     _templatesQService = templatesQService;
     _brokerTagsQService= brokerTagsQService;
     _agencyQService= agencyQService;
+    _adGraphWrapper = aDGraph;
   }
 
   [HttpGet("test-json")]
@@ -120,14 +125,6 @@ public class TestController : ControllerBase
     //};
     //agency.AgencyBrokers[0].ActionPlans.Add(actionplan);
     //_appDbContext.SaveChanges();
-    return Ok();
-  }
-
-  [HttpGet("test-getlistings")]
-  public async Task<IActionResult> TestNewSchema()
-  {
-    //var listings = _brokerTagsQService.GetBrokersListings(Guid.Parse(""));
-    //var listings = await _agencyQService.GetAgencyListings(3,true);
     return Ok();
   }
 
@@ -340,7 +337,7 @@ public class TestController : ControllerBase
     {
       LeadId = 1,
       BrokerId = Guid.Parse("BC3F8BAE-0E21-4DE9-B7B0-EB9176CDB8E6"),
-      NotifData = "this is email text1 lead2",
+      //NotifData = "this is email text1 lead2",
       NotifType = NotifType.EmailReceived,
       NotifyBroker = true,
       UnderlyingEventTimeStamp = DateTime.UtcNow,
@@ -350,7 +347,7 @@ public class TestController : ControllerBase
       LeadId = 1,
 
       BrokerId = Guid.Parse("BC3F8BAE-0E21-4DE9-B7B0-EB9176CDB8E6"),
-      NotifData = "this is response to email 1 lead2",
+      //NotifData = "this is response to email 1 lead2",
       NotifType = NotifType.EmailSent,
       UnderlyingEventTimeStamp = DateTime.UtcNow.Add(new TimeSpan(0, 20, 0)),
     };
@@ -359,7 +356,7 @@ public class TestController : ControllerBase
       LeadId = 1,
 
       BrokerId = Guid.Parse("BC3F8BAE-0E21-4DE9-B7B0-EB9176CDB8E6"),
-      NotifData = "this is email text3 lead2",
+      //NotifData = "this is email text3 lead2",
       NotifType = NotifType.EmailReceived,
       NotifyBroker = true,
       UnderlyingEventTimeStamp = DateTime.UtcNow.Add(new TimeSpan(0, 30, 0)),
@@ -369,7 +366,7 @@ public class TestController : ControllerBase
       LeadId = 1,
 
       BrokerId = Guid.Parse("BC3F8BAE-0E21-4DE9-B7B0-EB9176CDB8E6"),
-      NotifData = "this is email text3 lead2",
+      //NotifData = "this is email text3 lead2",
       NotifType = NotifType.CallReceived,
       NotifyBroker = true,
       UnderlyingEventTimeStamp = DateTime.UtcNow.Add(new TimeSpan(0, 40, 0)),

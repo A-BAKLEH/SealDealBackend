@@ -25,7 +25,11 @@ public class TodosController : BaseApiController
 
     var todos = await _mediator.Send(new GetBrokerTodosRequest { BrokerId = brokerId });
     if (todos == null || !todos.Any()) return NotFound();
-    var response = new TodoTasksDTO { todos = todos };
+    var response = new TodoTasksDTO
+    {
+      todos = todos
+    };
+
     return Ok(response);
   }
 

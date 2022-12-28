@@ -1,5 +1,5 @@
 ﻿using Clean.Architecture.Core.Constants.ProblemDetailsTitles;
-using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.Domain.BrokerAggregate.Templates;
 using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.SharedKernel.Exceptions;

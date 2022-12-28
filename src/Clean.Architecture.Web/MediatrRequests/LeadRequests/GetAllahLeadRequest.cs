@@ -62,9 +62,9 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
       .Where(n => n.LeadId == request.leadId)
       .Select(n => new NotifExpandedDTO
       {
-        BrokerComment = n.BrokerComment,
+        //BrokerComment = n.BrokerComment,
         id = n.Id,
-        NotifData = n.NotifData,
+        //NotifData = n.NotifData,
         NotifProps = n.NotifProps,
         NotifType = n.NotifType.ToString(),
         NotifyBroker = n.NotifyBroker,

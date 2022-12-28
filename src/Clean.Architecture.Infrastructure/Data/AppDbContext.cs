@@ -3,7 +3,10 @@ using Clean.Architecture.Core.Domain.ActionPlanAggregate;
 using Clean.Architecture.Core.Domain.ActionPlanAggregate.Actions;
 using Clean.Architecture.Core.Domain.AgencyAggregate;
 using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection;
+using Clean.Architecture.Core.Domain.BrokerAggregate.Templates;
 using Clean.Architecture.Core.Domain.LeadAggregate;
+using Clean.Architecture.Core.Domain.LeadAggregate.Interactions;
 using Clean.Architecture.Core.Domain.NotificationAggregate;
 using Clean.Architecture.Core.Domain.TasksAggregate;
 using Clean.Architecture.Core.Domain.TestAggregate;
@@ -31,6 +34,8 @@ public class AppDbContext : DbContext
   public DbSet<BrokerListingAssignment> BrokerListingAssignments => Set<BrokerListingAssignment>();
   public DbSet<Area> Areas => Set<Area>();
   public DbSet<Broker> Brokers => Set<Broker>();
+  public DbSet<FolderSync> FolderSyncs => Set<FolderSync>();
+  public DbSet<ConnectedEmail> ConnectedEmails => Set<ConnectedEmail>();
   public DbSet<Template> Templates => Set<Template>();
   public DbSet<SmsTemplate> SmsTemplates => Set<SmsTemplate>();
   public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
@@ -38,6 +43,12 @@ public class AppDbContext : DbContext
   public DbSet<ToDoTask> ToDoTasks=> Set<ToDoTask>();
 
   public DbSet<Lead> Leads => Set<Lead>();
+  public DbSet<LeadInteraction> LeadInteractions => Set<LeadInteraction>();
+  public DbSet<EmailInteraction> EmailInteractions => Set<EmailInteraction>();
+  public DbSet<SmsInteraction> SmsInteractions => Set<SmsInteraction>();
+  public DbSet<CallInteraction> CallInteractions => Set<CallInteraction>();
+
+
   public DbSet<Note> Notes => Set<Note>();
 
   //Action Plans  + Notifications---------------

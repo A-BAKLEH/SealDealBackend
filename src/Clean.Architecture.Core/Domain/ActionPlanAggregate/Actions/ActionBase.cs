@@ -11,13 +11,6 @@ public abstract class ActionBase: Entity<int>
   /// </summary>
   public int ActionLevel { get; set; }
 
-  //public ActionBase ParentAction { get; set; }
-  //public int? ParentActionId { get; set; }
-
-  //public ActionBase NextAction { get; set; }
-
-  //public int? NextActionId { get; set; }
-
   /// <summary>
   /// NON instance-specific properties like
   /// emailtemplateId, sms template Id, ChangeStatusToX, NoteToAddToLead, etc
@@ -39,26 +32,4 @@ public abstract class ActionBase: Entity<int>
   /// </summary>
   /// <returns></returns>
   public abstract Task<Tuple<int?, string?>> Execute();
-
-
-
-
-  /*
-  public string ActionProperties { get; set; }
-  private Dictionary<string, string>? ActionPropertiesDict;
-
-  /// <summary>
-  /// sets 'ActionPropertiesDict' field from ActionProperties and returns its value
-  /// </summary>
-  /// <returns></returns>
-  public Dictionary<string, string>? GetActionPropsAsDict()
-  {
-    var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(ActionProperties);
-    ActionPropertiesDict = dict;
-    return dict;
-  }
-  public void SetActionPropsFromDict()
-  {
-    this.ActionProperties = JsonConvert.SerializeObject(ActionPropertiesDict);
-  }*/
 }

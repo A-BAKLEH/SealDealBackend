@@ -7,6 +7,7 @@ using Clean.Architecture.SharedKernel;
 namespace Clean.Architecture.Core.Domain.ActionPlanAggregate;
 public class ActionPlan : Entity<int>
 {
+  //Triggers:  
   public NotifType Triggers { get; set; }
   /// <summary>
   /// for now will be lead interaction notifs combined flag IFF StopPlanOnInteraction == true
