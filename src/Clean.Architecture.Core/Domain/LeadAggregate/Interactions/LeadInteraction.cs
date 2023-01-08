@@ -19,7 +19,7 @@ public abstract class LeadInteraction : Entity<int>
   /// <summary>
   /// of underlying event
   /// </summary>
-  public DateTime Timestamp { get; set; }
+  public DateTimeOffset Timestamp { get; set; }
 
   /// <summary>
   /// Read for email, read for sms, went through (picked up) for call

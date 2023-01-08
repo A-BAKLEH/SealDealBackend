@@ -20,7 +20,7 @@ public class LeadQService
       { 
         Budget = l.Budget,
         Email = l.Email,
-        EntryDate = l.EntryDate,
+        EntryDate = l.EntryDate.UtcDateTime,
         LeadFirstName = l.LeadFirstName,
         LeadId = l.Id,
         LeadLastName = l.LeadLastName,

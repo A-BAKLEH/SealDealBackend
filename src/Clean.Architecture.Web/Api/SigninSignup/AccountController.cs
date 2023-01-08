@@ -22,11 +22,11 @@ public class AccountController : BaseApiController
     _MSFTEmailQService = mSFTEmailQService;
   }
 
-  [HttpGet("Verify")]
-  public async Task<IActionResult> VerifyAccount()
+  [HttpGet("Verify/{IanaTimeZone}")]
+  public async Task<IActionResult> VerifyAccount(string IanaTimeZone)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var accountStatus = await this._authorizeService.VerifyAccountAsync(id);
+    var accountStatus = await this._authorizeService.VerifyAccountAsync(id,IanaTimeZone);
     
     return Ok(accountStatus);
   }
@@ -43,7 +43,7 @@ public class AccountController : BaseApiController
     }
     if (dto.EmailProvider == "m")
     {
-      await _MSFTEmailQService.ConnectEmail(brokerTuple.Item1, dto.Email, dto.TenantId);
+      await _MSFTEmailQService.ConnectEmail(brokerTuple.Item1, dto.Email, dto.TenantId,false);
     }
 
     return Ok();
@@ -59,12 +59,11 @@ public class AccountController : BaseApiController
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
-    if (!brokerTuple.Item2 || !brokerTuple.Item3)
+    if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive User or non-admin with UserId {UserId} tried to handle admin consented", TagConstants.Inactive, id);
       return Forbid();
     }
-
     await _MSFTEmailQService.HandleAdminConsented(brokerTuple.Item1, dto.Email, dto.TenantId);
 
     return Ok();

@@ -5,6 +5,8 @@ using Clean.Architecture.Core.Domain.BrokerAggregate.EmailConnection;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Infrastructure.ExternalServices;
 using Clean.Architecture.SharedKernel.Exceptions;
+using Clean.Architecture.Web.Processing.EmailAutomation;
+using Hangfire;
 using Microsoft.Graph;
 
 
@@ -16,7 +18,7 @@ public class MSFTEmailQService
   private readonly ADGraphWrapper _adGraphWrapper;
   private readonly IConfigurationSection _configurationSection;
   private readonly ILogger<MSFTEmailQService> _logger;
-  public MSFTEmailQService(AppDbContext appDbContext, ADGraphWrapper aDGraph, IConfiguration config,ILogger<MSFTEmailQService> logger)
+  public MSFTEmailQService(AppDbContext appDbContext, ADGraphWrapper aDGraph, IConfiguration config, ILogger<MSFTEmailQService> logger)
   {
     _appDbContext = appDbContext;
     _adGraphWrapper = aDGraph;
@@ -26,13 +28,14 @@ public class MSFTEmailQService
 
   /// <summary>
   /// Test if has access to tenant with this email and if yes subscribe to mailbox notifs
-  /// Will thorw error if email already connected
+  /// Will thorw error if email already connected OR if no admin consent present
   /// </summary>
-  public async Task ConnectEmail(Broker broker,string email, string TenantId)
+  public async Task ConnectEmail(Broker broker, string email, string TenantId,bool checkAdminConsent)
   {
-    if(!broker.Agency.HasAdminEmailConsent)
+    
+    if (!broker.Agency.HasAdminEmailConsent && !checkAdminConsent)
     {
-      if(broker.isAdmin)
+      if (broker.isAdmin)
         throw new CustomBadRequestException($"Admin has not consented to email permissions yet", ProblemDetailsTitles.StartAdminConsentFlow);
       else
         throw new CustomBadRequestException($"Admin has not consented to email permissions yet and current user is not an admin", ProblemDetailsTitles.AgencyAdminMustConsent);
@@ -40,66 +43,92 @@ public class MSFTEmailQService
 
     var connectedEmails = _appDbContext.ConnectedEmails.Where(c => c.BrokerId == broker.Id).ToList();
 
-    foreach (var ConnEmail in connectedEmails)
+    int emailNumber = 1;
+    if (connectedEmails != null && connectedEmails.Count != 0)
     {
-      if(ConnEmail.Email == email) throw new
-          CustomBadRequestException($"the email {email} is already connected with good status", ProblemDetailsTitles.EmailAlreadyConnected);
+      foreach (var ConnEmail in connectedEmails)
+      {
+        if (ConnEmail.Email == email) throw new
+            CustomBadRequestException($"the email {email} is already connected", ProblemDetailsTitles.EmailAlreadyConnected);
+      }
+      emailNumber= connectedEmails.Count+1;
     }
+    
     var connectedEmail = new ConnectedEmail
     {
       BrokerId = broker.Id,
       Email = email,
-      EmailNumber = connectedEmails.Count + 1,
+      EmailNumber = emailNumber,
       EmailStatus = EmailStatus.Waiting,
       isMSFT = true,
     };
+    var currDateTime = DateTime.UtcNow;
     //the maxinum subs period = just under 3 days
-    DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
+    DateTimeOffset SubsEnds = currDateTime + new TimeSpan(0, 4230, 0);
 
     var subs = new Subscription
     {
-      ChangeType ="created",
+      ChangeType = "created",
       ClientState = VariousCons.MSFtWebhookSecret,
-      ExpirationDateTime= SubsEnds,
-      NotificationUrl = _configurationSection["MainAPI"]+ "/MsftWebhook/Webhook",
+      ExpirationDateTime = SubsEnds,
+      NotificationUrl = _configurationSection["MainAPI"] + "/MsftWebhook/Webhook",
       //Resource = $"users/{email}/mailFolders('inbox')/messages"
       Resource = $"users/{email}/messages"
     };
     _adGraphWrapper.CreateClient(TenantId);
     //will validate through the webhook before returning the subscription here
     var CreatedSubsTask = _adGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
-
-    //TODO test all error paths and handle them and re-try the request
-    //possiblitites: db says we have admin consent we dont
+    //TODO handle if we dont have adminConsent
     
-    //creates delta tokens for inbox and Sent Items folders
-    var SyncingTask = DoFirstEmailSync(connectedEmail);
-    //Todo async error handling
+    //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work
+    //will have to consider current leads in the system, current listings assigned, websites from which
+    //emails will be parsed to detect new leads
+    connectedEmail.FirstSync = currDateTime;
+    connectedEmail.LastSync = currDateTime;
 
     var CreatedSubs = await CreatedSubsTask;
     connectedEmail.SubsExpiryDate = (DateTime)(CreatedSubs.ExpirationDateTime?.UtcDateTime);
     connectedEmail.GraphSubscriptionId = Guid.Parse(CreatedSubs.Id);
 
-    //TODO schedule hangire renewaljob
-    string RenewalJobId = "";
+    //renew 60 minutes before subs Ends
+    var renewalTime = SubsEnds - TimeSpan.FromMinutes(60);
+    string RenewalJobId = BackgroundJob.Schedule<SubscriptionService>(s => s.RenewSubscription(broker.Id, emailNumber, TenantId), renewalTime);
     connectedEmail.SubsRenewalJobId = RenewalJobId;
 
     broker.ConnectedEmails = new List<ConnectedEmail>
     {
       connectedEmail
     };
-    await SyncingTask;
+    
+    if (!broker.Agency.HasAdminEmailConsent) broker.Agency.HasAdminEmailConsent = true;
     _appDbContext.SaveChanges();
   }
 
-  //establish a start point for delta queries for folders 
-  public async Task DoFirstEmailSync(ConnectedEmail connectedEmail)
+  /// <summary>
+  /// for now just sets current dateTime in connectedEmail
+  /// </summary>
+  /// <param name="connectedEmail"></param>
+  /// <returns></returns>
+  private async Task DoFirstEmailSyncAsync(ConnectedEmail connectedEmail)
+  {
+    
+
+    //run the analyzer that will design later on.
+  }
+
+  /// <summary> 
+  /// must call CreateCleint on class instance's _adGraphWrapper before
+  /// </summary>
+  /// <param name="connectedEmail"></param>
+  /// <param name="graphClient"></param>
+  /// <returns></returns>
+  /*public async Task DoFirstEmailSync(ConnectedEmail connectedEmail)
   {
     connectedEmail.FolderSyncs = new();
     var SyncStartDate = DateTimeOffset.UtcNow;
 
     //Inbox syncing
-    var inboxSync = HandleFirstFolderSync(connectedEmail, SyncStartDate,"Inbox");
+    var inboxSync = HandleFirstFolderSync(connectedEmail, SyncStartDate, "Inbox");
 
     //SentItems syncing
     var sentSync = HandleFirstFolderSync(connectedEmail, SyncStartDate, "Sent Items");
@@ -108,7 +137,7 @@ public class MSFTEmailQService
     connectedEmail.LastSync = SyncStartDate.UtcDateTime;
     await inboxSync;
     await sentSync;
-  }
+  }*/
   /// <summary>
   /// To be primarily called by hangfire after a notif comes in
   /// For syncing
@@ -157,30 +186,26 @@ public class MSFTEmailQService
     }*/
   }
 
-  private void ProcessMessages(IMessageDeltaCollectionPage messages)
-  {
-    throw new NotImplementedException();
-  }
 
-  public async Task HandleFirstFolderSync(ConnectedEmail connectedEmail, DateTimeOffset SyncStartDate,string FolderName)
-  {
-    List<Option> options = GetDeltaOptions(SyncStartDate);
 
-    IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient.Users[connectedEmail.Email]
-      .MailFolders[FolderName].Messages.Delta()
-      .Request(options).GetAsync();
+  /*public async Task HandleFirstFolderSync(ConnectedEmail connectedEmail, DateTimeOffset SyncStartDate, string FolderName)
+  {
+    var GraphClient = _adGraphWrapper._graphClient;
+
+    var messages = await GetFirstMessagesPage(connectedEmail.Email, FolderName, SyncStartDate, true);
+
     var inboxSync1 = new FolderSync
     {
       FolderName = FolderName
     };
     connectedEmail.FolderSyncs.Add(inboxSync1);
-    ProcessMessages(messages);
+    EmailHelpers.ProcessMessages(messages, _logger);
 
     while (messages.NextPageRequest != null)
     {
       //verify that header 30 max size exists
       messages = messages.NextPageRequest.GetAsync().Result;
-      ProcessMessages(messages);
+      EmailHelpers.ProcessMessages(messages, _logger);
     }
     object? deltaLink;
     if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
@@ -191,27 +216,6 @@ public class MSFTEmailQService
     {
       //TODO log error
     }
-  }
-
-  /*private async Task<IMessageDeltaCollectionPage> GetMessages(GraphServiceClient graphClient, object? deltaLink)
-  {
-    IUserDeltaCollectionPage page;
-
-    if (lastPage == null || deltaLink == null)
-    {
-      page = await graphClient.Users
-                              .Delta()
-                              .Request()
-                              .GetAsync();
-    }
-    else
-    {
-      lastPage.InitializeNextPageRequest(graphClient, deltaLink.ToString());
-      page = await lastPage.NextPageRequest.GetAsync();
-    }
-
-    lastPage = page;
-    return page;
   }*/
 
   /// <summary>
@@ -226,20 +230,20 @@ public class MSFTEmailQService
     broker.Agency.HasAdminEmailConsent = true;
     broker.Agency.AzureTenantID = TenantId;
 
-    await this.ConnectEmail(broker, email, TenantId);
+    await this.ConnectEmail(broker, email, TenantId,true);
   }
 
-
- private List<Option> GetDeltaOptions(DateTimeOffset SyncStartDate)
+  /*public async Task<IMessageDeltaCollectionPage> GetFirstMessagesPage(string email, string folderName, DateTimeOffset SyncStartDate, bool startFresh)
   {
-    List<Option> options = new List<Option>();
+    List<Option> options = EmailHelpers.GetDeltaQueryOptions(SyncStartDate);
+    IMessageDeltaCollectionPage messages = null;
+    if (startFresh)
+    {
+      messages = await _adGraphWrapper._graphClient.Users[email]
+      .MailFolders[folderName].Messages.Delta()
+      .Request(options).GetAsync();
+    }
 
-    options.Add(new QueryOption("$select", "sender,isRead,conversationId,conversationIndex,createdDateTime"));
-    options.Add(new QueryOption("$filter", $"receivedDateTime+ge+{SyncStartDate}"));
-    options.Add(new QueryOption("changeType", "created"));
-    options.Add(new QueryOption("$orderby", "receivedDateTime+desc"));
-    options.Add(new HeaderOption("Prefer: odata.maxpagesize", "20"));
-    options.Add(new HeaderOption("Prefer: IdType", "ImmutableId"));
-    return options;
-  }
+    return messages;
+  }*/
 }

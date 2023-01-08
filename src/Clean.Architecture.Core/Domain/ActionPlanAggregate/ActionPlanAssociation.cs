@@ -18,7 +18,10 @@ public class ActionPlanAssociation: Entity<int>
   public int? TriggerNotificationId { get; set; }
   public int LeadId { get; set; }
   public Lead lead { get; set; }
-  public DateTime ActionPlanTriggeredAt { get; set; } = DateTime.UtcNow;
+  /// <summary>
+  /// client TimeZ
+  /// </summary>
+  public DateTimeOffset ActionPlanTriggeredAt { get; set; }
   /// <summary>
   /// Status of this instance of the associated action plan that belongs to this specific lead
   /// </summary>

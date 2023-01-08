@@ -19,8 +19,8 @@ public class ActionTracker : EntityBase
   /// <summary>
   /// if null immediate
   /// </summary>
-  public DateTime? HangfireScheduledStartTime { get; set; }
-  public DateTime? ExecutionCompletedTime { get; set; }
+  public DateTimeOffset? HangfireScheduledStartTime { get; set; }
+  public DateTimeOffset? ExecutionCompletedTime { get; set; }
   /// <summary>
   /// Details about failures or other relevant Status Info
   /// </summary>

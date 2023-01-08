@@ -6,4 +6,7 @@ public class AccountStatusDTO
   public string messageTodisplay { get; set; }
   public string internalMessage { get; set; } 
   public string routeUrl { get; set; }
+  public bool TimeZoneChangeDetected { get; set; } =false;
+  public string? MainTimeZone { get; set; }
+  public string? DetectedTimeZone { get; set; }
 }

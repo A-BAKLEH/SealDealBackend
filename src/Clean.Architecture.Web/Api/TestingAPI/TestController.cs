@@ -402,7 +402,7 @@ public class TestController : ControllerBase
   [HttpGet("notifsLol")]
   public async Task<IActionResult> NotifsLol()
   {
-    int notifTypeFilter = (int)(NotifType.EmailReceived | NotifType.SmsReceived | NotifType.CallReceived | NotifType.LeadStatusChange);
+    /*int notifTypeFilter = (int)(NotifType.EmailReceived | NotifType.SmsReceived | NotifType.CallReceived | NotifType.LeadStatusChange);
 
     var NotifWrappersList = await _appDbContext.Notifications
         .Where(n => n.BrokerId == Guid.Parse("BC3F8BAE-0E21-4DE9-B7B0-EB9176CDB8E6") && (notifTypeFilter & ((int)n.NotifType)) > 0)
@@ -415,7 +415,7 @@ public class TestController : ControllerBase
             {
               NotifType = n.NotifType,
               ReadByBroker = n.ReadByBroker,
-              UnderlyingEventTimeStamp = n.UnderlyingEventTimeStamp
+              //UnderlyingEventTimeStamp = n.UnderlyingEventTimeStamp
             })
         })
         .ToListAsync();
@@ -442,7 +442,8 @@ public class TestController : ControllerBase
       NotifWrappersList[i].leadDTO =leadDTO;
     }
 
-    return Ok(NotifWrappersList);
+    return Ok(NotifWrappersList);*/
+    return Ok();
   }
 
   public class DateTestDTO

@@ -3,10 +3,11 @@ using Clean.Architecture.Web.ApiModels.APIResponses.Listing;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
+using Clean.Architecture.Web.ControllerServices.StaticMethods;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using TimeZoneConverter;
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
 public class ListingController : BaseApiController
@@ -59,6 +60,9 @@ public class ListingController : BaseApiController
       _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
       return Forbid();
     }
+
+    var timeZoneInfo = brokerTuple.Item1.IanaTimeZone;
+    dto.DateOfListing = MyTimeZoneConverter.ConvertToUTC(TZConvert.GetTimeZoneInfo(timeZoneInfo), dto.DateOfListing);
 
     var listing = await _listingQService.CreateListing(brokerTuple.Item1.AgencyId, dto);
     return Ok(listing);

@@ -1,12 +1,15 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Core.Constants;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Web.ApiModels.APIResponses.Templates;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
+using Clean.Architecture.Web.ControllerServices.StaticMethods;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TimeZoneConverter;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
@@ -42,6 +45,13 @@ public class TemplateController : BaseApiController
     }
 
     var templatesDTO = await _templatesQService.GetAllTemplatesAsync(id);
+
+    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    foreach (var dto in templatesDTO.allTemplates)
+    {
+      dto.Modified = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, dto.Modified);
+    }
+    
     return Ok(templatesDTO);
   }
 
@@ -56,14 +66,11 @@ public class TemplateController : BaseApiController
       return Forbid();
     }
 
+
     var template = await _templatesQService.CreateTemplateAsync(dto, id);
-    //if (dto.TemplateType == "e")
-    //{
-    //  EmailTemplate temp1 = (EmailTemplate)template;
-    //  return Ok(temp1);
-    //}
-    //SmsTemplate temp2 = (SmsTemplate)template;
-    //return Ok(temp2);
+
+    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    template.Modified = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, template.Modified);
     return Ok(template);
   }
 

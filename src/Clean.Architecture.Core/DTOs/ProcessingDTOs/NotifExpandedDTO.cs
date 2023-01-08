@@ -2,7 +2,7 @@
 public class NotifExpandedDTO
 {
   public int id { get; set; }
-  public DateTime UnderlyingEventTimeStamp { get; set; }
+  public DateTimeOffset UnderlyingEventTimeStamp { get; set; }
   public string NotifType { get; set; }
   public bool ReadByBroker { get; set; }
   public bool NotifyBroker{ get; set;}

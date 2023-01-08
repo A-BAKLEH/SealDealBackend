@@ -20,8 +20,8 @@ public class SigninSignupController : BaseApiController
     _logger = logger;
   }
 
-  [HttpGet]
-  public async Task<IActionResult> SigninSingup()
+  [HttpGet("/{ianaTimeZone}")]
+  public async Task<IActionResult> SigninSingup(string ianaTimeZone)
   {
     _logger.LogWarning("SIGNIN SIGNUP CALLED Ya hbibi");
     var l = User.Claims.ToList();
@@ -30,7 +30,7 @@ public class SigninSignupController : BaseApiController
     if (newUserClaim == null)
     {
       Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-      var res = await _authorizeService.VerifyAccountAsync(b2cID, true);
+      var res = await _authorizeService.VerifyAccountAsync(b2cID, ianaTimeZone,true);
       //TODO trigger EmailFetch and SMS fetch if not happened in 6 hours.
       //other fethces from 3rd parties
       return Ok(res);
@@ -44,7 +44,8 @@ public class SigninSignupController : BaseApiController
       givenName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname").Value,
       surName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname").Value,
       b2cId = id,
-      email = l.Find(x => x.Type == "emails").Value
+      email = l.Find(x => x.Type == "emails").Value,
+      IanaTimeZone = ianaTimeZone
     });
     _logger.LogInformation("[{Tag}] New Agency Signed up with name {AgencyName} and admin B2cId {UserId}", TagConstants.AgencySignup,agencyName,id);
     return Ok(signinResponseDTO);

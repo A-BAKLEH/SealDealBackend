@@ -8,6 +8,10 @@ public class BrokerListingAssignment : EntityBase
   public Guid BrokerId { get; set; }  
   public Listing Listing { get; set; }
   public int ListingId { get; set; }
-  public DateTime assignmentDate { get; set; }
-  //maybe add who assigned it
+  public DateTimeOffset assignmentDate { get; set; }
+
+  /// <summary>
+  /// who did the assignment
+  /// </summary>
+  public Guid? UserId { get; set; }
 }

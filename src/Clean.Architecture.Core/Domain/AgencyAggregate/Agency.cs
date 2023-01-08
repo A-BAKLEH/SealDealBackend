@@ -13,16 +13,27 @@ public class Agency : Entity<int>
   public string AgencyName { get; set; }
   public Address? Address { get; set; }
   public string? PhoneNumber { get; set; }
-  public DateTime SignupDateTime { get; set; } = DateTime.UtcNow;
+  /// <summary>
+  /// client timeZ
+  /// </summary>
+  public DateTimeOffset SignupDateTime { get; set; }
 
   public string? AdminStripeId { get; set; }
   public string? StripeSubscriptionId { get; set; }
-  public DateTime? SubscriptionLastValidDate { get; set; }
+  /// <summary>
+  /// client timeZ
+  /// </summary>
+  public DateTimeOffset? SubscriptionLastValidDate { get; set; }
   public int NumberOfBrokersInSubscription { get; set; }
   public StripeSubscriptionStatus StripeSubscriptionStatus { get; set; }
 
   public bool HasAdminEmailConsent { get; set; } = false;
   public string? AzureTenantID { get; set; }
+  /// <summary>
+  /// Replace by separate entity and add/delete sessionIDs as they get created/processed,
+  /// can be searched by index easily
+  /// OR just use url parameters to include the id of the agency or admin
+  /// </summary>
   public string? LastCheckoutSessionID { get; set; }
   public int NumberOfBrokersInDatabase { get; set; }
   

@@ -34,6 +34,8 @@ public class NotificationsController : BaseApiController
     NotifsResponseDTO response;
     //TODO separate admin request from broker request
     //if not admin
+
+    //TODO handle timeZone conversion
     if( !brokerTuple.Item3 )
     {
       response = await _mediator.Send(new GetNotifsDashboardRequest { BrokerId = id });

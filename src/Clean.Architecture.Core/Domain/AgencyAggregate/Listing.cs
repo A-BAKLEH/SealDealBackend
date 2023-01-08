@@ -13,7 +13,10 @@ public class Listing : Entity<int>
   public int AgencyId { get; set; }
   public Agency Agency { get; set; }
   public Address Address { get; set; }
-  public DateTime DateOfListing { get; set; }
+  /// <summary>
+  /// client timeZ
+  /// </summary>
+  public DateTimeOffset DateOfListing { get; set; }
   public ListingStatus Status { get; set; } = ListingStatus.Listed;
   public int Price { get; set; }
   public int AssignedBrokersCount { get; set; } = 0;

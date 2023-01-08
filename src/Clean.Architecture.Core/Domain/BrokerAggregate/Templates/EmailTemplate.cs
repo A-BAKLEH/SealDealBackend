@@ -12,7 +12,7 @@ public class EmailTemplate : Template
     var dto = new TemplateDTO
     {
       id = Id,
-      Modified = Modified,
+      Modified = Modified.UtcDateTime,
       subject = EmailTemplateSubject,
       templateText = templateText,
       TimesUsed = TimesUsed,

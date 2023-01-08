@@ -22,11 +22,11 @@ public class Lead : Entity<int>
   public string? PhoneNumber { get; set; }
   public string? Email { get; set; }
   public int? Budget { get; set; }
-  public DateTime EntryDate { get; set; } = DateTime.UtcNow;
+  public DateTimeOffset EntryDate { get; set; }
   public LeadSource source { get; set; }
   public LeadType leadType { get; set; }
   /// <summary>
-  /// name of website for example
+  /// name of website for example and id of the email it was parsed from
   /// </summary>
   public string? leadSourceDetails { get; set; }
   public LeadStatus LeadStatus { get; set; } = LeadStatus.New;

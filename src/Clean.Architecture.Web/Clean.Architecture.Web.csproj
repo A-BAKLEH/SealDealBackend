@@ -32,8 +32,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Seq" />
-   
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" />
+    <PackageReference Include="TimeZoneConverter" />
   </ItemGroup>
   
   <ItemGroup>

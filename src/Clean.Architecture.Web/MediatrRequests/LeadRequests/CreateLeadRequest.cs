@@ -74,7 +74,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, IEnum
     {
       Budget = x.Budget,
       Email = x.Email,
-      EntryDate = x.EntryDate,
+      EntryDate = x.EntryDate.UtcDateTime,
       LeadFirstName = x.LeadFirstName,
       LeadId = x.Id,
       LeadLastName = x.LeadLastName,

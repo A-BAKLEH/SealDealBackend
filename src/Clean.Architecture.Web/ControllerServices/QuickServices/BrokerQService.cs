@@ -26,7 +26,7 @@ public class BrokerQService
         Id = b.Id,
         LastName = b.LastName,
         SigninEmail = b.LoginEmail,
-        created = b.Created,
+        created = b.Created.UtcDateTime,
         LeadsCount = b.Leads.Count,
         ListingsCount = b.AssignedListings.Count,
         PhoneNumber = b.PhoneNumber

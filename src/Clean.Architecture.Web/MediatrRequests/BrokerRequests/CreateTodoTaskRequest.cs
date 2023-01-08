@@ -9,6 +9,7 @@ public class CreateTodoTaskRequest : IRequest<ToDoTask>
 {
   public Guid BrokerID { get; set; }
   public CreateToDoTaskDTO createToDoTaskDTO { get; set; }
+  public TimeZoneInfo timeZone { get; set; }
 }
 public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskRequest, ToDoTask>
 {
@@ -26,7 +27,8 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
       LeadId = request.createToDoTaskDTO.leadId,
       TaskDueDate = request.createToDoTaskDTO.dueTime,
       Description = request.createToDoTaskDTO.Description,
-      TaskName = request.createToDoTaskDTO.TaskName
+      TaskName = request.createToDoTaskDTO.TaskName,
+      timeZoneId = request.timeZone.Id
     };
     _appDbContext.ToDoTasks.Add(todo);
     await _appDbContext.SaveChangesAsync();

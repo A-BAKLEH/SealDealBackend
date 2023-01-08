@@ -12,6 +12,7 @@ public class SignupRequest : IRequest<AccountStatusDTO>
   public string givenName { get; set; }
   public string surName { get; set; }
   public string email { get; set; }
+  public string IanaTimeZone { get; set; }
   public Guid b2cId { get; set; }
 }
 
@@ -54,7 +55,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
       LastName = request.surName,
       LoginEmail = request.email,
       isAdmin = true,
-      AccountActive = false
+      AccountActive = false,
+      IanaTimeZone = request.IanaTimeZone
     };
     var agency = new Agency()
     {

@@ -16,7 +16,11 @@ public class ActionPlan : Entity<int>
   public NotifType NotifsToListenTo { get; set; }
   public Guid BrokerId { get; set; }
   public Broker broker { get; set; }
-  public DateTime TimeCreated { get; set; } = DateTime.UtcNow;
+  /// <summary>
+  /// client timeZ
+  /// </summary>
+  public DateTimeOffset TimeCreated { get; set; }
+
   public bool isActive;
   public List<ActionBase> Actions { get; set; }
   public int ActionsCount { get; set; }

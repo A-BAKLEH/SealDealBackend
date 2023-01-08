@@ -35,12 +35,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
     int FreeBrokersCount = agency.NumberOfBrokersInSubscription - agency.NumberOfBrokersInDatabase;
     int NewBrokersCount = request.brokers.Count;
     int FinalQuantity = agency.NumberOfBrokersInSubscription;
-    if (NewBrokersCount > FreeBrokersCount)
-    {
-      FinalQuantity = await _stripeSubscriptionService.AddSubscriptionQuantityAsync(agency.StripeSubscriptionId, NewBrokersCount - FreeBrokersCount, FinalQuantity);
-      //TODO send email to admin to confirm subs change
-      _logger.LogInformation("[{Tag}] Added {NewBrokersCount} brokers to Agency with AgencyId {AgencyId} and SubscriptionId {SubscriptionId}", TagConstants.AddBrokersRequest, NewBrokersCount, agency.Id, agency.StripeSubscriptionId);
-    }
+    
     List<Broker> failedBrokers = new();
     var tasks = request.brokers
         .Select(async (broker) =>
@@ -56,12 +51,19 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
           catch (Exception ex)
           {
             _logger.LogCritical("[{Tag}] Error creating B2C User with LoginEmail {LoginEmail} with AgencyId {AgencyId}. Exception : {Exception}", TagConstants.AddBrokersRequest, broker.LoginEmail, agency.Id, ex.ToString());
-            failedBrokers.Add(broker);
-            request.brokers.Remove(broker);
+            //failedBrokers.Add(broker);
+            //request.brokers.Remove(broker);
+            throw;
           }
         });
 
     await Task.WhenAll(tasks);
+    if (NewBrokersCount > FreeBrokersCount)
+    {
+      FinalQuantity = await _stripeSubscriptionService.AddSubscriptionQuantityAsync(agency.StripeSubscriptionId, NewBrokersCount - FreeBrokersCount, FinalQuantity);
+      //TODO send email to admin to confirm subs change
+      _logger.LogInformation("[{Tag}] Added {NewBrokersCount} brokers to Agency with AgencyId {AgencyId} and SubscriptionId {SubscriptionId}", TagConstants.AddBrokersRequest, NewBrokersCount, agency.Id, agency.StripeSubscriptionId);
+    }
     //TODO send email to brokers to login and RENEW PASSWORD
     agency.AgencyBrokers.AddRange(request.brokers);
     agency.NumberOfBrokersInSubscription = FinalQuantity;

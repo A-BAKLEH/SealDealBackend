@@ -16,12 +16,16 @@ public class Broker : Entity<Guid>
   public Agency Agency { get; set; }
   public string FirstName { get; set; }
   public string LastName { get; set; }
+  /// <summary>
+  /// use TZConvert.GetTimeZoneInfo() to get TimeZoneInfo
+  /// </summary>
+  public string IanaTimeZone { get; set; }
+  public string? TempTimeZone { get; set; }
   public Boolean isAdmin { get; set; }
   public Boolean AccountActive { get; set; }
   public string? PhoneNumber { get; set; }
   public string LoginEmail { get; set; }
-
-  public DateTime Created { get; set; } = DateTime.UtcNow;
+  public DateTimeOffset Created { get; set;}
   /// <summary>
   /// Notif types that can act as trigger/stoppage/etc in Broker's active Action Plans
   /// </summary>

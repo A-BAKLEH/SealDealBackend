@@ -1,10 +1,15 @@
-﻿using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
+﻿using System;
+using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
+using Clean.Architecture.Web.ControllerServices.StaticMethods;
 using Clean.Architecture.Web.MediatrRequests.BrokerRequests;
+using Humanizer;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TimeZoneConverter;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 
@@ -22,9 +27,22 @@ public class TodosController : BaseApiController
   {
     //Not checking active, permissions
     var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create todo", TagConstants.Inactive, brokerId);
+      return Forbid();
+    }
 
     var todos = await _mediator.Send(new GetBrokerTodosRequest { BrokerId = brokerId });
     if (todos == null || !todos.Any()) return NotFound();
+
+    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    foreach (var todo in todos)
+    {
+      todo.TaskDueDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, todo.TaskDueDate);
+    }
+
     var response = new TodoTasksDTO
     {
       todos = todos
@@ -36,15 +54,23 @@ public class TodosController : BaseApiController
   [HttpPost]
   public async Task<IActionResult> CreateBrokerToDo([FromBody] CreateToDoTaskDTO createToDoTaskDTO)
   {
-    //Not checking active, permissions
     var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create todo", TagConstants.Inactive, brokerId);
+      return Forbid();
+    }
+    var timeZone = createToDoTaskDTO.TempTimeZone ?? brokerTuple.Item1.IanaTimeZone;
+    var timeZoneInfo = TZConvert.GetTimeZoneInfo(timeZone);
+    createToDoTaskDTO.dueTime = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, createToDoTaskDTO.dueTime);
 
     var todo = await _mediator.Send(new CreateTodoTaskRequest
     {
       BrokerID = brokerId,
-      createToDoTaskDTO = createToDoTaskDTO
+      createToDoTaskDTO = createToDoTaskDTO,
+      timeZone = timeZoneInfo
     });
-
     return Ok(todo);
   }
 }

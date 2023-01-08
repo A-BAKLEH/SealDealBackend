@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Clean.Architecture.SharedKernel.Exceptions;
 using Clean.Architecture.SharedKernel.Exceptions.CustomProblemDetails;
 using Clean.Architecture.Web.SignalRInfra;
+using Clean.Architecture.Core.Constants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -102,6 +103,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 //builder.Services.AddApplicationInsightsTelemetry();
 
 //builder.Logging.AddAzureWebAppDiagnostics(); //add this if deploying to Azure
+VariousCons.MainAPIURL = builder.Configuration.GetSection("URLs")["MainAPI"];
 
 var app = builder.Build();
 

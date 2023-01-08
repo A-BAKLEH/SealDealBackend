@@ -10,12 +10,9 @@ public class Notification : Entity<int>
   public Guid BrokerId { get; set; }
   public int? LeadId { get; set; }
   public Lead? lead { get; set; }
-
-  public DateTime NotifCreatedAt { get; set; } = DateTime.UtcNow;
-  public DateTime UnderlyingEventTimeStamp { get; set; }
-
+  public DateTimeOffset NotifCreatedAt { get; set; }
+  public DateTimeOffset UnderlyingEventTimeStamp { get; set; }
   public NotifType NotifType { get; set; }
-
   /// <summary>
   /// For in-app events: straightforward
   /// For lead interactions: Read either in SealDeal or in email client / mobile Sms app , call Answered 

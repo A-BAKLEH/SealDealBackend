@@ -14,5 +14,6 @@ public class CreateToDoTaskDTO
   [Required]
   public DateTime dueTime { get; set; }
   public int? leadId { get; set; }
+  public string? TempTimeZone { get; set; }
 
 }

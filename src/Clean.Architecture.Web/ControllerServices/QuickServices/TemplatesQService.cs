@@ -62,31 +62,7 @@ public class TemplatesQService
 
   public async Task<AllTemplatesDTO> GetAllTemplatesAsync(Guid brokerId)
   {
-    /*var Emailtemplates = await _appDbContext.EmailTemplates
-      .OrderByDescending(t => t.Modified)
-      .Where(t => t.BrokerId == brokerId)
-      .Select(x => new EmailTemplateDTO
-      {
-        id = x.Id,
-        Modified = x.Modified,
-        subject = x.EmailTemplateSubject,
-        templateText = x.templateText,
-        TimesUsed = x.TimesUsed,
-        Title = x.Title,
-      })
-      .ToListAsync();
-    var Smstemplates = await _appDbContext.SmsTemplates
-      .OrderByDescending(t => t.Modified)
-      .Where(t => t.BrokerId == brokerId)
-      .Select(x => new SmsTemplateDTO
-      {
-        id = x.Id,
-        Modified = x.Modified,
-        templateText = x.templateText,
-        TimesUsed = x.TimesUsed,
-        Title= x.Title,
-      })
-      .ToListAsync();*/
+
     var templates = await _appDbContext.Templates
       .OrderByDescending(t => t.Modified)
       .Where(t => t.BrokerId == brokerId)

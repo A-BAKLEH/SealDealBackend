@@ -3,10 +3,13 @@ using Clean.Architecture.Web.ApiModels.APIResponses.Lead;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
+using Clean.Architecture.Web.ControllerServices.StaticMethods;
 using Clean.Architecture.Web.MediatrRequests.LeadRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Graph;
+using TimeZoneConverter;
 
 namespace Clean.Architecture.Web.Api.LeadController;
 
@@ -40,6 +43,11 @@ public class LeadController : BaseApiController
       createLeadDTOs = createLeadDTO
     });
 
+    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    foreach (var lead in leads)
+    {
+      lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
+    }
     return Ok(leads);
   }
 
