@@ -25,8 +25,11 @@ public class WebModule : Module
     builder.RegisterType(typeof(TagQService)).AsSelf().InstancePerLifetimeScope(); 
     builder.RegisterType(typeof(TemplatesQService)).AsSelf().InstancePerLifetimeScope();
     builder.RegisterType(typeof(SubscriptionService)).AsSelf().InstancePerLifetimeScope();
-    
 
+    builder.RegisterType(typeof(MSFTWebhookHandler)).AsSelf().InstancePerLifetimeScope();
+    builder.RegisterType(typeof(EmailProcessor)).AsSelf().InstancePerLifetimeScope();
+    
+      
     builder.RegisterType(typeof(MSFTEmailQService)).AsSelf().InstancePerLifetimeScope();
 
     builder.RegisterType(typeof(ExecutionContextAccessor)).As(typeof(IExecutionContextAccessor)).SingleInstance();

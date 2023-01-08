@@ -10,7 +10,6 @@ public class AgencyConfiguration : IEntityTypeConfiguration<Agency>
   public void Configure(EntityTypeBuilder<Agency> builder)
   {
     builder.Property(b => b.StripeSubscriptionStatus).HasConversion<string>();
-    builder.Property(a => a.SubscriptionLastValidDate).HasColumnType("date");
     builder.OwnsOne(agency => agency.Address);
   }
 

@@ -18,9 +18,10 @@ public class ConnectedEmail : Entity<int>
   public string SubsRenewalJobId { get; set; }
 
   /// <summary>
-  /// when true, sync will happen shortly
+  /// when true, sync will happen shortly 
   /// </summary>
   public bool SyncScheduled { get; set; } = false;
+  public string? SyncJobId { get; set; }
   /// <summary>
   /// Created property of last email fetched
   /// </summary>

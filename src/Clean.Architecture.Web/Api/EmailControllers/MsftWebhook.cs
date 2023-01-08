@@ -3,6 +3,7 @@ using Clean.Architecture.Core.Constants;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
+using Clean.Architecture.Web.Processing.EmailAutomation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
@@ -14,15 +15,18 @@ public class MsftWebhook : BaseApiController
   private readonly ILogger<MsftWebhook> _logger;
   private readonly MSFTEmailQService _mSFTEmailQService;
   private readonly AppDbContext _appDbContext;
+  private readonly MSFTWebhookHandler _mSFTWebhookHandler;
   public MsftWebhook(AuthorizationService authorizeService,
     IMediator mediator,
     MSFTEmailQService mSFTEmailQService,
     ILogger<MsftWebhook> logger,
-    AppDbContext dbContext) : base(authorizeService, mediator)
+    AppDbContext dbContext,
+    MSFTWebhookHandler webhookHandler) : base(authorizeService, mediator)
   {
     _logger = logger;
     _mSFTEmailQService = mSFTEmailQService;
     _appDbContext = dbContext;
+    _mSFTWebhookHandler = webhookHandler;
   }
 
   [HttpPost("Webhook")]
@@ -61,8 +65,8 @@ public class MsftWebhook : BaseApiController
           ProcessedSubsIDs.Add(SubsId);
           var tenantId = notification.Resource.Split('/')[1].Split('@')[0];
 
-          //var FetchTask = _emailFetcher.ScheduleFetch(SubsId, tenantId);
-          //HangfireSchedulingTasks.Add(FetchTask);      
+          var syncTask = _mSFTWebhookHandler.CheckEmailSyncAsync(SubsId, tenantId);
+          HangfireSchedulingTasks.Add(syncTask);      
         }
         Task.WaitAll(HangfireSchedulingTasks.ToArray());
       }

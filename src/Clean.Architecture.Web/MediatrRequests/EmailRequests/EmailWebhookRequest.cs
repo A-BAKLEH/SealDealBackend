@@ -1,5 +1,4 @@
 ﻿using Clean.Architecture.Core.Domain.TasksAggregate;
-using Clean.Architecture.Core.ExternalServiceInterfaces.ProcessingInterfaces;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.Cache;
 using Clean.Architecture.Web.Cache.Extensions;

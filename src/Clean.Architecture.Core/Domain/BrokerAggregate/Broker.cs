@@ -17,6 +17,7 @@ public class Broker : Entity<Guid>
   public string FirstName { get; set; }
   public string LastName { get; set; }
   /// <summary>
+  /// in IANA formt like: America/Toronto
   /// use TZConvert.GetTimeZoneInfo() to get TimeZoneInfo
   /// </summary>
   public string IanaTimeZone { get; set; }

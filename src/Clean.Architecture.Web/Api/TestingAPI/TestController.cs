@@ -17,6 +17,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Clean.Architecture.Core.Constants;
 using Clean.Architecture.Infrastructure.ExternalServices;
 using Microsoft.Graph;
+using TimeZoneConverter;
 
 namespace Clean.Architecture.Web.Api.TestingAPI;
 
@@ -87,11 +88,13 @@ public class TestController : ControllerBase
     lis.Add(new Agency {Id = 1 });*/
     //return BadRequest(lis);
   }
-  [HttpGet("test-azuread")]
-  public async Task<IActionResult> azureadTest()
+  [HttpGet("test-timeZone")]
+  public async Task<IActionResult> atimeZoneTest()
   {
-    var id = Guid.Parse("1B935034-6F92-41C7-99D0-A41181A7DF54");
-    var templatesDTO = await _templatesQService.GetAllTemplatesAsync(id);
+    var timeZoneInfo = TZConvert.GetTimeZoneInfo("America/Toronto");
+
+    var id = timeZoneInfo.Id;
+    var second = TimeZoneInfo.FindSystemTimeZoneById(id);
     return Ok();
   }
 

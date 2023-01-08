@@ -13,6 +13,7 @@ public class ToDoTask : Entity<int>
   public DateTimeOffset TaskDueDate { get; set; }
   /// <summary>
   /// use TimeZoneInfo.FindSystemTimeZoneById(Id)
+  /// has windows registry format like : Central Standard Time
   /// </summary>
   public string timeZoneId { get; set; }
   public Guid BrokerId { get; set; }
