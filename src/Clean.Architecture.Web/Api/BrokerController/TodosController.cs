@@ -1,4 +1,5 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;

@@ -1,16 +1,17 @@
 ﻿using Clean.Architecture.Core.Domain.BrokerAggregate;
+using Clean.Architecture.Core.DTOs.ProcessingDTOs;
 using Clean.Architecture.Infrastructure.Data;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using MediatR;
 
 namespace Clean.Architecture.Web.MediatrRequests.BrokerRequests;
 
-public class CreateTodoTaskRequest : IRequest<ToDoTask>
+public class CreateTodoTaskRequest : IRequest<ToDoTaskWithLeadName>
 {
   public Guid BrokerID { get; set; }
   public CreateToDoTaskDTO createToDoTaskDTO { get; set; }
 }
-public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskRequest, ToDoTask>
+public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskRequest, ToDoTaskWithLeadName>
 {
   private readonly AppDbContext _appDbContext;
   public CreateTodoTaskRequestHandler(AppDbContext appDbContext)
@@ -18,7 +19,7 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
     _appDbContext = appDbContext;
   }
 
-  public async Task<ToDoTask> Handle(CreateTodoTaskRequest request, CancellationToken cancellationToken)
+  public async Task<ToDoTaskWithLeadName> Handle(CreateTodoTaskRequest request, CancellationToken cancellationToken)
   {
     var todo = new ToDoTask
     {
@@ -30,7 +31,21 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
     };
     _appDbContext.ToDoTasks.Add(todo);
     await _appDbContext.SaveChangesAsync();
-    return todo;
+
+    var reponse = new ToDoTaskWithLeadName
+    { Description = todo.Description,
+      Id = todo.Id ,
+      TaskDueDate = todo.TaskDueDate.UtcDateTime,
+      TaskName = todo.TaskName
+    };
+    if (todo.LeadId != null)
+    {
+      //TODO select just first and last names
+      var leadSelected = _appDbContext.Leads.First(l => l.Id == todo.LeadId);
+      reponse.firstName = leadSelected.LeadFirstName;
+      reponse.lastName = leadSelected.LeadLastName;
+    }
+    return reponse;
   }
 }
 
