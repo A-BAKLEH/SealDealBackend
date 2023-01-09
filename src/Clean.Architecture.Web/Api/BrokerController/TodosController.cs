@@ -1,11 +1,9 @@
-﻿using System;
-using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
 using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.ControllerServices.StaticMethods;
 using Clean.Architecture.Web.MediatrRequests.BrokerRequests;
-using Humanizer;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +35,7 @@ public class TodosController : BaseApiController
     var todos = await _mediator.Send(new GetBrokerTodosRequest { BrokerId = brokerId });
     if (todos == null || !todos.Any()) return NotFound();
 
-    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     foreach (var todo in todos)
     {
       todo.TaskDueDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, todo.TaskDueDate);
@@ -61,7 +59,8 @@ public class TodosController : BaseApiController
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create todo", TagConstants.Inactive, brokerId);
       return Forbid();
     }
-    var timeZone = createToDoTaskDTO.TempTimeZone ?? brokerTuple.Item1.IanaTimeZone;
+    var oldDate = createToDoTaskDTO.dueTime;
+    var timeZone = createToDoTaskDTO.TempTimeZone ?? brokerTuple.Item1.TimeZoneId;
     var timeZoneInfo = TZConvert.GetTimeZoneInfo(timeZone);
     createToDoTaskDTO.dueTime = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, createToDoTaskDTO.dueTime);
 
@@ -69,8 +68,8 @@ public class TodosController : BaseApiController
     {
       BrokerID = brokerId,
       createToDoTaskDTO = createToDoTaskDTO,
-      timeZone = timeZoneInfo
     });
+    todo.TaskDueDate = oldDate;
     return Ok(todo);
   }
 }

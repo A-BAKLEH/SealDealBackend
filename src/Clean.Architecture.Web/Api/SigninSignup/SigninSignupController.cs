@@ -6,6 +6,7 @@ using Clean.Architecture.Web.MediatrRequests.SignupRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TimeZoneConverter;
 
 namespace Clean.Architecture.Web.Api.SigninSignup;
 
@@ -27,11 +28,14 @@ public class SigninSignupController : BaseApiController
     _logger.LogWarning("SIGNIN SIGNUP CALLED Ya hbibi");
     var l = User.Claims.ToList();
     var newUserClaim = l.Find(x => x.Type == "newUser");
+
+    var timeZoneId = TZConvert.GetTimeZoneInfo(dto.IanaTimeZone).Id;
     //signin only
     if (newUserClaim == null)
     {
       Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-      var res = await _authorizeService.VerifyAccountAsync(b2cID, dto.IanaTimeZone,true);
+      //TODO check if correct to createAgencyIfNotExistsHere (the true param to VerifyAccountAsync)
+      var res = await _authorizeService.VerifyAccountAsync(b2cID, timeZoneId, true);
       //TODO trigger EmailFetch and SMS fetch if not happened in 6 hours.
       //other fethces from 3rd parties
       return Ok(res);
@@ -46,7 +50,7 @@ public class SigninSignupController : BaseApiController
       surName = l.Find(x => x.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname").Value,
       b2cId = id,
       email = l.Find(x => x.Type == "emails").Value,
-      IanaTimeZone = ianaTimeZone
+      TimeZoneId = timeZoneId
     });
     _logger.LogInformation("[{Tag}] New Agency Signed up with name {AgencyName} and admin B2cId {UserId}", TagConstants.AgencySignup,agencyName,id);
     return Ok(signinResponseDTO);

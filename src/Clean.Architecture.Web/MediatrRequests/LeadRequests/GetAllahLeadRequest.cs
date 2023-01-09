@@ -28,7 +28,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
         //AreasOfInterest = l.AreasOfInterest.Select(a => new AreaDTO { id = a.Id, name = a.Name}),
         Budget = l.Budget,
         Email = l.Email,
-        EntryDate = l.EntryDate,
+        EntryDate = l.EntryDate.UtcDateTime,
         LeadFirstName = l.LeadFirstName,
         LeadLastName = l.LeadLastName,
         leadSource = l.source,

@@ -11,11 +11,7 @@ public class ToDoTask : Entity<int>
   public string? Description { get; set; }
   public string TaskName { get; set; }
   public DateTimeOffset TaskDueDate { get; set; }
-  /// <summary>
-  /// use TimeZoneInfo.FindSystemTimeZoneById(Id)
-  /// has windows registry format like : Central Standard Time
-  /// </summary>
-  public string timeZoneId { get; set; }
+
   public Guid BrokerId { get; set; }
   public Broker Broker { get; set; }
   public int? LeadId { get; set; }

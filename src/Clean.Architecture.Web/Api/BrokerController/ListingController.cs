@@ -1,4 +1,5 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Core.Domain.BrokerAggregate;
 using Clean.Architecture.Web.ApiModels.APIResponses.Listing;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
@@ -46,6 +47,12 @@ public class ListingController : BaseApiController
     var listings = await _listingQService.GetAgencyListings(brokerTuple.Item1.AgencyId, includeSold == 1 ? true : false);
 
     if (listings == null || !listings.Any()) return NotFound();
+
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    foreach (var listing in listings)
+    {
+      listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
+    }
     var respnse = new AgencyListingsDTO { listings = listings };
     return Ok(respnse);
   }
@@ -61,10 +68,12 @@ public class ListingController : BaseApiController
       return Forbid();
     }
 
-    var timeZoneInfo = brokerTuple.Item1.IanaTimeZone;
-    dto.DateOfListing = MyTimeZoneConverter.ConvertToUTC(TZConvert.GetTimeZoneInfo(timeZoneInfo), dto.DateOfListing);
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    var localDateOfListing = dto.DateOfListing;
+    dto.DateOfListing = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, dto.DateOfListing);
 
     var listing = await _listingQService.CreateListing(brokerTuple.Item1.AgencyId, dto);
+    listing.DateOfListing = localDateOfListing;
     return Ok(listing);
   }
 
@@ -88,6 +97,13 @@ public class ListingController : BaseApiController
     var listings = await _brokerTagsQService.GetBrokersListings(id);
     
     if (listings == null || !listings.Any()) return NotFound();
+
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    foreach (var listing in listings)
+    {
+      listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
+    }
+    
     var respnse = new BrokersListingsDTO { listings = listings };
     return Ok(respnse);
   }

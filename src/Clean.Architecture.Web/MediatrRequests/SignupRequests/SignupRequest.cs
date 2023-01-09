@@ -12,7 +12,7 @@ public class SignupRequest : IRequest<AccountStatusDTO>
   public string givenName { get; set; }
   public string surName { get; set; }
   public string email { get; set; }
-  public string IanaTimeZone { get; set; }
+  public string TimeZoneId { get; set; }
   public Guid b2cId { get; set; }
 }
 
@@ -44,7 +44,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
       //log warning 
       //throw new InconsistentStateException("SignupRequest-UserAlreadyInDatabase","broker with B2C ID already exists in Brokers table", request.b2cId.ToString());
       _logger.LogWarning("broker with B2C ID already exists in Brokers table");
-      var accountStatus = await this._authorizeService.VerifyAccountAsync(request.b2cId);
+      var accountStatus = await this._authorizeService.VerifyAccountAsync(request.b2cId, request.TimeZoneId);
 
       return accountStatus;
     }
@@ -56,7 +56,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
       LoginEmail = request.email,
       isAdmin = true,
       AccountActive = false,
-      IanaTimeZone = request.IanaTimeZone
+      TimeZoneId = request.TimeZoneId
     };
     var agency = new Agency()
     {

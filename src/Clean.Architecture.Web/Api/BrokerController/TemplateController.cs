@@ -46,7 +46,7 @@ public class TemplateController : BaseApiController
 
     var templatesDTO = await _templatesQService.GetAllTemplatesAsync(id);
 
-    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.TimeZoneId);
     foreach (var dto in templatesDTO.allTemplates)
     {
       dto.Modified = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, dto.Modified);
@@ -69,7 +69,7 @@ public class TemplateController : BaseApiController
 
     var template = await _templatesQService.CreateTemplateAsync(dto, id);
 
-    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     template.Modified = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, template.Modified);
     return Ok(template);
   }

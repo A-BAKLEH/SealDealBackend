@@ -44,7 +44,7 @@ public class BrokerQService
       .Select(l => new BrokerListingDTO
       {
         Address = l.Listing.Address,
-        DateOfListing = l.Listing.DateOfListing,
+        DateOfListing = l.Listing.DateOfListing.UtcDateTime,
         ListingURL = l.Listing.URL,
         Price = l.Listing.Price,
         Status = l.Listing.Status.ToString(),

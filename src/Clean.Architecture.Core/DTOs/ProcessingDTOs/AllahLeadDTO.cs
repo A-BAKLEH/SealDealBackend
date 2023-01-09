@@ -9,7 +9,7 @@ public class AllahLeadDTO
   public string? PhoneNumber { get; set; }
   public string? Email { get; set; }
   public int? Budget { get; set; }
-  public DateTimeOffset EntryDate { get; set; }
+  public DateTime EntryDate { get; set; }
   public LeadSource leadSource { get; set;  }
   public string leadType { get; set; }
   public string? leadSourceDetails { get; set;}

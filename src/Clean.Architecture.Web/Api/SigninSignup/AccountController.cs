@@ -5,6 +5,7 @@ using Clean.Architecture.Web.ControllerServices.QuickServices;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TimeZoneConverter;
 
 namespace Clean.Architecture.Web.Api.SigninSignup;
 
@@ -26,7 +27,9 @@ public class AccountController : BaseApiController
   public async Task<IActionResult> VerifyAccount([FromBody] SigninDTO  dto)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var accountStatus = await this._authorizeService.VerifyAccountAsync(id,dto.IanaTimeZone);
+
+    var timeZoneId = TZConvert.GetTimeZoneInfo(dto.IanaTimeZone).Id;
+    var accountStatus = await this._authorizeService.VerifyAccountAsync(id,timeZoneId);
     
     return Ok(accountStatus);
   }

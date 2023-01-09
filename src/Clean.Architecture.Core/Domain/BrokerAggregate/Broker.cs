@@ -20,7 +20,13 @@ public class Broker : Entity<Guid>
   /// in IANA formt like: America/Toronto
   /// use TZConvert.GetTimeZoneInfo() to get TimeZoneInfo
   /// </summary>
-  public string IanaTimeZone { get; set; }
+  //public string IanaTimeZone { get; set; }
+
+  ///<summary>
+  /// in Windows Registry formt like: Eastern Standard Time
+  /// use TZConvert.GetTimeZoneInfo() to get TimeZoneInfo
+  /// </summary>
+  public string? TimeZoneId { get; set; }
   public string? TempTimeZone { get; set; }
   public Boolean isAdmin { get; set; }
   public Boolean AccountActive { get; set; }

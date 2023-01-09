@@ -40,7 +40,7 @@ public class AuthorizationService
   /// <param name="createAgencyIfNotExists"></param>
   /// <returns></returns>
   /// <exception cref="InconsistentStateException"></exception>
-  public async Task<AccountStatusDTO> VerifyAccountAsync(Guid id, string? IanaTimeZone = null,bool createAgencyIfNotExists = false)
+  public async Task<AccountStatusDTO> VerifyAccountAsync(Guid id, string? TimeZoneId = null,bool createAgencyIfNotExists = false)
   {
     var response = new AccountStatusDTO();
     var broker = await _appDbContext.Brokers.Include(b => b.Agency).FirstOrDefaultAsync(b => b.Id == id);
@@ -49,11 +49,11 @@ public class AuthorizationService
       throw new InconsistentStateException("VerifyAccount", "Broker not found in DB", id.ToString());
     }
 
-    if(broker.IanaTimeZone != IanaTimeZone)
+    if(broker.TimeZoneId != TimeZoneId)
     {
       response.TimeZoneChangeDetected= true;
-      response.MainTimeZone = broker.IanaTimeZone;
-      response.DetectedTimeZone = IanaTimeZone;
+      response.MainTimeZone = broker.TimeZoneId;
+      response.DetectedTimeZone = TimeZoneId;
     }
       //TODO: maybe handle if account is active but subscription is not?
     if (broker.AccountActive)

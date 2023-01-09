@@ -1,4 +1,5 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Core.Domain.LeadAggregate;
 using Clean.Architecture.Web.ApiModels.APIResponses.Lead;
 using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
@@ -43,7 +44,7 @@ public class LeadController : BaseApiController
       createLeadDTOs = createLeadDTO
     });
 
-    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     foreach (var lead in leads)
     {
       lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
@@ -75,6 +76,9 @@ public class LeadController : BaseApiController
       includeNotifs = includeEvents == 1 ? true :  false
     });
     if(lead == null) return NotFound();
+
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
     return Ok(lead);
   }
 
@@ -123,6 +127,13 @@ public class LeadController : BaseApiController
 
     var leads = await _leadQService.GetLeadsAsync(brokerid);
     if(leads == null || !leads.Any()) return NotFound();
+
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    foreach (var lead in leads)
+    {
+      lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
+    }
+    
     return Ok(leads);
   }
 

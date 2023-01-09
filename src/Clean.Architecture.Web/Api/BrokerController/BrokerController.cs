@@ -12,9 +12,7 @@ using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.ApiModels.APIResponses.Broker;
 using Clean.Architecture.SharedKernel.Exceptions.CustomProblemDetails;
 using Clean.Architecture.Core.Constants.ProblemDetailsTitles;
-using Humanizer;
 using TimeZoneConverter;
-using System;
 
 namespace Clean.Architecture.Web.Api.BrokerController;
 [Authorize]
@@ -112,7 +110,8 @@ public class BrokerController : BaseApiController
       return Unauthorized();
     }
     var brokers = await _brokerTagsQService.GetBrokersByAdmin(brokerTuple.Item1.AgencyId);
-    var timeZoneInfo = TZConvert.GetTimeZoneInfo(brokerTuple.Item1.IanaTimeZone);
+    
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     foreach (var broker in brokers)
     {
       broker.created = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, broker.created);

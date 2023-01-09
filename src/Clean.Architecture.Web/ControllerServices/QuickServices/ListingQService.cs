@@ -28,7 +28,7 @@ public class ListingQService
       .Select(l => new AgencyListingDTO
       {
         Address = l.Address,
-        DateOfListing = l.DateOfListing,
+        DateOfListing = l.DateOfListing.UtcDateTime,
         ListingURL = l.URL,
         Price = l.Price,
         Status = l.Status.ToString(),
@@ -79,7 +79,7 @@ public class ListingQService
     var listingDTO = new AgencyListingDTO
     {
       Address = listing.Address,
-      DateOfListing = listing.DateOfListing,
+      DateOfListing = listing.DateOfListing.UtcDateTime,
       GeneratedLeadsCount = 0,
       ListingURL = listing.URL,
       Price = listing.Price,
