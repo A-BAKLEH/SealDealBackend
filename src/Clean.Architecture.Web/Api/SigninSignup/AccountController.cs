@@ -22,11 +22,11 @@ public class AccountController : BaseApiController
     _MSFTEmailQService = mSFTEmailQService;
   }
 
-  [HttpGet("Verify/{IanaTimeZone}")]
-  public async Task<IActionResult> VerifyAccount(string IanaTimeZone)
+  [HttpPost("Verify")]
+  public async Task<IActionResult> VerifyAccount([FromBody] SigninDTO  dto)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var accountStatus = await this._authorizeService.VerifyAccountAsync(id,IanaTimeZone);
+    var accountStatus = await this._authorizeService.VerifyAccountAsync(id,dto.IanaTimeZone);
     
     return Ok(accountStatus);
   }

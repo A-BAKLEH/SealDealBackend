@@ -1,4 +1,5 @@
 ﻿using Clean.Architecture.Core.Config.Constants.LoggingConstants;
+using Clean.Architecture.Web.ApiModels.RequestDTOs;
 using Clean.Architecture.Web.ControllerServices;
 using Clean.Architecture.Web.ControllerServices.QuickServices;
 using Clean.Architecture.Web.MediatrRequests.SignupRequests;
@@ -20,8 +21,8 @@ public class SigninSignupController : BaseApiController
     _logger = logger;
   }
 
-  [HttpGet("/{ianaTimeZone}")]
-  public async Task<IActionResult> SigninSingup(string ianaTimeZone)
+  [HttpPost]
+  public async Task<IActionResult> SigninSingup([FromBody] SigninDTO dto)
   {
     _logger.LogWarning("SIGNIN SIGNUP CALLED Ya hbibi");
     var l = User.Claims.ToList();
@@ -30,7 +31,7 @@ public class SigninSignupController : BaseApiController
     if (newUserClaim == null)
     {
       Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-      var res = await _authorizeService.VerifyAccountAsync(b2cID, ianaTimeZone,true);
+      var res = await _authorizeService.VerifyAccountAsync(b2cID, dto.IanaTimeZone,true);
       //TODO trigger EmailFetch and SMS fetch if not happened in 6 hours.
       //other fethces from 3rd parties
       return Ok(res);
