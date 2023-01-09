@@ -14,13 +14,16 @@ public class AccountController : BaseApiController
 {
   private readonly ILogger<AccountController> _logger;
   private readonly MSFTEmailQService _MSFTEmailQService;
+  private readonly BrokerQService _brokerQService;
   public AccountController(AuthorizationService authorizeService,
     IMediator mediator,
     ILogger<AccountController> logger,
-    MSFTEmailQService mSFTEmailQService) : base(authorizeService, mediator)
+    MSFTEmailQService mSFTEmailQService,
+    BrokerQService brokerQService) : base(authorizeService, mediator)
   {
     _logger = logger;
     _MSFTEmailQService = mSFTEmailQService;
+    _brokerQService = brokerQService;
   }
 
   [HttpPost("Verify")]
@@ -32,6 +35,22 @@ public class AccountController : BaseApiController
     var accountStatus = await this._authorizeService.VerifyAccountAsync(id,timeZoneId);
     
     return Ok(accountStatus);
+  }
+
+  [HttpPost("SetTimeZone")]
+  public async Task<IActionResult> SetTimeZone([FromBody] SigninDTO dto)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to set TimeZone ", TagConstants.Inactive, id);
+      return Forbid();
+    }
+    var timeZoneId = TZConvert.GetTimeZoneInfo(dto.IanaTimeZone).Id;
+    await _brokerQService.SetTimeZoneAsync(brokerTuple.Item1,timeZoneId);
+
+    return Ok();
   }
 
   [HttpPost("ConnectedEmail/Connect")]

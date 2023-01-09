@@ -14,6 +14,11 @@ public class BrokerQService
     _appDbContext = appDbContext;
   }
 
+  public async Task SetTimeZoneAsync(Broker broker, string NewTimeZoneId)
+  {
+    broker.TimeZoneId = NewTimeZoneId;
+    await _appDbContext.SaveChangesAsync();
+  }
   public async Task<List<BrokerForListDTO>> GetBrokersByAdmin(int AgencyId)
   {
     var brokers = await _appDbContext.Brokers
