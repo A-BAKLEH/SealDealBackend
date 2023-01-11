@@ -1,5 +1,4 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.DTOs.ProcessingDTOs;
 using Web.ApiModels.APIResponses.Broker;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
@@ -8,7 +7,6 @@ using Web.MediatrRequests.BrokerRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TimeZoneConverter;
 
 namespace Web.Api.BrokerController;
 
@@ -62,7 +60,7 @@ public class TodosController : BaseApiController
     }
     var oldDate = createToDoTaskDTO.dueTime;
     var timeZone = createToDoTaskDTO.TempTimeZone ?? brokerTuple.Item1.TimeZoneId;
-    var timeZoneInfo = TZConvert.GetTimeZoneInfo(timeZone);
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     createToDoTaskDTO.dueTime = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, createToDoTaskDTO.dueTime);
 
     var todo = await _mediator.Send(new CreateTodoTaskRequest

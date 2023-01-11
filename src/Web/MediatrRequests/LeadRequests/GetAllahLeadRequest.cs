@@ -58,7 +58,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
     if (request.includeNotifs)
     {
       lead.LeadHistoryEvents = await _appDbContext.Notifications
-      .OrderByDescending(n => n.UnderlyingEventTimeStamp)
+      .OrderByDescending(n => n.EventTimeStamp)
       .Where(n => n.LeadId == request.leadId)
       .Select(n => new NotifExpandedDTO
       {
@@ -69,7 +69,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
         NotifType = n.NotifType.ToString(),
         NotifyBroker = n.NotifyBroker,
         ReadByBroker = n.ReadByBroker,
-        UnderlyingEventTimeStamp = n.UnderlyingEventTimeStamp
+        UnderlyingEventTimeStamp = n.EventTimeStamp
       }
       ).ToListAsync(cancellationToken);
     }

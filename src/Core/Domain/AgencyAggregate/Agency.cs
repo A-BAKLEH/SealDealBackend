@@ -16,7 +16,7 @@ public class Agency : Entity<int>
   /// <summary>
   /// client timeZ
   /// </summary>
-  public DateTimeOffset SignupDateTime { get; set; }
+  public DateTimeOffset SignupDateTime { get; set; } = DateTimeOffset.UtcNow;
 
   public string? AdminStripeId { get; set; }
   public string? StripeSubscriptionId { get; set; }

@@ -57,6 +57,11 @@ public class ListingController : BaseApiController
     return Ok(respnse);
   }
 
+  /// <summary>
+  /// IMPORTANT: Z after Datetime means kind.UTC
+  /// </summary>
+  /// <param name="dto"></param>
+  /// <returns></returns>
   [HttpPost]
   public async Task<IActionResult> CreateAgencyListing([FromBody] CreateListingRequestDTO dto)
   {

@@ -33,7 +33,7 @@ public class GetNotifsDashboardRequestHandler : IRequestHandler<GetNotifsDashboa
     var NotifResponseDTO = new NotifsResponseDTO();
 
     //by searching for these, implicitly limiting to NotifyBroker=true
-    int notifTypeFilter = (int)(NotifType.EmailReceived | NotifType.SmsReceived | NotifType.CallReceived | NotifType.LeadStatusChange);
+    int notifTypeFilter = (int)(NotifType.EmailEvent | NotifType.SmsEvent | NotifType.CallEvent | NotifType.LeadStatusChange);
 
     var NotifWrappersList = await _appDbContext.Notifications
         .Where(n => n.BrokerId == request.BrokerId && (notifTypeFilter & ((int)n.NotifType)) > 0)
@@ -41,12 +41,12 @@ public class GetNotifsDashboardRequestHandler : IRequestHandler<GetNotifsDashboa
         .Select(x => new WrapperNotifDashboard
         {
           leadId = (int)x.Key,
-          notifs = x.OrderByDescending(n => n.UnderlyingEventTimeStamp)
+          notifs = x.OrderByDescending(n => n.EventTimeStamp)
             .Select(n => new NotifForDashboardDTO
             {
               NotifType = n.NotifType,
               ReadByBroker = n.ReadByBroker,
-              UnderlyingEventTimeStamp = n.UnderlyingEventTimeStamp
+              UnderlyingEventTimeStamp = n.EventTimeStamp
             })
         })
         .ToListAsync();

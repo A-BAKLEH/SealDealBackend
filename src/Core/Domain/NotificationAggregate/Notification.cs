@@ -10,15 +10,22 @@ public class Notification : Entity<int>
   public Guid BrokerId { get; set; }
   public int? LeadId { get; set; }
   public Lead? lead { get; set; }
-  public DateTimeOffset NotifCreatedAt { get; set; }
-  public DateTimeOffset UnderlyingEventTimeStamp { get; set; }
+
+  /// <summary>
+  /// when 3rd-party event this always reflects its time
+  /// </summary>
+  public DateTimeOffset EventTimeStamp { get; set; }
   public NotifType NotifType { get; set; }
   /// <summary>
   /// For in-app events: straightforward
   /// For lead interactions: Read either in SealDeal or in email client / mobile Sms app , call Answered 
-  /// when false: email Unread, Sms not replied to/ unread(depends on how easy to check on phone), call missed 
+  /// when false: email Unread, Sms not replied to/ unread(depends on how easy to check on phone),
+  /// call missed 
   /// </summary>
-  public bool ReadByBroker { get; set; } = false;
+  public bool ReadByBroker { get; set; }
+
+
+  public bool? IsRecevied { get; set; }
 
   /// <summary>
   /// set to true to keep reminding el hmar to check it out until ReadByBroker is true
@@ -26,67 +33,54 @@ public class Notification : Entity<int>
   /// </summary>
   public bool NotifyBroker { get; set; }
 
-  //----------- TODO maybe REMOVE -------
-  /// <summary>
-  /// Action Plans handling status
-  /// </summary>
-  public NotifHandlingStatus NotifHandlingStatus { get; set; } = NotifHandlingStatus.UnHandled;
   /// <summary>
   /// JSON string:string format only for now. later can create cutsom serializer
-  /// props related to the resource like for email : subject, CCS, threadId
-  /// can contain: brokercomment, other data
+  /// sms text for sms,
+  /// "call duration,broker comment" for call
+  /// email id for email
   /// </summary>
   public Dictionary<string, string> NotifProps { get; set; } = new();
 
 }
-public enum NotifHandlingStatus { Success, Error,UnHandled}
 
 [Flags]
 public enum NotifType
 {
+  EmailEvent = 1,
+  SmsEvent = 2,
+  CallEvent = 4,
   /// <summary>
-  /// data: subject, Thread/Convo Id, Email text, Email TimeStamp, EmailId
+  /// for calls from lead that broker missed
   /// </summary>
-  EmailSent = 1,
+  CallMissed = 8,
   /// <summary>
-  /// data: subject, Thread/Convo Id, Email text, Email TimeStamp, EmailId, EmailRead?, EmailReplied?
+  /// data: old status, new status, reason? or action planId who did it
   /// </summary>
-  EmailReceived = 2,
+  LeadStatusChange = 16,
   /// <summary>
-  /// data: text, timestamp
+  /// data: listing Id, name or Id of actor who did it
   /// </summary>
-  SmsSent = 4,
+  ListingAssigned = 32,
+
   /// <summary>
-  /// data: text, timestamp, Replied?
+  /// listing Id, name or Id of actor who did it
   /// </summary>
-  SmsReceived = 8,
-  /// <summary>
-  /// data: duration, startTime, Call Missed, answered. Caller, Callee
-  /// </summary>
-  CallReceived = 16,
-  CallSent = 32,
-  /// <summary>
-  /// data: old status, new status, timestamp, message (who changed the status , maybe reason)
-  /// </summary>
-  LeadStatusChange = 64,
-  /// <summary>
-  /// data: 
-  /// </summary>
-  ListingAssigned = 128,
-  ListingUnAssigned = 256,
+  ListingUnAssigned = 64,
   /// <summary>
   /// also means lead created
   /// data: who created Lead (automatic, broker name (your name), admin or specific admin name ),
   /// source name if came from website
   /// </summary>
-  LeadAssigned = 512,
+  LeadAssigned = 128,
   /// <summary>
   /// will only be possible after admin manually assigns lead to a broker
+  /// data: lead Id
   /// </summary>
-  LeadUnAssigned = 1024,
+  LeadUnAssigned = 256,
+
   /// <summary>
-  /// data: triggger
+  /// data: triggger, response event id
   /// </summary>
-  ActionPlanStarted = 2048,
-  ActionPlanFinished = 4096,
+  ActionPlanStarted = 512,
+  ActionPlanFinished = 1024,
 }

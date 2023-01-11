@@ -16,11 +16,6 @@ public class Broker : Entity<Guid>
   public Agency Agency { get; set; }
   public string FirstName { get; set; }
   public string LastName { get; set; }
-  /// <summary>
-  /// in IANA formt like: America/Toronto
-  /// use TZConvert.GetTimeZoneInfo() to get TimeZoneInfo
-  /// </summary>
-  //public string IanaTimeZone { get; set; }
 
   ///<summary>
   /// in Windows Registry formt like: Eastern Standard Time
@@ -32,7 +27,7 @@ public class Broker : Entity<Guid>
   public Boolean AccountActive { get; set; }
   public string? PhoneNumber { get; set; }
   public string LoginEmail { get; set; }
-  public DateTimeOffset Created { get; set;}
+  public DateTimeOffset Created { get; set;} = DateTimeOffset.Now;
   /// <summary>
   /// Notif types that can act as trigger/stoppage/etc in Broker's active Action Plans
   /// </summary>

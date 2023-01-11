@@ -21,7 +21,7 @@ public class GetLeadEventsRequestHandler : IRequestHandler<GetLeadEventsRequest,
   public async Task<List<NotifExpandedDTO>> Handle(GetLeadEventsRequest request, CancellationToken cancellationToken)
   {
     var notifs = await _appDbContext.Notifications
-      .OrderByDescending(n => n.UnderlyingEventTimeStamp)
+      .OrderByDescending(n => n.EventTimeStamp)
       //.Where(n =>  n.LeadId == request.leadId && n.Id < request.lastNotifID  )
       .Where(n => n.LeadId == request.leadId)
       .Select(n => new NotifExpandedDTO
@@ -33,7 +33,7 @@ public class GetLeadEventsRequestHandler : IRequestHandler<GetLeadEventsRequest,
         NotifType = n.NotifType.ToString(),
         NotifyBroker = n.NotifyBroker,
         ReadByBroker = n.ReadByBroker,
-        UnderlyingEventTimeStamp = n.UnderlyingEventTimeStamp
+        UnderlyingEventTimeStamp = n.EventTimeStamp
       }
       ).ToListAsync(cancellationToken);
     return notifs;

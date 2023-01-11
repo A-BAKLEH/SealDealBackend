@@ -7,6 +7,10 @@ public abstract class LeadInteraction : Entity<int>
   public int LeadId { get; set; }
 
   /// <summary>
+  /// of underlying event
+  /// </summary>
+  public DateTimeOffset Timestamp { get; set; }
+  /// <summary>
   /// maybe remove
   /// </summary>
   public NotifType type { get; set; }
@@ -16,10 +20,7 @@ public abstract class LeadInteraction : Entity<int>
   /// </summary>
   public bool isReceived { get; set; }
 
-  /// <summary>
-  /// of underlying event
-  /// </summary>
-  public DateTimeOffset Timestamp { get; set; }
+  
 
   /// <summary>
   /// Read for email, read for sms, went through (picked up) for call

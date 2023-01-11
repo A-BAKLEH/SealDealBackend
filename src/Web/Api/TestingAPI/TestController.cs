@@ -18,6 +18,8 @@ using Core.Constants;
 using Infrastructure.ExternalServices;
 using Microsoft.Graph;
 using TimeZoneConverter;
+using Humanizer;
+using Web.ControllerServices.StaticMethods;
 
 namespace Web.Api.TestingAPI;
 
@@ -88,13 +90,24 @@ public class TestController : ControllerBase
     lis.Add(new Agency {Id = 1 });*/
     //return BadRequest(lis);
   }
-  [HttpGet("test-timeZone")]
-  public async Task<IActionResult> atimeZoneTest()
+  [HttpPost("test-timeZone")]
+  public async Task<IActionResult> atimeZoneTest([FromBody] CreateListingRequestDTO dto)
   {
-    var timeZoneInfo = TZConvert.GetTimeZoneInfo("America/Toronto");
 
-    var id = timeZoneInfo.Id;
-    var second = TimeZoneInfo.FindSystemTimeZoneById(id);
+
+    var timeZoneInfoTZ = TZConvert.GetTimeZoneInfo("Eastern Standard Time");
+    var convertedTime = MyTimeZoneConverter.ConvertToUTC(timeZoneInfoTZ, dto.DateOfListing);
+
+    var timeZoneId = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+    var converted = MyTimeZoneConverter.ConvertToUTC(timeZoneId, dto.DateOfListing);
+
+    
+
+
+    /* var timeZoneInfo = TZConvert.GetTimeZoneInfo("America/Toronto");
+
+     var id = timeZoneInfo.Id;
+     var second = TimeZoneInfo.FindSystemTimeZoneById(id);*/
     return Ok();
   }
 
@@ -327,14 +340,14 @@ public class TestController : ControllerBase
       LeadStatus = LeadStatus.New,
       PhoneNumber = "513"
     };*/
-
+    /*
     var notif111 = new Notification
     {
       LeadId = 1,
       BrokerId = Guid.Parse("BC3F8BAE-0E21-4DE9-B7B0-EB9176CDB8E6"),
       NotifType = NotifType.LeadStatusChange,
       NotifyBroker = true,
-      UnderlyingEventTimeStamp = DateTime.UtcNow,
+      EventTimeStamp = DateTime.UtcNow,
     };
     var notif11 = new Notification
     {
@@ -374,7 +387,7 @@ public class TestController : ControllerBase
       NotifyBroker = true,
       UnderlyingEventTimeStamp = DateTime.UtcNow.Add(new TimeSpan(0, 40, 0)),
     };
-    List<Notification> notifsLead11 = new() { notif111, notif11, notif22, notif33, notif44 };
+    List<Notification> notifsLead11 = new() { notif111, notif11, notif22, notif33, notif44 };*/
     /*var lead2 = new Lead
     {
       Budget = 269000,
@@ -388,7 +401,7 @@ public class TestController : ControllerBase
       LeadStatus = LeadStatus.New,
       PhoneNumber = "514"
     };*/
-    _appDbContext.Notifications.AddRange(notifsLead11);
+   // _appDbContext.Notifications.AddRange(notifsLead11);
     _appDbContext.SaveChanges();
 
     return Ok();
