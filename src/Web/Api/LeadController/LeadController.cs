@@ -1,5 +1,4 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.LeadAggregate;
 using Web.ApiModels.APIResponses.Lead;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
@@ -9,8 +8,7 @@ using Web.MediatrRequests.LeadRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Graph;
-using TimeZoneConverter;
+
 
 namespace Web.Api.LeadController;
 

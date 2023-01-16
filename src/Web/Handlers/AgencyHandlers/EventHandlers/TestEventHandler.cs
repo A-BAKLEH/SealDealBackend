@@ -7,6 +7,8 @@ using Infrastructure.Data;
 using Core.Domain.BrokerAggregate;
 
 namespace Web.Handlers.AgencyHandlers.EventHandlers;
+
+
 public class TestEventHandler : INotificationHandler<TestEvent>
 {
   private readonly AppDbContext _appDbContext;

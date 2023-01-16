@@ -3,7 +3,6 @@ using Core.Domain.AgencyAggregate;
 using Core.DTOs;
 using Core.ExternalServiceInterfaces.StripeInterfaces;
 using Infrastructure.Data;
-using SharedKernel;
 using MediatR;
 
 namespace Web.MediatrRequests.StripeRequests;

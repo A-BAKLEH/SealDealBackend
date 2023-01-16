@@ -4,7 +4,12 @@ using Core.Domain.BrokerAggregate;
 namespace Core.ExternalServiceInterfaces;
 public interface IB2CGraphService
 {
-  Task<string> createB2CUser(Broker broker);
+  /// <summary>
+  /// returns UserId,password
+  /// </summary>
+  /// <param name="broker"></param>
+  /// <returns></returns>
+  Task<Tuple<string, string>> createB2CUser(Broker broker);
 
   Task test();
 }

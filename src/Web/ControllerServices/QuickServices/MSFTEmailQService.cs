@@ -101,7 +101,7 @@ public class MSFTEmailQService
     };
     
     if (!broker.Agency.HasAdminEmailConsent) broker.Agency.HasAdminEmailConsent = true;
-    _appDbContext.SaveChanges();
+    await _appDbContext.SaveChangesAsync();
   }
 
   /// <summary>

@@ -31,8 +31,11 @@ public class B2CGraphService : IB2CGraphService
     _graphClient = new GraphServiceClient(clientSecretCredential, scopes);
   }
 
-  public async Task<string> createB2CUser(Broker broker)
+  public async Task<Tuple<string, string>> createB2CUser(Broker broker)
   {
+
+    var password = "Bashar9!";
+
     var user = new User
     {
       GivenName = broker.FirstName,
@@ -40,22 +43,22 @@ public class B2CGraphService : IB2CGraphService
       DisplayName = broker.FirstName + " " + broker.LastName,
       Identities = new List<ObjectIdentity>
       {
-          new ObjectIdentity()
-          {
-              SignInType = "emailAddress",
-              Issuer = "sealdealtest.onmicrosoft.com",
-              IssuerAssignedId = broker.LoginEmail
-          }
+        new ObjectIdentity()
+        {
+          SignInType = "emailAddress",
+          Issuer = "sealdealtest.onmicrosoft.com",
+          IssuerAssignedId = broker.LoginEmail
+        }
       },
       PasswordProfile = new PasswordProfile()
       {
-        Password = "Bashar9!"
+        Password = password
       },
       PasswordPolicies = "DisablePasswordExpiration",
     };
 
     var created = await _graphClient.Users.Request().AddAsync(user);
-    return created.Id;
+    return Tuple.Create(created.Id,password);
   }
 
   public async Task test()

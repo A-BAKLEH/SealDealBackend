@@ -3,6 +3,7 @@ using SharedKernel;
 using Web.Config;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
+using Web.Outbox.Config;
 using Web.Processing.EmailAutomation;
 
 namespace Web;
@@ -33,6 +34,9 @@ public class WebModule : Module
     builder.RegisterType(typeof(MSFTEmailQService)).AsSelf().InstancePerLifetimeScope();
 
     builder.RegisterType(typeof(ExecutionContextAccessor)).As(typeof(IExecutionContextAccessor)).SingleInstance();
+
+
+    builder.RegisterType(typeof(OutboxDispatcher)).AsSelf().InstancePerLifetimeScope();
 
   }
 }

@@ -17,7 +17,7 @@ namespace Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
-
+  public bool OnlyOutboxEvents { get; set; } = false;
   public AppDbContext(DbContextOptions<AppDbContext> options)
       : base(options)
   {

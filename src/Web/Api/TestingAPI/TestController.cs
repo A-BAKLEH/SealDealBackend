@@ -20,6 +20,11 @@ using Microsoft.Graph;
 using TimeZoneConverter;
 using Humanizer;
 using Web.ControllerServices.StaticMethods;
+using Core.Domain.BrokerAggregate;
+using Infrastructure.Dispatching;
+using SharedKernel.DomainNotifications;
+using Web.Outbox.Config;
+using Web.Outbox;
 
 namespace Web.Api.TestingAPI;
 
@@ -90,6 +95,59 @@ public class TestController : ControllerBase
     lis.Add(new Agency {Id = 1 });*/
     //return BadRequest(lis);
   }
+
+  [HttpGet("create-data")]
+  public async Task<IActionResult> createData()
+  {
+
+    var broker = new Broker
+    {
+      AccountActive= true,
+      isAdmin= true,
+      Created = DateTime.UtcNow,
+      FirstName = "test",
+      LastName = "test",
+      LoginEmail= "test",
+    };
+    var agency = new Agency
+    { 
+      AgencyName= "Test",
+      NumberOfBrokersInDatabase= 1,
+      NumberOfBrokersInSubscription= 1,
+      SignupDateTime= DateTime.UtcNow,
+      StripeSubscriptionStatus = StripeSubscriptionStatus.Active,
+      AgencyBrokers= new List<Broker> { broker}
+    };
+    _appDbContext.Agencies.Add(agency);
+    _appDbContext.SaveChanges();
+
+    return Ok();
+  }
+
+
+  [HttpGet("test-new-notifsSytem")]
+  public async Task<IActionResult> NewNotifs()
+  {
+    //processing event
+
+    //creating Notif in Db
+    var notif = new Notification
+    {
+      APHandlingStatus = APHandlingStatus.Scheduled,
+      BrokerId = Guid.Parse("00000000-0000-0000-0000-000000000000"),
+      EventTimeStamp= DateTime.UtcNow,
+      NotifType = NotifType.BrokerCreated,
+      NotifyBroker = false,
+      ReadByBroker = false,
+    };
+    _appDbContext.Notifications.Add(notif);
+    _appDbContext.SaveChanges();
+    var brokerCreated = new BrokerCreated {NotifId = notif.Id };
+    var id = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated));
+
+    return Ok();
+  }
+
   [HttpPost("test-timeZone")]
   public async Task<IActionResult> atimeZoneTest([FromBody] CreateListingRequestDTO dto)
   {

@@ -10,7 +10,10 @@ public class AgencyConfiguration : IEntityTypeConfiguration<Agency>
   public void Configure(EntityTypeBuilder<Agency> builder)
   {
     builder.Property(b => b.StripeSubscriptionStatus).HasConversion<string>();
-    builder.OwnsOne(agency => agency.Address);
+    builder.OwnsOne(agency => agency.Address, ownedNavigationBuilder =>
+    {
+      ownedNavigationBuilder.ToJson();
+    });
   }
 
 }

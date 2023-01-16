@@ -10,22 +10,23 @@ public class DomainEventsDispatcher : IDomainEventsDispatcher
 {
   private readonly IMediator _mediator;
   private readonly ILifetimeScope _scope;
-  private readonly AppDbContext _ordersContext;
+  private readonly AppDbContext _dbContext;
 
   public DomainEventsDispatcher(IMediator mediator, ILifetimeScope scope, AppDbContext ordersContext)
   {
     this._mediator = mediator;
     this._scope = scope;
-    this._ordersContext = ordersContext;
+    this._dbContext = ordersContext;
   }
 
   /// <summary>
-  /// disptaches domain events and adds Domain Event Notifications to dbcontext's internal list
+  /// disptaches domain events and adds Domain Event Notifications from those same
+  /// domain Events (if exists) to dbcontext's internal DomainNotifications list ot be enqueued into hangfire
   /// </summary>
   /// <returns></returns>
   public async Task DispatchDomainEventsAsync()
   {
-    var domainEntities = this._ordersContext.ChangeTracker
+    var domainEntities = this._dbContext.ChangeTracker
         .Entries<EntityBase>()
         .Where(x => x.Entity.DomainEvents != null && x.Entity.DomainEvents.Any()).ToList();
     if (!domainEntities.Any()) return;
@@ -46,13 +47,14 @@ public class DomainEventsDispatcher : IDomainEventsDispatcher
 
       if (domainNotification != null)
       {
-        _ordersContext.AddDomainEventNotification(domainNotification as IDomainEventNotification<IDomainEvent>);
+        _dbContext.AddDomainEventNotification(domainNotification as IDomainEventNotification<IDomainEvent>);
       }
     }
 
     domainEntities
         .ForEach(entity => entity.Entity.ClearDomainEvents());
 
+    if (_dbContext.OnlyOutboxEvents) return;
     var tasks = domainEvents
         .Select(async (domainEvent) =>
         {
@@ -61,10 +63,13 @@ public class DomainEventsDispatcher : IDomainEventsDispatcher
 
     await Task.WhenAll(tasks);
   }
+  /// <summary>
+  /// Enqueues DomainNotifications saved in DbContext into Hangfire and then clears them
+  /// </summary>
   public void EnqueueDomainEventNotifications()
   {
-    if (_ordersContext.DomainEventNotifications == null) return;
-    foreach (var domainEventNotification in _ordersContext.DomainEventNotifications)
+    if (_dbContext.DomainEventNotifications == null) return;
+    foreach (var domainEventNotification in _dbContext.DomainEventNotifications)
     {
       //string type = domainEventNotification.GetType().FullName;
       //var l = domainEventNotification.DomainEvent;
@@ -77,6 +82,6 @@ public class DomainEventsDispatcher : IDomainEventsDispatcher
       var id = Hangfire.BackgroundJob.Enqueue<IDomainNotificationProcessor>(x => x.ProcessDomainEventNotificationAsync(domainEventNotification));
       Console.WriteLine($"job id is {id} enqueued into hangfire by thread {Thread.CurrentThread.ManagedThreadId} at {DateTime.UtcNow}");
     }
-    _ordersContext.ClearDomainEventNotifications();
+    _dbContext.ClearDomainEventNotifications();
   }
 }

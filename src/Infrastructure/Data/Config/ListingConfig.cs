@@ -8,6 +8,9 @@ public class ListingConfig : IEntityTypeConfiguration<Listing>
 {
   public void Configure(EntityTypeBuilder<Listing> builder)
   {
-    builder.OwnsOne(listing => listing.Address);
+    builder.OwnsOne(listing => listing.Address, ownedNavigationBuilder =>
+    {
+      ownedNavigationBuilder.ToJson();
+    });
   }
 }

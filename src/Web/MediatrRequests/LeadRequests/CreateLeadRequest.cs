@@ -39,6 +39,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, IEnum
         LeadFirstName = dto.LeadFirstName ?? "-",
         LeadLastName = dto.LeadLastName,
         PhoneNumber = dto.PhoneNumber,
+        EntryDate = DateTimeOffset.UtcNow,
         Areas = dto.Areas,
         leadSourceDetails = dto.leadSourceDetails,
         leadType = typeExists ? leadType : LeadType.Unknown,

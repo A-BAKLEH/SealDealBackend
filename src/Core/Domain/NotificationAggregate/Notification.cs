@@ -2,9 +2,14 @@
 using SharedKernel;
 
 namespace Core.Domain.NotificationAggregate;
+
+public enum APHandlingStatus{ Handled, Scheduled, Failed}
+
+public enum ProcessingStatus { NoNeed,Scheduled, Processing, Failed,Done }
 /// <summary>
 /// Represents an event that happened in the app, always related to a broker but can also relate to lead
 /// </summary>
+
 public class Notification : Entity<int>
 {
   public Guid BrokerId { get; set; }
@@ -33,6 +38,21 @@ public class Notification : Entity<int>
   /// </summary>
   public bool NotifyBroker { get; set; }
 
+  //Processing Part
+
+  public APHandlingStatus? APHandlingStatus { get; set; }
+
+  /// <summary>
+  /// When Outbox Handler has to process the Notif
+  /// </summary>
+  public ProcessingStatus ProcessingStatus { get; set; } = ProcessingStatus.NoNeed;
+
+  /// <summary>
+  /// JobId of Handler that will be ran by hangfire to handle this Notif
+  /// would require a db roundtrip so probably not necessary
+  /// </summary>
+  //public string? HangfireJobId { get; set; }
+
   /// <summary>
   /// JSON string:string format only for now. later can create cutsom serializer
   /// sms text for sms,
@@ -46,41 +66,48 @@ public class Notification : Entity<int>
 [Flags]
 public enum NotifType
 {
-  EmailEvent = 1,
-  SmsEvent = 2,
-  CallEvent = 4,
+  None = 0,
+  EmailEvent = 1 << 0,
+  SmsEvent = 1 << 1,
+  CallEvent = 1 << 2,
   /// <summary>
   /// for calls from lead that broker missed
   /// </summary>
-  CallMissed = 8,
+  CallMissed = 1 << 3,
   /// <summary>
   /// data: old status, new status, reason? or action planId who did it
   /// </summary>
-  LeadStatusChange = 16,
+  LeadStatusChange = 1 << 4,
   /// <summary>
   /// data: listing Id, name or Id of actor who did it
   /// </summary>
-  ListingAssigned = 32,
+  ListingAssigned = 1 << 5,
 
   /// <summary>
   /// listing Id, name or Id of actor who did it
   /// </summary>
-  ListingUnAssigned = 64,
+  ListingUnAssigned = 1 << 6,
   /// <summary>
   /// also means lead created
   /// data: who created Lead (automatic, broker name (your name), admin or specific admin name ),
   /// source name if came from website
   /// </summary>
-  LeadAssigned = 128,
+  LeadAssigned = 1 << 7,
   /// <summary>
   /// will only be possible after admin manually assigns lead to a broker
   /// data: lead Id
   /// </summary>
-  LeadUnAssigned = 256,
+  LeadUnAssigned = 1 << 8,
 
   /// <summary>
   /// data: triggger, response event id
   /// </summary>
-  ActionPlanStarted = 512,
-  ActionPlanFinished = 1024,
+  ActionPlanStarted = 1 << 9,
+  ActionPlanFinished = 1 << 10,
+
+  /// <summary>
+  /// data: UserId who createed it ,TempPassword, EmailSent?
+  /// </summary>
+  BrokerCreated = 1 << 11,
+  StripeSubsChanged = 1 << 12,
 }

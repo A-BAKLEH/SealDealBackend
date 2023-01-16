@@ -40,4 +40,5 @@ public class Broker : Entity<Guid>
   public List<Tag>? BrokerTags { get; set; }
   public List<ActionPlan>? ActionPlans { get; set; }
   public List<RecurrentTaskBase>? RecurrentTasks { get; set; }
+  public List<Notification>? Notifs { get; set; }
 }

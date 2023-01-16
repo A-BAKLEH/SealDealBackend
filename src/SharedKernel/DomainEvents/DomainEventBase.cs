@@ -3,7 +3,7 @@ public class DomainEventBase : IDomainEvent
 {
   public DomainEventBase()
   {
-    this.OccurredOn = DateTime.Now;
+    this.OccurredOn = DateTime.UtcNow;
   }
 
   public DateTime OccurredOn { get; }

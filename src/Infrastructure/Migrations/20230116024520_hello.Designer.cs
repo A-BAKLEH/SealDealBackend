@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230116024520_hello")]
+    partial class hello
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -693,6 +696,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset>("EventTimeStamp")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("HangfireJobId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool?>("IsRecevied")
                         .HasColumnType("bit");
 
@@ -709,15 +715,10 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("NotifyBroker")
                         .HasColumnType("bit");
 
-                    b.Property<int>("ProcessingStatus")
-                        .HasColumnType("int");
-
                     b.Property<bool>("ReadByBroker")
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BrokerId");
 
                     b.HasIndex("LeadId");
 
@@ -1189,12 +1190,6 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Domain.NotificationAggregate.Notification", b =>
                 {
-                    b.HasOne("Core.Domain.BrokerAggregate.Broker", null)
-                        .WithMany("Notifs")
-                        .HasForeignKey("BrokerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Core.Domain.LeadAggregate.Lead", "lead")
                         .WithMany("LeadHistoryEvents")
                         .HasForeignKey("LeadId");
@@ -1339,8 +1334,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("ConnectedEmails");
 
                     b.Navigation("Leads");
-
-                    b.Navigation("Notifs");
 
                     b.Navigation("RecurrentTasks");
 
