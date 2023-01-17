@@ -77,7 +77,7 @@ public class ListingController : BaseApiController
     var localDateOfListing = dto.DateOfListing;
     dto.DateOfListing = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, dto.DateOfListing);
 
-    var listing = await _listingQService.CreateListing(brokerTuple.Item1.AgencyId, dto);
+    var listing = await _listingQService.CreateListing(brokerTuple.Item1.AgencyId, dto,id);
     listing.DateOfListing = localDateOfListing;
     return Ok(listing);
   }
@@ -125,7 +125,7 @@ public class ListingController : BaseApiController
       return Forbid();
     }
 
-    await _listingQService.AssignListingToBroker(listingid, brokerId);
+    await _listingQService.AssignListingToBroker(listingid, brokerId, id);
     return Ok();
   }
   [HttpDelete("DetachFromBroker/{listingid}/{brokerid}")]
@@ -139,7 +139,7 @@ public class ListingController : BaseApiController
       return Unauthorized();
     }
 
-    await _listingQService.DetachBrokerFromListing(listingid, brokerId);
+    await _listingQService.DetachBrokerFromListing(listingid, brokerId, id);
 
     return Ok();
   }

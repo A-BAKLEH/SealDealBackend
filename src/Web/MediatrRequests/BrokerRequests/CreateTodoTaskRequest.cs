@@ -3,6 +3,7 @@ using Core.DTOs.ProcessingDTOs;
 using Infrastructure.Data;
 using Web.ApiModels.RequestDTOs;
 using MediatR;
+using Web.Processing.Various;
 
 namespace Web.MediatrRequests.BrokerRequests;
 
@@ -21,16 +22,27 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
 
   public async Task<ToDoTaskWithLeadName> Handle(CreateTodoTaskRequest request, CancellationToken cancellationToken)
   {
+    //TODO make sure reminders always happen
+    using var transaction = _appDbContext.Database.BeginTransaction();
+
+    var dueTime = request.createToDoTaskDTO.dueTime;
     var todo = new ToDoTask
     {
       BrokerId = request.BrokerID,
       LeadId = request.createToDoTaskDTO.leadId,
-      TaskDueDate = request.createToDoTaskDTO.dueTime,
+      TaskDueDate = dueTime,
       Description = request.createToDoTaskDTO.Description,
       TaskName = request.createToDoTaskDTO.TaskName,
     };
     _appDbContext.ToDoTasks.Add(todo);
     await _appDbContext.SaveChangesAsync();
+
+    var firstReminder = dueTime - TimeSpan.FromMinutes(16);
+    var lastReminder = dueTime - TimeSpan.FromMinutes(6);
+    var HangfireJobId1 = Hangfire.BackgroundJob.Schedule<HandleTodo>(h => h.Handle(todo.Id), firstReminder);
+    var HangfireJobId2 = Hangfire.BackgroundJob.Schedule<HandleTodo>(h => h.Handle(todo.Id), lastReminder);
+
+    transaction.Commit();
 
     var reponse = new ToDoTaskWithLeadName
     { Description = todo.Description,
@@ -40,8 +52,8 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
     };
     if (todo.LeadId != null)
     {
-      //TODO select just first and last names
-      var leadSelected = _appDbContext.Leads.First(l => l.Id == todo.LeadId);
+      //TODO maybe add Lead name to Cache
+      var leadSelected = _appDbContext.Leads.Select(l => new {l.Id, l.LeadFirstName, l.LeadLastName}).First(l => l.Id == todo.LeadId);
       reponse.firstName = leadSelected.LeadFirstName;
       reponse.lastName = leadSelected.LeadLastName;
     }

@@ -128,9 +128,7 @@ public class TestController : ControllerBase
   [HttpGet("test-new-notifsSytem")]
   public async Task<IActionResult> NewNotifs()
   {
-    //processing event
 
-    //creating Notif in Db
     var notif = new Notification
     {
       APHandlingStatus = APHandlingStatus.Scheduled,
@@ -140,11 +138,24 @@ public class TestController : ControllerBase
       NotifyBroker = false,
       ReadByBroker = false,
     };
+    notif.NotifProps.Add("lolkey", "lolvalue");
     _appDbContext.Notifications.Add(notif);
     _appDbContext.SaveChanges();
     var brokerCreated = new BrokerCreated {NotifId = notif.Id };
     var id = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated));
 
+    return Ok();
+  }
+
+  [HttpGet("test-modifyJSON/{id}")]
+  public async Task<IActionResult> testwNotifs(int id)
+  {
+
+    var notif = _appDbContext.Notifications.FirstOrDefault(x => x.Id == id);
+    notif.NotifProps["lolkey"] = "changedValue";
+
+    _appDbContext.Notifications.Update(notif);
+    _appDbContext.SaveChanges();
     return Ok();
   }
 

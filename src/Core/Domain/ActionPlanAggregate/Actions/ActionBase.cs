@@ -1,5 +1,4 @@
-﻿
-using SharedKernel;
+﻿using SharedKernel;
 
 namespace Core.Domain.ActionPlanAggregate.Actions;
 public abstract class ActionBase: Entity<int>

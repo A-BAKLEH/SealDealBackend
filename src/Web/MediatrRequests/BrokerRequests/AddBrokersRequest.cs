@@ -9,6 +9,7 @@ using MediatR;
 using Web.Outbox.Config;
 using Web.Outbox;
 using Humanizer;
+using Web.Constants;
 
 namespace Web.MediatrRequests.BrokerRequests;
 
@@ -65,8 +66,8 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
               ProcessingStatus = ProcessingStatus.Scheduled,
               ReadByBroker = true,
             };
-            notif.NotifProps.Add("TempPassword", res.Item2);
-            notif.NotifProps.Add("EmailSent", "0");
+            notif.NotifProps.Add(NotificationJSONKeys.TempPasswd, res.Item2);
+            notif.NotifProps.Add(NotificationJSONKeys.EmailSent, "0");
             broker.Notifs = new List<Notification> { notif };
             _logger.LogInformation("[{Tag}]Created B2C User with UserId {UserId} and LoginEmail {LoginEmail} ", TagConstants.AddBrokersRequest, res.Item1, broker.LoginEmail);
           }
@@ -87,7 +88,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
       ProcessingStatus = ProcessingStatus.Scheduled,
       ReadByBroker = true,
     };
-    StripeNotif.NotifProps.Add("AdminEmailSent", "0");
+    StripeNotif.NotifProps.Add(NotificationJSONKeys.EmailSent, "0");
     request.admin.Notifs = new List<Notification> { StripeNotif };
 
     await Task.WhenAll(tasks);
@@ -95,8 +96,6 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
     if (NewBrokersCount > FreeBrokersCount)
     {
       FinalQuantity = await _stripeSubscriptionService.AddSubscriptionQuantityAsync(agency.StripeSubscriptionId, NewBrokersCount - FreeBrokersCount, FinalQuantity);
-      //TODO send email to admin to confirm subs change
-      //Hangfire.Enqueue.EmailSender
       _logger.LogInformation("[{Tag}] Added {NewBrokersCount} brokers to Agency with AgencyId {AgencyId} and SubscriptionId {SubscriptionId}", TagConstants.AddBrokersRequest, NewBrokersCount, agency.Id, agency.StripeSubscriptionId);
     }
 
@@ -113,14 +112,14 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
       try
       {
         var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated));
-        OutboxMemCache.ScheduledDictionary.Add(notifId,HangfireJobId);
+        OutboxMemCache.ScheduledDict.Add(notifId,HangfireJobId);
       }
       catch(Exception ex)
       {
         //TODO refactor log message
         _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for BrokerCreated Event for notif" +
           "with {NotifId} with error {Error}",notifId,ex.Message);
-        OutboxMemCache.ErrorDictionary.Add(notifId, brokerCreated);
+        OutboxMemCache.SchedulingErrorDict.Add(notifId, brokerCreated);
       }
     }
     //Send email to admin to confirm Subscription Change
@@ -129,16 +128,15 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
     try
     {
       var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(stripeSubsChange));
-      OutboxMemCache.ScheduledDictionary.Add(StripeNotifId, HangfireJobId);
+      OutboxMemCache.ScheduledDict.Add(StripeNotifId, HangfireJobId);
     }
     catch (Exception ex)
     {
       //TODO refactor log message
       _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for BrokerCreated Event for notif" +
         "with {NotifId} with error {Error}", StripeNotifId,ex.Message);
-      OutboxMemCache.ErrorDictionary.Add(StripeNotifId, stripeSubsChange);
+      OutboxMemCache.SchedulingErrorDict.Add(StripeNotifId, stripeSubsChange);
     }
-
 
     return failedBrokers;
   }

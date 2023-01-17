@@ -3,18 +3,18 @@
 public static class OutboxMemCache
 {
   /// <summary>
+  /// for events that could not be scheduled
   /// notifId, SceduledEvent or Event supposed to be Scheduled
-  /// Add EventBase to It when there is an error with the scheduling Of the HangfireJob that will process the
-  /// notif with notifId
-  /// When Handled IT HAS TO BE DELETED
+  /// When scheduled successfully IT HAS TO BE DELETED
   /// </summary>
-  public static Dictionary<int, EventBase> ErrorDictionary = new Dictionary<int, EventBase>();
+  public static Dictionary<int, EventBase> SchedulingErrorDict = new Dictionary<int, EventBase>();
 
   /// <summary>
-  /// notifId, HangfireJobId that will publish the Event
+  /// notifId, HangfireJobId
   /// For now add scheduled JobID to this dictionary, delete it once processed inside the EventBase
+  /// 
   /// u can probably later add a boolean that acts as a lock for processing the notif in case multiple 
   /// server threads try to process the same job
   /// </summary>
-  public static Dictionary<int, string> ScheduledDictionary = new Dictionary<int, string>();
+  public static Dictionary<int, string> ScheduledDict = new Dictionary<int, string>();
 }

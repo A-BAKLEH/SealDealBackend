@@ -5,7 +5,7 @@ namespace Core.Domain.NotificationAggregate;
 
 public enum APHandlingStatus{ Handled, Scheduled, Failed}
 
-public enum ProcessingStatus { NoNeed,Scheduled, Processing, Failed,Done }
+public enum ProcessingStatus { NoNeed,Scheduled, Failed,Done }
 /// <summary>
 /// Represents an event that happened in the app, always related to a broker but can also relate to lead
 /// </summary>
@@ -21,6 +21,11 @@ public class Notification : Entity<int>
   /// </summary>
   public DateTimeOffset EventTimeStamp { get; set; }
   public NotifType NotifType { get; set; }
+
+  /// <summary>
+  /// true if its an interaction that was initiated by Lead, false if broker initiated it, null if not an interaction
+  /// </summary>
+  public bool? IsRecevied { get; set; }
   /// <summary>
   /// For in-app events: straightforward
   /// For lead interactions: Read either in SealDeal or in email client / mobile Sms app , call Answered 
@@ -29,29 +34,28 @@ public class Notification : Entity<int>
   /// </summary>
   public bool ReadByBroker { get; set; }
 
-
-  public bool? IsRecevied { get; set; }
-
   /// <summary>
   /// set to true to keep reminding el hmar to check it out until ReadByBroker is true
   /// true if notifType: sms received, 
   /// </summary>
   public bool NotifyBroker { get; set; }
 
-  //Processing Part
+  //Processing Part--------------------------
 
+  /// <summary>
+  /// Delete if true after its processed
+  /// </summary>
+  public bool DeleteAfterProcessing { get; set; } = false;
+
+  /// <summary>
+  /// when has to be handled by an action plan
+  /// </summary>
   public APHandlingStatus? APHandlingStatus { get; set; }
 
   /// <summary>
   /// When Outbox Handler has to process the Notif
   /// </summary>
   public ProcessingStatus ProcessingStatus { get; set; } = ProcessingStatus.NoNeed;
-
-  /// <summary>
-  /// JobId of Handler that will be ran by hangfire to handle this Notif
-  /// would require a db roundtrip so probably not necessary
-  /// </summary>
-  //public string? HangfireJobId { get; set; }
 
   /// <summary>
   /// JSON string:string format only for now. later can create cutsom serializer

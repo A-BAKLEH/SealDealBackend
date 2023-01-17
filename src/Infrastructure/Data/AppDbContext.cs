@@ -59,6 +59,7 @@ public class AppDbContext : DbContext
   public DbSet<RecurrentTaskBase> RecurrentTasks => Set<RecurrentTaskBase>();
   public DbSet<FetchEmailsTask> FetchEmailsTasks => Set<FetchEmailsTask>();
   public DbSet<FetchSmsTask> FetchSmsTasks => Set<FetchSmsTask>();
+  public DbSet<OutboxDictsTask> OutboxDictsTasks=> Set<OutboxDictsTask>();
 
   public DbSet<ActionPlan> ActionPlans => Set<ActionPlan>();
   public DbSet<ActionPlanAssociation> ActionPlanAssociations => Set<ActionPlanAssociation>();
