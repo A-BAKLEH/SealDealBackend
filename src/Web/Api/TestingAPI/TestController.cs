@@ -76,10 +76,12 @@ public class TestController : ControllerBase
     _appDbContext.SaveChanges();
     return Ok();
   }
-  [HttpPost("test-cache")]
+  [HttpPost("test-negative")]
   public async Task<IActionResult> cacheTest()
   {
-    await _distributedCache.SetCacheAsync<string>("testkey1", "testvalue1testvalue1");
+
+
+   // await _distributedCache.SetCacheAsync<string>("testkey1", "testvalue1testvalue1");
     return Ok();
   }
 

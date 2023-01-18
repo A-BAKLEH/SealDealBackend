@@ -33,7 +33,7 @@ public class B2CGraphService : IB2CGraphService
 
   public async Task<Tuple<string, string>> createB2CUser(Broker broker)
   {
-
+    //TODO make password random
     var password = "Bashar9!";
 
     var user = new User

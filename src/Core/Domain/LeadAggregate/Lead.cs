@@ -50,7 +50,7 @@ public class Lead : Entity<int>
 }
 public enum LeadSource
 {
-  manualBroker, emailAuto,SmsAuto, adminAssign, unknown
+  manualBroker, emailAuto,SmsAuto, admin,unknown
 }
 
 public enum LeadType

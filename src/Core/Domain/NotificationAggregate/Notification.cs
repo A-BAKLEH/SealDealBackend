@@ -91,27 +91,33 @@ public enum NotifType
   /// listing Id, name or Id of actor who did it
   /// </summary>
   ListingUnAssigned = 1 << 6,
+
   /// <summary>
-  /// also means lead created
-  /// data: who created Lead (automatic, broker name (your name), admin or specific admin name ),
-  /// source name if came from website
+  /// whenever Lead enters the system no matter how. BrokerId is the agencyAdminId.
+  /// data: 
   /// </summary>
-  LeadAssigned = 1 << 7,
+  LeadCreated = 1 << 7,
+
+  /// <summary>
+  /// data: whenever an association between lead and broker is created, BrokerId is the Id of Broker
+  /// It is assigned to.
+  /// </summary>
+  LeadAssigned = 1 << 8,
+
   /// <summary>
   /// will only be possible after admin manually assigns lead to a broker
-  /// data: lead Id
   /// </summary>
-  LeadUnAssigned = 1 << 8,
+  LeadUnAssigned = 1 << 9,
 
   /// <summary>
   /// data: triggger, response event id
   /// </summary>
-  ActionPlanStarted = 1 << 9,
-  ActionPlanFinished = 1 << 10,
+  ActionPlanStarted = 1 << 10,
+  ActionPlanFinished = 1 << 11,
 
   /// <summary>
   /// data: UserId who createed it ,TempPassword, EmailSent?
   /// </summary>
-  BrokerCreated = 1 << 11,
-  StripeSubsChanged = 1 << 12,
+  BrokerCreated = 1 << 12,
+  StripeSubsChanged = 1 << 13,
 }

@@ -37,8 +37,7 @@ public class LeadController : BaseApiController
     var broker = brokerTuple.Item1;
     var leads = await _mediator.Send(new CreateLeadRequest
     {
-      AgencyId = broker.AgencyId,
-      BrokerId = broker.Id,
+      BrokerWhoRequested = brokerTuple.Item1,
       createLeadDTOs = createLeadDTO
     });
 
