@@ -4,9 +4,10 @@ using Core.DTOs;
 using Infrastructure.Data;
 using Web.ControllerServices;
 using MediatR;
+using Web.ApiModels.APIResponses.Broker;
 
 namespace Web.MediatrRequests.SignupRequests;
-public class SignupRequest : IRequest<AccountStatusDTO>
+public class SignupRequest : IRequest<SignedInBrokerDTO>
 {
   public string AgencyName { get; set; }
   public string givenName { get; set; }
@@ -16,7 +17,7 @@ public class SignupRequest : IRequest<AccountStatusDTO>
   public Guid b2cId { get; set; }
 }
 
-public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatusDTO>
+public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBrokerDTO>
 {
   private readonly AppDbContext _appDbContext;
   private readonly AuthorizationService _authorizeService;
@@ -37,16 +38,16 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
   /// <param name="request"></param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  public async Task<AccountStatusDTO> Handle(SignupRequest request, CancellationToken cancellationToken)
+  public async Task<SignedInBrokerDTO> Handle(SignupRequest request, CancellationToken cancellationToken)
   {
     if (_appDbContext.Brokers.FirstOrDefault(b => b.Id == request.b2cId) != null)
     {
       //log warning 
       //throw new InconsistentStateException("SignupRequest-UserAlreadyInDatabase","broker with B2C ID already exists in Brokers table", request.b2cId.ToString());
       _logger.LogWarning("broker with B2C ID already exists in Brokers table");
-      var accountStatus = await this._authorizeService.VerifyAccountAsync(request.b2cId, request.TimeZoneId);
+      var accountWithStatus = await this._authorizeService.VerifyAccountAsync(request.b2cId, request.TimeZoneId);
 
-      return accountStatus;
+      return accountWithStatus;
     }
     var broker = new Broker()
     {
@@ -69,12 +70,23 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, AccountStatus
     };
     _appDbContext.Add(agency);
     await _appDbContext.SaveChangesAsync();
-    return new AccountStatusDTO
+
+    var response = new SignedInBrokerDTO();
+    response.AgencyId = broker.AgencyId;
+    response.BrokerId = broker.Id;
+    response.Created = broker.Created;
+    response.FirstName = broker.FirstName;
+    response.isAdmin = broker.isAdmin;
+    response.LastName = broker.LastName;
+    response.LoginEmail = broker.LoginEmail;
+    response.PhoneNumber = broker.PhoneNumber;
+    response.AccountStatus = new AccountStatusDTO
     {
       userAccountStatus = "inactive",
       subscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString(),
       internalMessage = "justSignedUp"
     };
+    return response;
   }
 }
 

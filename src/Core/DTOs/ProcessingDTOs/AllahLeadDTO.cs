@@ -1,5 +1,4 @@
 ﻿using Core.Domain.LeadAggregate;
-using Core.Domain.NotificationAggregate;
 
 namespace Core.DTOs.ProcessingDTOs;
 public class AllahLeadDTO
@@ -12,10 +11,8 @@ public class AllahLeadDTO
   public DateTime EntryDate { get; set; }
   public LeadSource leadSource { get; set;  }
   public string leadType { get; set; }
-  public string? leadSourceDetails { get; set;}
+  public Dictionary<string,string> leadSourceDetails { get; set;}
   public string LeadStatus { get; set; }
-  //public IEnumerable<AreaDTO>? AreasOfInterest { get; set; }
-  //public IEnumerable<LeadListingDTO>? OriginalListing { get; set; }
   public string? Areas { get; set; }
   public Note? Note { get; set; }
   public IEnumerable<TagDTO>? Tags { get; set; }

@@ -26,16 +26,23 @@ public class Lead : Entity<int>
   public LeadSource source { get; set; }
   public LeadType leadType { get; set; }
   /// <summary>
-  /// name of website for example and id of the email it was parsed from
+  /// siteName, adminCreaterId (when assigne to broker by admin), emailId ()
   /// </summary>
-  public string? leadSourceDetails { get; set; }
+  public Dictionary<string, string> SourceDetails { get; set; } = new();
   public LeadStatus LeadStatus { get; set; } = LeadStatus.New;
+  /// <summary>
+  /// true if created by admin manually OR automated, then assigned to a broker, then Id of admin is in source details
+  /// null if lead created and assigned to admin by himself or if just created
+  /// false if lead created by broker and assigned to himself
+  /// </summary>
+  //public bool? AssignedByAdmin { get; set; }
   /// <summary>
   /// just a string for now, dont use areasOfInterest
   /// </summary>
   public string? Areas { get;set; }
   public Broker? Broker { get; set; }
   public Guid? BrokerId { get; set; }
+
   public List<Area>? AreasOfInterest { get; set; }
   /// <summary>
   /// lisitng that brought the lead
@@ -50,7 +57,7 @@ public class Lead : Entity<int>
 }
 public enum LeadSource
 {
-  manualBroker, emailAuto,SmsAuto, admin,unknown
+  manual, emailAuto,SmsAuto,unknown
 }
 
 public enum LeadType

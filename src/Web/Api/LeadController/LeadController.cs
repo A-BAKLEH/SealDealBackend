@@ -9,7 +9,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-
 namespace Web.Api.LeadController;
 
 [Authorize]
@@ -24,8 +23,33 @@ public class LeadController : BaseApiController
     _leadQService = leadQService;
   }
 
+  //[HttpPost]
+  //public async Task<IActionResult> CreateLead([FromBody] IEnumerable<CreateLeadDTO> createLeadDTO)
+  //{
+  //  var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+  //  var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+  //  if (!brokerTuple.Item2)
+  //  {
+  //    _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
+  //    return Forbid();
+  //  }
+  //  var broker = brokerTuple.Item1;
+  //  var leads = await _mediator.Send(new CreateLeadRequest
+  //  {
+  //    BrokerWhoRequested = brokerTuple.Item1,
+  //    createLeadDTOs = createLeadDTO
+  //  });
+
+  //  var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+  //  foreach (var lead in leads)
+  //  {
+  //    lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
+  //  }
+  //  return Ok(leads);
+  //}
+
   [HttpPost]
-  public async Task<IActionResult> CreateLead([FromBody] IEnumerable<CreateLeadDTO> createLeadDTO)
+  public async Task<IActionResult> CreateLead([FromBody] CreateLeadDTO createLeadDTO)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -34,19 +58,26 @@ public class LeadController : BaseApiController
       _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
       return Forbid();
     }
+    // user needs to be admin if he is assigning a lead to someone other than himself
+    if (!createLeadDTO.AssignToSelf && createLeadDTO.AssignToBrokerId != id)
+    {
+      if (!brokerTuple.Item3)
+      {
+        _logger.LogWarning("[{Tag}] non-admin User with UserId {UserId} tried to assign lead", TagConstants.Unauthorized, id);
+        return Forbid();
+      }
+    }
     var broker = brokerTuple.Item1;
-    var leads = await _mediator.Send(new CreateLeadRequest
+    var lead = await _mediator.Send(new CreateLeadRequest
     {
       BrokerWhoRequested = brokerTuple.Item1,
-      createLeadDTOs = createLeadDTO
+      createLeadDTO = createLeadDTO
     });
 
     var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
-    foreach (var lead in leads)
-    {
-      lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
-    }
-    return Ok(leads);
+    lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
+
+    return Ok(lead);
   }
 
   /// <summary>
@@ -67,12 +98,13 @@ public class LeadController : BaseApiController
     }
     var broker = brokerTuple.Item1;
     var lead = await _mediator.Send(new GetAllahLeadRequest
-    { AgencyId = brokerTuple.Item1.AgencyId,
+    {
+      AgencyId = brokerTuple.Item1.AgencyId,
       BrokerId = brokerid,
       leadId = id,
-      includeNotifs = includeEvents == 1 ? true :  false
+      includeNotifs = includeEvents == 1 ? true : false
     });
-    if(lead == null) return NotFound();
+    if (lead == null) return NotFound();
 
     var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
@@ -97,7 +129,7 @@ public class LeadController : BaseApiController
     }
 
     var notifs = await _mediator.Send(new GetLeadEventsRequest
-    { 
+    {
       BrokerId = brokerid,
       leadId = leadid,
       lastNotifID = lastid
@@ -123,14 +155,14 @@ public class LeadController : BaseApiController
     }
 
     var leads = await _leadQService.GetLeadsAsync(brokerid);
-    if(leads == null || !leads.Any()) return NotFound();
+    if (leads == null || !leads.Any()) return NotFound();
 
     var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     foreach (var lead in leads)
     {
       lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
     }
-    
+
     return Ok(leads);
   }
 

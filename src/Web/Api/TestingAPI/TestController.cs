@@ -25,6 +25,7 @@ using Infrastructure.Dispatching;
 using SharedKernel.DomainNotifications;
 using Web.Outbox.Config;
 using Web.Outbox;
+using Infrastructure.Migrations;
 
 namespace Web.Api.TestingAPI;
 
@@ -76,12 +77,54 @@ public class TestController : ControllerBase
     _appDbContext.SaveChanges();
     return Ok();
   }
-  [HttpPost("test-negative")]
+  [HttpPost("test-LEadJSON")]
   public async Task<IActionResult> cacheTest()
   {
 
+    //var listing = new Listing { AgencyId = 1, AssignedBrokersCount = 0,
+    //  DateOfListing = DateTime.UtcNow,
+    //  Price = 1000,
+    //  Status = ListingStatus.Listed,
+    //  Address = new Address {StreetAddress = "611 rue lol",
+    //    City = "laval",
+    //    Country = "ca",
+    //    PostalCode = "234234",
+    //  ProvinceState = "quebec"}
+    //};
+    //_appDbContext.Listings.Add(listing);
+    //_appDbContext.SaveChanges();
+    //var listing = _appDbContext.Listings.FirstOrDefault(a => a.Id == 1);
 
-   // await _distributedCache.SetCacheAsync<string>("testkey1", "testvalue1testvalue1");
+    //var listings = _appDbContext.Listings
+    //  .OrderByDescending(l => l.DateOfListing)
+    //  .Where(l => l.AgencyId == 1)
+    //  .Select( l => new AgencyListingDTO
+    //  {
+    //    Address = l.Address
+    //  }).AsNoTracking().ToList();
+    //var listing = _appDbContext.Listings.Where(l => l.Id == 1)
+    //  .Include(l => l.BrokersAssigned)
+    //  .FirstOrDefault();
+    //BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow, BrokerId = Guid.Parse("00000000-0000-0000-0000-000000000000") };
+    //listing.BrokersAssigned = new List<BrokerListingAssignment> { brokerlisting };
+    //_appDbContext.SaveChanges();
+
+    var listings = await _appDbContext.BrokerListingAssignments
+      .Where(b => b.BrokerId == Guid.Parse("00000000-0000-0000-0000-000000000000"))
+      .OrderByDescending(a => a.assignmentDate)
+      .Select(l => new BrokerListingDTO
+      {
+        Address = l.Listing.Address,
+        DateOfListing = l.Listing.DateOfListing.UtcDateTime,
+        ListingURL = l.Listing.URL,
+        Price = l.Listing.Price,
+        Status = l.Listing.Status.ToString(),
+        DateAssignedToMe = l.assignmentDate,
+        AssignedBrokersCount = l.Listing.BrokersAssigned.Count
+      }).AsNoTracking().ToListAsync();
+
+
+
     return Ok();
   }
 
@@ -96,6 +139,15 @@ public class TestController : ControllerBase
     /*List<Agency> lis = new();
     lis.Add(new Agency {Id = 1 });*/
     //return BadRequest(lis);
+  }
+
+
+  [HttpGet("test-jsonsss")]
+  public async Task<IActionResult> testjsonnn()
+  {
+    var lead = new Lead {};
+    lead.SourceDetails["wtf"] = "lol";
+    return Ok(lead);
   }
 
   [HttpGet("create-data")]

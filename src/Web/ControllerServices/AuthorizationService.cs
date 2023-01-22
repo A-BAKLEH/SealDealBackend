@@ -5,6 +5,7 @@ using Core.DTOs;
 using Infrastructure.Data;
 using SharedKernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Web.ApiModels.APIResponses.Broker;
 
 namespace Web.ControllerServices;
 
@@ -40,35 +41,43 @@ public class AuthorizationService
   /// <param name="createAgencyIfNotExists"></param>
   /// <returns></returns>
   /// <exception cref="InconsistentStateException"></exception>
-  public async Task<AccountStatusDTO> VerifyAccountAsync(Guid id, string? TimeZoneId = null,bool createAgencyIfNotExists = false)
+  public async Task<SignedInBrokerDTO> VerifyAccountAsync(Guid id, string? TimeZoneId = null,bool createAgencyIfNotExists = false)
   {
-    var response = new AccountStatusDTO();
+    var response = new SignedInBrokerDTO();
     var broker = await _appDbContext.Brokers.Include(b => b.Agency).FirstOrDefaultAsync(b => b.Id == id);
     if (broker == null)
     {
       throw new InconsistentStateException("VerifyAccount", "Broker not found in DB", id.ToString());
     }
+    response.AgencyId = broker.AgencyId;
+    response.BrokerId = id;
+    response.Created = broker.Created;
+    response.FirstName = broker.FirstName;
+    response.isAdmin = broker.isAdmin;
+    response.LastName = broker.LastName;
+    response.LoginEmail = broker.LoginEmail;
+    response.PhoneNumber = broker.PhoneNumber;
 
     if(broker.TimeZoneId != TimeZoneId)
     {
-      response.TimeZoneChangeDetected= true;
-      response.MainTimeZone = broker.TimeZoneId;
-      response.DetectedTimeZone = TimeZoneId;
+      response.AccountStatus.TimeZoneChangeDetected= true;
+      response.AccountStatus.MainTimeZone = broker.TimeZoneId;
+      response.AccountStatus.DetectedTimeZone = TimeZoneId;
     }
       //TODO: maybe handle if account is active but subscription is not?
     if (broker.AccountActive)
     {
-      response.userAccountStatus = "active";
-      response.subscriptionStatus = broker.Agency.StripeSubscriptionStatus.ToString();
-      response.internalMessage = "ok";
+      response.AccountStatus.userAccountStatus = "active";
+      response.AccountStatus.subscriptionStatus = broker.Agency.StripeSubscriptionStatus.ToString();
+      response.AccountStatus.internalMessage = "ok";
       return response;
     }
     //account not active
     else if(broker.Agency.StripeSubscriptionStatus == StripeSubscriptionStatus.NoStripeSubscription && broker.isAdmin)
     {
-      response.userAccountStatus = "inactive";
-      response.subscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
-      response.internalMessage = "ok";
+      response.AccountStatus.userAccountStatus = "inactive";
+      response.AccountStatus.subscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString();
+      response.AccountStatus.internalMessage = "ok";
       return response;
     }
     else

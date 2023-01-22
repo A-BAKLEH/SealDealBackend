@@ -24,7 +24,7 @@ public class LeadQService
         LeadFirstName = l.LeadFirstName,
         LeadId = l.Id,
         LeadLastName = l.LeadLastName,
-        leadSourceDetails = l.leadSourceDetails,
+        leadSourceDetails = l.SourceDetails,
         LeadStatus = l.LeadStatus.ToString(),
         leadType = l.leadType.ToString(),
         PhoneNumber = l.PhoneNumber,

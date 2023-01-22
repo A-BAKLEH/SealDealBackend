@@ -40,6 +40,8 @@ public class Notification : Entity<int>
   /// </summary>
   public bool NotifyBroker { get; set; }
 
+  //public bool IsBackendEvent { get; set; }
+
   //Processing Part--------------------------
 
   /// <summary>
@@ -93,14 +95,15 @@ public enum NotifType
   ListingUnAssigned = 1 << 6,
 
   /// <summary>
-  /// whenever Lead enters the system no matter how. BrokerId is the agencyAdminId.
+  /// whenever Lead enters the system no matter how. BrokerId is the Id of person who created the Lead,.
   /// data: 
   /// </summary>
   LeadCreated = 1 << 7,
 
   /// <summary>
-  /// data: whenever an association between lead and broker is created, BrokerId is the Id of Broker
+  /// whenever an association between lead and broker is created, BrokerId is the Id of Broker
   /// It is assigned to.
+  /// data: UserId who did it, message/comment from person who assigned it if not broker to himself.
   /// </summary>
   LeadAssigned = 1 << 8,
 

@@ -10,7 +10,7 @@ public class LeadForListDTO
   public DateTime EntryDate { get; set; }
   public string source { get; set; }
   public string leadType { get; set; }
-  public string? leadSourceDetails { get; set; }
+  public Dictionary<string, string> leadSourceDetails { get; set; }
   public string LeadStatus { get; set; }
   public NoteDTO? Note { get; set; }
   public IEnumerable<TagDTO>? Tags { get; set; }
