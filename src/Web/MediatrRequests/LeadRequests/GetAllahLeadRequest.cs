@@ -43,7 +43,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
           Id = ass.Id,
           APID = (int)ass.ActionPlanId,
           APStatus = ass.ThisActionPlanStatus,
-          APName = ass.ActionPlan.Title
+          APName = ass.ActionPlan.Name
         }),
         //ThisAgencyListingsOfInterest = l.ListingsOfInterest.Select(listing => new LeadListingDTO
         //{

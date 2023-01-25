@@ -22,6 +22,12 @@ public class Lead : Entity<int>
   public string? PhoneNumber { get; set; }
   public string? Email { get; set; }
   public int? Budget { get; set; }
+
+  /// <summary>
+  /// notifs that action plans running on this lead should handle
+  /// </summary>
+  public NotifType NotifsForActionPlans { get; set; } = NotifType.None;
+
   public DateTimeOffset EntryDate { get; set; }
   public LeadSource source { get; set; }
   public LeadType leadType { get; set; }

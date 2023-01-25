@@ -53,8 +53,8 @@ public class AppDbContext : DbContext
 
   //Action Plans  + Notifications---------------
   public DbSet<ActionBase> Actions => Set<ActionBase>();
-  public DbSet<ChangeLeadStatusAction> ChangeLeadStatusActions => Set<ChangeLeadStatusAction>();
-  public DbSet<SendEmailAction> SendEmailActions => Set<SendEmailAction>();
+  public DbSet<ChangeLeadStatus> ChangeLeadStatusActions => Set<ChangeLeadStatus>();
+  public DbSet<SendEmail> SendEmailActions => Set<SendEmail>();
   
   public DbSet<RecurrentTaskBase> RecurrentTasks => Set<RecurrentTaskBase>();
   public DbSet<FetchEmailsTask> FetchEmailsTasks => Set<FetchEmailsTask>();

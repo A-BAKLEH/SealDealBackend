@@ -29,9 +29,11 @@ public class Broker : Entity<Guid>
   public string LoginEmail { get; set; }
   public DateTimeOffset Created { get; set;} = DateTimeOffset.Now;
   /// <summary>
-  /// Notif types that can act as trigger/stoppage/etc in Broker's active Action Plans
+  /// Notif types that can act as triggers to Broker's active Action Plans OR for action plans
+  /// that listen to notifs that ARE NOT RELATED DIRECTLY TO LEADS
+  /// For lead-related notifs, there is a NotifType field in the lead entity
   /// </summary>
-  public NotifType? NotifsForActionPlans { get; set; }
+  public NotifType NotifsForActionPlans { get; set; } = NotifType.None;
   public List<ConnectedEmail>? ConnectedEmails { get; set; }
   public List<Lead>? Leads { get; set; }
   public List<BrokerListingAssignment>? AssignedListings { get; set; }

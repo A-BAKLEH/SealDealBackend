@@ -3,6 +3,7 @@
 namespace Core.Domain.ActionPlanAggregate.Actions;
 public abstract class ActionBase: Entity<int>
 {
+
   public int ActionPlanId { get; set; }
   public ActionPlan ActionPlan { get; set; }
   /// <summary>
@@ -21,7 +22,7 @@ public abstract class ActionBase: Entity<int>
 
   /// <summary>
   /// delay before executing next action
-  /// format: Days:hours:minutes 
+  /// format: Days:hours:minutes
   /// integer values only
   /// </summary>
   public string? NextActionDelay { get; set; }
