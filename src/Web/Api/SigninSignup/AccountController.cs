@@ -26,13 +26,11 @@ public class AccountController : BaseApiController
     _brokerQService = brokerQService;
   }
 
-  [HttpPost("Verify")]
-  public async Task<IActionResult> VerifyAccount([FromBody] SigninDTO  dto)
+  [HttpGet("Verify")]
+  public async Task<IActionResult> VerifyAccount()
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-
-    var timeZoneId = TZConvert.GetTimeZoneInfo(dto.IanaTimeZone).Id;
-    var accountStatus = await this._authorizeService.VerifyAccountAsync(id,timeZoneId);
+    var accountStatus = await this._authorizeService.VerifyAccountAsync(id);
     
     return Ok(accountStatus);
   }
