@@ -4,7 +4,7 @@ namespace Web.ApiModels.APIResponses.Broker;
 
 public class SignedInBrokerDTO
 {
-  public AccountStatusDTO AccountStatus { get; set; }
+  public AccountStatusDTO AccountStatus { get; set; } = new();
 
   public int AgencyId { get; set; }
   public Guid BrokerId { get; set;}

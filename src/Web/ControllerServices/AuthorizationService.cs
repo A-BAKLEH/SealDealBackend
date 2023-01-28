@@ -58,7 +58,7 @@ public class AuthorizationService
     response.LoginEmail = broker.LoginEmail;
     response.PhoneNumber = broker.PhoneNumber;
 
-    if(broker.TimeZoneId != TimeZoneId)
+    if (TimeZoneId != null && broker.TimeZoneId != TimeZoneId)
     {
       response.AccountStatus.TimeZoneChangeDetected= true;
       response.AccountStatus.MainTimeZone = broker.TimeZoneId;
