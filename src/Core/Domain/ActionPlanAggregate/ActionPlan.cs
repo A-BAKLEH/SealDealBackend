@@ -7,10 +7,12 @@ using SharedKernel;
 namespace Core.Domain.ActionPlanAggregate;
 public class ActionPlan : Entity<int>
 {
-  //Triggers:  
+  //Automatic triggers , if manual triggering only then NotifType.None. All action plans
+  //with automatic triggers can be started manually too for a given lead
   public NotifType Triggers { get; set; }
   /// <summary>
-  /// for now will be lead interaction notifs combined flag IFF StopPlanOnInteraction == true
+  /// Notifs that affect ActionPlan AFTER its is triggered.For now will be lead interaction notifs
+  /// combined flag IFF StopPlanOnInteraction == true
   /// which are the notifs to listen to to stop plan execution
   /// </summary>
   public NotifType NotifsToListenTo { get; set; } = NotifType.None;
@@ -21,6 +23,9 @@ public class ActionPlan : Entity<int>
   /// </summary>
   public DateTimeOffset TimeCreated { get; set; }
 
+  /// <summary>
+  /// only relevant for action plans that have automatic triggering
+  /// </summary>
   public bool isActive;
   
   public int ActionsCount { get; set; }

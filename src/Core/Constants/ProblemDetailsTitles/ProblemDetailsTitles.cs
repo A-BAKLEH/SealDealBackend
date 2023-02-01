@@ -12,10 +12,14 @@ public static class ProblemDetailsTitles
   public const string ListingAlreadyAssigned = "ListingAlreadyAssigned";
 
 
-
+  
 
   //Email Connection
   public const string StartAdminConsentFlow = "start admin consent flow";
   public const string AgencyAdminMustConsent = "agency admin must consent to email permissions";
   public const string EmailAlreadyConnected = "email already connected";
+
+  //Action Plans
+  public const string AssignToSelf = "AssignToSelf";
+  public const string AlreadyAssociatedToLead = "AlreadyAssociatedToLead";
 }

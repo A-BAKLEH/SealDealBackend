@@ -26,6 +26,7 @@ using SharedKernel.DomainNotifications;
 using Web.Outbox.Config;
 using Web.Outbox;
 using Infrastructure.Migrations;
+using Core.Domain.ActionPlanAggregate;
 
 namespace Web.Api.TestingAPI;
 
@@ -141,6 +142,38 @@ public class TestController : ControllerBase
     //return BadRequest(lis);
   }
 
+  [HttpGet("test-wlak")]
+  public async Task<IActionResult> wlak()
+  {
+    int ActionPlanId = 1;
+    var apProjection = _appDbContext.ActionPlans.
+      Select(ap => new
+      {
+        ap.Id,
+        ap.StopPlanOnInteraction,
+        ap.FirstActionDelay,
+        ap.NotifsToListenTo,
+        firstAction = ap.Actions.First(a => a.Id == ActionPlanId)
+      })
+      .First(app => app.Id == ActionPlanId);
+
+    return Ok();
+
+  }
+  [HttpGet("test-timestamp")]
+  public async Task<IActionResult> testTimestamp()
+  {
+    var timespan = TimeSpan.Zero;
+    var days = 1;
+    var hours = 1;
+    var minutes = 2;
+    timespan += TimeSpan.FromDays(days);
+    timespan += TimeSpan.FromHours(hours);
+    timespan += TimeSpan.FromMinutes(minutes);
+
+    return Ok();
+
+  }
 
   [HttpGet("test-jsonsss")]
   public async Task<IActionResult> testjsonnn()
@@ -234,8 +267,8 @@ public class TestController : ControllerBase
     return Ok();
   }
 
-  [HttpGet("test-signup")]
-  public async Task<IActionResult> SigninSignupTest()
+  [HttpGet("test-GetListings")]
+  public async Task<IActionResult> test_GetListings()
   {
     //var agency = _appDbContext.Agencies.Include(a => a.AgencyBrokers).ThenInclude(b => b.ActionPlans).FirstOrDefault(a => a.Id == 1);
     //var emailtemp = new EmailTemplate
@@ -264,6 +297,34 @@ public class TestController : ControllerBase
     //};
     //agency.AgencyBrokers[0].ActionPlans.Add(actionplan);
     //_appDbContext.SaveChanges();
+
+    /*bool includeSold = true;
+    var query = _appDbContext.Listings
+      .OrderByDescending(l => l.DateOfListing)
+      .Where(l => l.AgencyId == 1);
+
+    if (!includeSold) query = query.Where(l => l.Status == ListingStatus.Listed);
+
+    List<AgencyListingDTO> listings = await query
+      .Select(l => new AgencyListingDTO
+      {
+        Address = 
+        DateOfListing = l.DateOfListing.UtcDateTime,
+        ListingURL = l.URL,
+        Price = l.Price,
+        Status = l.Status.ToString(),
+        GeneratedLeadsCount = l.LeadsGenerated.Count,
+        AssignedBrokers = l.BrokersAssigned.Select(b => new BrokerPerListingDTO
+        {
+          BrokerId = b.BrokerId,
+          firstName = b.Broker.FirstName,
+          lastName = b.Broker.LastName
+        })
+      }).AsNoTracking()
+      .ToListAsync();*/
+
+
+    //return Ok(listings);
     return Ok();
   }
 

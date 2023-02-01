@@ -27,7 +27,7 @@ public class ActionPlansController : BaseApiController
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-    if (!brokerTuple.Item3)
+    if (!brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
       return Forbid();
@@ -39,5 +39,29 @@ public class ActionPlansController : BaseApiController
     result.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, result.TimeCreated);
 
     return Ok(result);
+  }
+
+  /// <summary>
+  /// manually starts an action plan for a lead
+  /// </summary>
+  /// <param name="dto"></param>
+  /// <returns></returns>
+  [HttpPost("/ManualStart/{LeadId}/{ActionPlanId}")]
+  public async Task<IActionResult> ManualStart(int LeadId,int ActionPlanId)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+      return Forbid();
+    }
+
+     await _actionPQService.StartLeadActionPlanManually(brokerTuple.Item1,LeadId,ActionPlanId);
+
+    //var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    //result.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, result.TimeCreated);
+
+    return Ok();
   }
 }

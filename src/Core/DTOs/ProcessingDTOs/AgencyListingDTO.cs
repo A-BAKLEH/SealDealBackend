@@ -3,7 +3,7 @@
 namespace Core.DTOs.ProcessingDTOs;
 public class AgencyListingDTO
 {
-  public Address Address { get; set; }
+  public AddressDTO Address { get; set; }
   public DateTime DateOfListing { get; set; }
   public string Status { get; set; }
   public int Price { get; set; }

@@ -24,7 +24,8 @@ public class Lead : Entity<int>
   public int? Budget { get; set; }
 
   /// <summary>
-  /// notifs that action plans running on this lead should handle
+  /// notifs that action plans running on this lead should handle because they can
+  /// affect 
   /// </summary>
   public NotifType NotifsForActionPlans { get; set; } = NotifType.None;
 

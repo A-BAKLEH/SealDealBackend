@@ -9,7 +9,8 @@ using Core.Domain.NotificationAggregate;
 using Web.Constants;
 using Web.Outbox;
 using Web.Outbox.Config;
-using System.Text.Json;
+using SharedKernel.Exceptions;
+using Core.Constants.ProblemDetailsTitles;
 
 namespace Web.MediatrRequests.LeadRequests;
 
@@ -32,12 +33,14 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
 
   public async Task<LeadForListDTO> Handle(CreateLeadRequest request, CancellationToken cancellationToken)
   {
-    using var transaction = _appDbContext.Database.BeginTransaction();
+    //using var transaction = _appDbContext.Database.BeginTransaction();
     var dto = request.createLeadDTO;
 
     bool typeExists = Enum.TryParse<LeadType>(dto.leadType, true, out var leadType);
     var leadtype = typeExists ? leadType : LeadType.Unknown;
     var brokerToAssignToId = dto.AssignToSelf ? request.BrokerWhoRequested.Id : dto.AssignToBrokerId;
+    if (!request.BrokerWhoRequested.isAdmin && dto.AssignToSelf == false)
+      throw new CustomBadRequestException("lead has to be assigned to self for broker who is not admin",ProblemDetailsTitles.AssignToSelf);
 
     var timestamp = DateTimeOffset.UtcNow;
     var lead = new Lead
@@ -142,8 +145,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         OutboxMemCache.SchedulingErrorDict.Add(notifId, leadAssignedEvent);
       }
     }
-
-    transaction.Commit();
+    //transaction.Commit();
     var response = new LeadForListDTO
     {
       Budget = lead.Budget,

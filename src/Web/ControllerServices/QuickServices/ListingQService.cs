@@ -10,7 +10,6 @@ using Core.Domain.NotificationAggregate;
 using Web.Constants;
 using Web.Outbox.Config;
 using Web.Outbox;
-using NuGet.Packaging.Signing;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -34,7 +33,7 @@ public class ListingQService
     List<AgencyListingDTO> listings = await query
       .Select(l => new AgencyListingDTO
       {
-        Address = l.Address,
+        Address = new AddressDTO { StreetAddress = l.Address.StreetAddress, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
         DateOfListing = l.DateOfListing.UtcDateTime,
         ListingURL = l.URL,
         Price = l.Price,
@@ -131,7 +130,7 @@ public class ListingQService
     transaction.Commit();
     var listingDTO = new AgencyListingDTO
     {
-      Address = listing.Address,
+      Address = new AddressDTO { StreetAddress = listing.Address.StreetAddress, City = listing.Address.City, Country = listing.Address.Country, PostalCode = listing.Address.PostalCode, ProvinceState = listing.Address.ProvinceState },
       DateOfListing = listing.DateOfListing.UtcDateTime,
       GeneratedLeadsCount = 0,
       ListingURL = listing.URL,
