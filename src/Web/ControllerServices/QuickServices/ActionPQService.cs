@@ -150,7 +150,7 @@ public class ActionPQService
 
     using var transaction = _appDbContext.Database.BeginTransaction();
     //check lead is not already associated to actionPlan
-    var existingAP = _appDbContext.ActionPlanAssociations.FirstOrDefault(ap => ap.ActionPlanId == ActionPlanId);
+    var existingAP = _appDbContext.ActionPlanAssociations.FirstOrDefault(apass => apass.ActionPlanId == ActionPlanId);
     if (existingAP != null)
     {
       throw new CustomBadRequestException("Action Plan Already Associated", ProblemDetailsTitles.AlreadyAssociatedToLead);

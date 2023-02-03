@@ -51,6 +51,11 @@ public class AccountController : BaseApiController
     return Ok();
   }
 
+  /// <summary>
+  /// will also check and handle admin consent if its given
+  /// </summary>
+  /// <param name="dto"></param>
+  /// <returns></returns>
   [HttpPost("ConnectedEmail/Connect")]
   public async Task<IActionResult> ConnectEmail([FromBody] ConnectEmailDTO dto)
   {
@@ -63,29 +68,52 @@ public class AccountController : BaseApiController
     }
     if (dto.EmailProvider == "m")
     {
-      await _MSFTEmailQService.ConnectEmail(brokerTuple.Item1, dto.Email, dto.TenantId,false);
+      var res = await _MSFTEmailQService.ConnectEmail(id, dto.Email, dto.TenantId);
+      return Ok(res);
     }
 
     return Ok();
   }
 
   /// <summary>
-  /// handle after admin consented
+  /// verify if admin consented and handle if its the case for all broker emails that belong to 
+  /// the tenant
   /// </summary>
   /// <param name="dto"></param>
   /// <returns></returns>
-  [HttpPost("ConnectedEmail/MSFT/AdminConsented")]
-  public async Task<IActionResult> AdminConsentedMSFT([FromBody] AdminConsentDTO dto)
+  [HttpGet("ConnectedEmail/MSFT/AdminConsent/Verify/{email}")]
+  public async Task<IActionResult> VerifyAdminConsentedMSFT(string email)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
     if (!brokerTuple.Item2)
     {
-      _logger.LogWarning("[{Tag}] inactive User or non-admin with UserId {UserId} tried to handle admin consented", TagConstants.Inactive, id);
+      _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to handle admin consented", TagConstants.Inactive, id);
       return Forbid();
     }
-    await _MSFTEmailQService.HandleAdminConsented(brokerTuple.Item1, dto.Email, dto.TenantId);
+    var resTuple = await _MSFTEmailQService.HandleAdminConsentedAsync(id, email);
 
-    return Ok();
+    if(resTuple.Item2)
+    {
+      return Ok(resTuple.Item1);
+    }
+
+    return NoContent();
+  }
+
+
+  [HttpGet("ConnectedEmail")]
+  public async Task<IActionResult> GetEmailsConnected()
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to get emails", TagConstants.Inactive, id);
+      return Forbid();
+    }
+    dynamic emails = await _MSFTEmailQService.GetConnectedEmails(id);
+
+    return Ok(emails);
   }
 }

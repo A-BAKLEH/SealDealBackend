@@ -22,15 +22,19 @@ public class SubscriptionService
     _logger= logger;
   }
 
+  public void HandleAdminConsentConflict(Guid brokerId, string email)
+  {
+    throw new NotImplementedException();
+  }
   /// <summary>
   /// for use with first sync where connectedEmail ID is unknown
   /// </summary>
   /// <param name="brokerId"></param>
   /// <param name="EmailNumber"></param>
   /// <param name="tenantId"></param>
-  public void RenewSubscription(Guid brokerId,int EmailNumber, string tenantId)
+  public void RenewSubscription(string email)
   {
-    var connEmail = _appDbContext.ConnectedEmails.FirstOrDefault(x => x.BrokerId==brokerId && x.EmailNumber == EmailNumber);
+    var connEmail = _appDbContext.ConnectedEmails.FirstOrDefault(x => x.Email == email);
     DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
 
     var subs = new Subscription
@@ -38,7 +42,7 @@ public class SubscriptionService
       ExpirationDateTime = SubsEnds
     };
 
-    _aDGraphWrapper.CreateClient(tenantId);
+    _aDGraphWrapper.CreateClient(connEmail.tenantId);
     var UpdatedSubs = _aDGraphWrapper._graphClient
       .Subscriptions[connEmail.GraphSubscriptionId.ToString()]
       .Request()
@@ -47,34 +51,7 @@ public class SubscriptionService
 
     connEmail.SubsExpiryDate= SubsEnds;
     var nextRenewalDate = SubsEnds - TimeSpan.FromMinutes(60);
-    string RenewalJobId = BackgroundJob.Schedule<SubscriptionService>(s => s.RenewSubscription(connEmail.Id, tenantId), nextRenewalDate);
+    string RenewalJobId = BackgroundJob.Schedule<SubscriptionService>(s => s.RenewSubscription(connEmail.Email), nextRenewalDate);
     connEmail.SubsRenewalJobId= RenewalJobId;
-  }
-
-  /// <summary>
-  /// for use when connEmailId is known
-  /// </summary>
-  /// <param name="connEmailId"></param>
-  /// <param name="tenantId"></param>
-  public void RenewSubscription(int connEmailId, string tenantId)
-  {
-    var connEmail = _appDbContext.ConnectedEmails.FirstOrDefault(x => x.Id == connEmailId);
-    DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
-
-    var subs = new Subscription
-    {
-      ExpirationDateTime = SubsEnds
-    };
-
-    _aDGraphWrapper.CreateClient(tenantId);
-    var UpdatedSubs = _aDGraphWrapper._graphClient
-      .Subscriptions[connEmail.GraphSubscriptionId.ToString()]
-      .Request()
-      .UpdateAsync(subs)
-      .Result;
-
-    connEmail.SubsExpiryDate = SubsEnds;
-    var nextRenewalDate = SubsEnds - TimeSpan.FromMinutes(60);
-    string RenewalJobId = BackgroundJob.Schedule<SubscriptionService>(s => s.RenewSubscription(connEmail.Id, tenantId), nextRenewalDate);
   }
 }

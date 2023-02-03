@@ -26,7 +26,7 @@ public class MSFTWebhookHandler
     var connEmail = await  _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
     if(!connEmail.SyncScheduled)
     {
-      var jobId = Hangfire.BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmail(connEmail.Id,tenantId), TimeSpan.FromSeconds(15));
+      var jobId = Hangfire.BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmail(connEmail.Email), TimeSpan.FromSeconds(15));
       connEmail.SyncScheduled = true;
       connEmail.SyncJobId= jobId;
     }

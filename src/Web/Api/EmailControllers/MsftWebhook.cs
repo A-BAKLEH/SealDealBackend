@@ -32,7 +32,8 @@ public class MsftWebhook : BaseApiController
   [HttpPost("Webhook")]
   public async Task<ActionResult<string>> WebhookProcess([FromQuery] string validationToken = null)
   {
-    if(!string.IsNullOrEmpty(validationToken))
+    _logger.LogWarning("webhook frapped");
+    if (!string.IsNullOrEmpty(validationToken))
     {
       _logger.LogWarning("webhook validated");
       return Ok(validationToken);

@@ -9,6 +9,7 @@ public class ConnectedEmailConfig : IEntityTypeConfiguration<ConnectedEmail>
 {
   public void Configure(EntityTypeBuilder<ConnectedEmail> builder)
   {
+    builder.HasKey(x => x.Email);
     builder.HasIndex(e => e.GraphSubscriptionId);
   }
 }

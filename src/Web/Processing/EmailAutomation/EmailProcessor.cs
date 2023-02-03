@@ -16,7 +16,7 @@ public class EmailProcessor
   /// </summary>
   /// <param name="connEmailId"></param>
   /// <param name="tenantId"></param>
-  public void SyncEmail(int connEmailId, string tenantId)
+  public void SyncEmail(string email)
   {
 
   }

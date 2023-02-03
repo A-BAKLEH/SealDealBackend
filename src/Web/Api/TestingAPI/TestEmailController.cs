@@ -131,15 +131,27 @@ public class TestEmailController : ControllerBase
       ChangeType = "created",
       ClientState = VariousCons.MSFtWebhookSecret,
       ExpirationDateTime = SubsEnds,
-      NotificationUrl = VariousCons.MainAPIURL + "/api/MsftWebhook/Webhook",
+      NotificationUrl = VariousCons.MainAPIURL + "/MsftWebhook/Webhook",
       Resource = $"users/{emailBash}/messages"
       //Resource = $"users/{email}/messages
       //TODO test subscribing to all messages and see it it will notify when a folder other than inbox
       //receives email, check if it notifies with sent emails also
     };
     _adGraphWrapper.CreateClient(tenantId);
-    var CreatedSubsTask = await _adGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
-    _logger.LogWarning("Subscription IDDDDDDDD: {Id}", CreatedSubsTask.Id);
+    try
+    {
+      var CreatedSubsTask = await _adGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
+      _logger.LogWarning("Subscription IDDDDDDDD: {Id}", CreatedSubsTask.Id);
+    }
+    catch (ServiceException ex)
+    { 
+      if(ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+      {
+        _logger.LogWarning("gottem");
+      }
+    }
+
+
     return Ok();
   }
 

@@ -27,6 +27,7 @@ using Web.Outbox.Config;
 using Web.Outbox;
 using Infrastructure.Migrations;
 using Core.Domain.ActionPlanAggregate;
+using Hangfire.Server;
 
 namespace Web.Api.TestingAPI;
 
@@ -175,12 +176,38 @@ public class TestController : ControllerBase
 
   }
 
-  [HttpGet("test-jsonsss")]
-  public async Task<IActionResult> testjsonnn()
+  [HttpGet("test-dynamic")]
+  public async Task<IActionResult> testdynamic()
   {
-    var lead = new Lead {};
-    lead.SourceDetails["wtf"] = "lol";
-    return Ok(lead);
+    dynamic res = await TestAnonym();
+    return Ok(res);
+  }
+
+  [HttpGet("test-ef")]
+  public async Task<IActionResult> testef()
+  {
+    //var notifs = _appDbContext.Notifications.Where(c => c.BrokerId == Guid.Parse("00000000-0000-0000-0000-000000000000")).ToList();
+    var broker = _appDbContext.Brokers
+      .Select(b => new
+      {
+        b.Id,
+        agency = new { b.Agency.Id, b.Agency.HasAdminEmailConsent, b.Agency.AzureTenantID},
+        b.Notifs
+      }
+      ).First(b => b.Id == Guid.Parse("00000000-0000-0000-0000-000000000000"));
+
+    //broker.agency.AzureTenantID = "123";
+    return Ok();
+  }
+
+  
+
+  private async Task<dynamic> TestAnonym()
+  {
+    var obs = await _appDbContext.Notifications
+      .Select(e => new { e.Id, e.NotifType, e.DeleteAfterProcessing })
+      .ToListAsync();
+    return (dynamic)obs;
   }
 
   [HttpGet("create-data")]

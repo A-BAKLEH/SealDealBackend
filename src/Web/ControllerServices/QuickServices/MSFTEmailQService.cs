@@ -8,7 +8,8 @@ using SharedKernel.Exceptions;
 using Web.Processing.EmailAutomation;
 using Hangfire;
 using Microsoft.Graph;
-
+using Hangfire.Server;
+using Microsoft.EntityFrameworkCore;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -26,42 +27,81 @@ public class MSFTEmailQService
     _logger = logger;
   }
 
+  public async Task<dynamic> GetConnectedEmails(Guid brokerId)
+  {
+    var connectedEmails = await _appDbContext.ConnectedEmails
+      .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email })
+      .Where(c => c.BrokerId == brokerId)
+      .ToListAsync();
+    return (dynamic)connectedEmails;
+  }
   /// <summary>
   /// Test if has access to tenant with this email and if yes subscribe to mailbox notifs
   /// Will thorw error if email already connected OR if no admin consent present
+  /// ONLY MICROSOFT SUPPORTED FOR NOW
   /// </summary>
-  public async Task ConnectEmail(Broker broker, string email, string TenantId,bool checkAdminConsent)
+  public async Task<dynamic> ConnectEmail(Guid brokerId, string email, string TenantId)
   {
-    
-    if (!broker.Agency.HasAdminEmailConsent && !checkAdminConsent)
-    {
-      if (broker.isAdmin)
-        throw new CustomBadRequestException($"Admin has not consented to email permissions yet", ProblemDetailsTitles.StartAdminConsentFlow);
-      else
-        throw new CustomBadRequestException($"Admin has not consented to email permissions yet and current user is not an admin", ProblemDetailsTitles.AgencyAdminMustConsent);
-    }
 
-    var connectedEmails = _appDbContext.ConnectedEmails.Where(c => c.BrokerId == broker.Id).ToList();
+    var broker = _appDbContext.Brokers
+      .Include(b => b.Agency)
+      .Include(b => b.ConnectedEmails)
+      .First(b => b.Id == brokerId);
+
+    var connectedEmails = broker.ConnectedEmails;
 
     int emailNumber = 1;
     if (connectedEmails != null && connectedEmails.Count != 0)
     {
       foreach (var ConnEmail in connectedEmails)
       {
-        if (ConnEmail.Email == email) throw new
+        if (ConnEmail.Email == email)
+          throw new
             CustomBadRequestException($"the email {email} is already connected", ProblemDetailsTitles.EmailAlreadyConnected);
+
       }
-      emailNumber= connectedEmails.Count+1;
+      emailNumber = connectedEmails.Count + 1;
     }
-    
+
     var connectedEmail = new ConnectedEmail
     {
       BrokerId = broker.Id,
       Email = email,
       EmailNumber = emailNumber,
-      EmailStatus = EmailStatus.Waiting,
+      tenantId = TenantId,
+      hasAdminConsent = broker.Agency.HasAdminEmailConsent,
       isMSFT = true,
     };
+
+    if (broker.ConnectedEmails == null) broker.ConnectedEmails = new();
+    broker.ConnectedEmails.Add(connectedEmail);
+    if (!broker.Agency.HasAdminEmailConsent)
+    {
+      await _appDbContext.SaveChangesAsync();
+    }
+    else
+    {
+      try
+      {
+        await CreateEmailSubscriptionAsync(connectedEmail);
+      }
+      catch (ServiceException ex)
+      {
+        if (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+          _logger.LogError("Connect Email: agency hadAdminConsent true so tried to create subsription but forbidden");
+          broker.Agency.HasAdminEmailConsent = false;
+          connectedEmail.hasAdminConsent = false;
+          BackgroundJob.Enqueue<SubscriptionService>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
+          await _appDbContext.SaveChangesAsync();
+        }
+      }
+    }
+    return new { connectedEmail.Email, connectedEmail.hasAdminConsent };
+  }
+
+  public async Task CreateEmailSubscriptionAsync(ConnectedEmail connectedEmail, bool save = true)
+  {
     var currDateTime = DateTime.UtcNow;
     //the maxinum subs period = just under 3 days
     DateTimeOffset SubsEnds = currDateTime + new TimeSpan(0, 4230, 0);
@@ -72,72 +112,29 @@ public class MSFTEmailQService
       ClientState = VariousCons.MSFtWebhookSecret,
       ExpirationDateTime = SubsEnds,
       NotificationUrl = _configurationSection["MainAPI"] + "/MsftWebhook/Webhook",
-      //Resource = $"users/{email}/mailFolders('inbox')/messages"
-      Resource = $"users/{email}/messages"
+      Resource = $"users/{connectedEmail.Email}/messages"
     };
-    _adGraphWrapper.CreateClient(TenantId);
+
+    _adGraphWrapper.CreateClient(connectedEmail.tenantId);
     //will validate through the webhook before returning the subscription here
-    var CreatedSubsTask = _adGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
-    //TODO handle if we dont have adminConsent
-    
+    var CreatedSubs = await _adGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
+
     //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work
     //will have to consider current leads in the system, current listings assigned, websites from which
     //emails will be parsed to detect new leads
+
     connectedEmail.FirstSync = currDateTime;
     connectedEmail.LastSync = currDateTime;
-
-    var CreatedSubs = await CreatedSubsTask;
     connectedEmail.SubsExpiryDate = (DateTime)(CreatedSubs.ExpirationDateTime?.UtcDateTime);
     connectedEmail.GraphSubscriptionId = Guid.Parse(CreatedSubs.Id);
 
     //renew 60 minutes before subs Ends
     var renewalTime = SubsEnds - TimeSpan.FromMinutes(60);
-    string RenewalJobId = BackgroundJob.Schedule<SubscriptionService>(s => s.RenewSubscription(broker.Id, emailNumber, TenantId), renewalTime);
+    string RenewalJobId = BackgroundJob.Schedule<SubscriptionService>(s => s.RenewSubscription(connectedEmail.Email), renewalTime);
     connectedEmail.SubsRenewalJobId = RenewalJobId;
 
-    broker.ConnectedEmails = new List<ConnectedEmail>
-    {
-      connectedEmail
-    };
-    
-    if (!broker.Agency.HasAdminEmailConsent) broker.Agency.HasAdminEmailConsent = true;
-    await _appDbContext.SaveChangesAsync();
+    if (save) await _appDbContext.SaveChangesAsync();
   }
-
-  /// <summary>
-  /// for now just sets current dateTime in connectedEmail
-  /// </summary>
-  /// <param name="connectedEmail"></param>
-  /// <returns></returns>
-  private async Task DoFirstEmailSyncAsync(ConnectedEmail connectedEmail)
-  {
-    
-
-    //run the analyzer that will design later on.
-  }
-
-  /// <summary> 
-  /// must call CreateCleint on class instance's _adGraphWrapper before
-  /// </summary>
-  /// <param name="connectedEmail"></param>
-  /// <param name="graphClient"></param>
-  /// <returns></returns>
-  /*public async Task DoFirstEmailSync(ConnectedEmail connectedEmail)
-  {
-    connectedEmail.FolderSyncs = new();
-    var SyncStartDate = DateTimeOffset.UtcNow;
-
-    //Inbox syncing
-    var inboxSync = HandleFirstFolderSync(connectedEmail, SyncStartDate, "Inbox");
-
-    //SentItems syncing
-    var sentSync = HandleFirstFolderSync(connectedEmail, SyncStartDate, "Sent Items");
-
-    connectedEmail.FirstSync = SyncStartDate.UtcDateTime;
-    connectedEmail.LastSync = SyncStartDate.UtcDateTime;
-    await inboxSync;
-    await sentSync;
-  }*/
   /// <summary>
   /// To be primarily called by hangfire after a notif comes in
   /// For syncing
@@ -219,31 +216,64 @@ public class MSFTEmailQService
   }*/
 
   /// <summary>
-  /// will also add caller's email as his connected email
+  /// for broker trying to refresh status: 
+  /// check if admin consent has been granted on agency, if yes subscribe to webhook.
+  /// return all broker's connected Emails with true if success cuz multiple can be affected if belong to same tenant
+  /// if agency has no admin consent, return null with false
   /// </summary>
   /// <param name="broker"></param>
   /// <param name="email"></param>
   /// <param name="TenantId"></param>
   /// <returns></returns>
-  public async Task HandleAdminConsented(Broker broker, string email, string TenantId)
+  public async Task<Tuple<dynamic, bool>> HandleAdminConsentedAsync(Guid brokerId, string email)
   {
-    broker.Agency.HasAdminEmailConsent = true;
-    broker.Agency.AzureTenantID = TenantId;
+    var broker = await _appDbContext.Brokers
+      .Include(b => b.Agency)
+      .Include(b => b.ConnectedEmails)
+      .FirstAsync(b => b.Id == brokerId);
 
-    await this.ConnectEmail(broker, email, TenantId,true);
-  }
+    var tenantId = broker.ConnectedEmails.First(e => e.Email == email).tenantId;
 
-  /*public async Task<IMessageDeltaCollectionPage> GetFirstMessagesPage(string email, string folderName, DateTimeOffset SyncStartDate, bool startFresh)
-  {
-    List<Option> options = EmailHelpers.GetDeltaQueryOptions(SyncStartDate);
-    IMessageDeltaCollectionPage messages = null;
-    if (startFresh)
+    try
     {
-      messages = await _adGraphWrapper._graphClient.Users[email]
-      .MailFolders[folderName].Messages.Delta()
-      .Request(options).GetAsync();
-    }
+      foreach (var e in broker.ConnectedEmails)
+      {
+        if (e.tenantId == tenantId && e.GraphSubscriptionId == null)
+        {
+          await CreateEmailSubscriptionAsync(e, false);
+          e.hasAdminConsent = true;
+        }
 
-    return messages;
-  }*/
+      }
+    }
+    catch (ServiceException ex)
+    {
+      if (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+      {
+        if (broker.Agency.HasAdminEmailConsent)
+        {
+          _logger.LogError("HandleAdminConsent: agency hadAdminConsent true so tried to create subsription but forbidden");
+          broker.Agency.HasAdminEmailConsent = false;
+          BackgroundJob.Enqueue<SubscriptionService>(s => s.HandleAdminConsentConflict(broker.Id, email));
+          await _appDbContext.SaveChangesAsync();
+        }
+        return new Tuple<dynamic, bool>(null, false);
+      }
+      else throw;
+    }
+    if (!broker.Agency.HasAdminEmailConsent) broker.Agency.HasAdminEmailConsent = true;
+    if (broker.Agency.AzureTenantID == null) broker.Agency.AzureTenantID = tenantId;
+
+    //TODO later maybe hangfire handle all broker emails in the tenant automatically when admin consent is confirmed
+    // for any person
+
+    //in case endpoint executed somehow while email(s) already had admin consent and graph subscription
+    var written = await _appDbContext.SaveChangesAsync();
+    if(written > 0)
+    {
+      var ReturnedEmails = broker.ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent });
+      return new Tuple<dynamic, bool>(ReturnedEmails, true);
+    }
+    return new Tuple<dynamic, bool>(null, false);
+  }
 }

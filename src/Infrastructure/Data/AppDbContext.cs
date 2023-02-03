@@ -34,7 +34,6 @@ public class AppDbContext : DbContext
   public DbSet<BrokerListingAssignment> BrokerListingAssignments => Set<BrokerListingAssignment>();
   public DbSet<Area> Areas => Set<Area>();
   public DbSet<Broker> Brokers => Set<Broker>();
-  public DbSet<FolderSync> FolderSyncs => Set<FolderSync>();
   public DbSet<ConnectedEmail> ConnectedEmails => Set<ConnectedEmail>();
   public DbSet<Template> Templates => Set<Template>();
   public DbSet<SmsTemplate> SmsTemplates => Set<SmsTemplate>();
