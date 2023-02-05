@@ -46,7 +46,7 @@ public class ActionPlansController : BaseApiController
   /// </summary>
   /// <param name="dto"></param>
   /// <returns></returns>
-  [HttpPost("/ManualStart")]
+  [HttpPost("ManualStart")]
   public async Task<IActionResult> ManualStart([FromBody] StartActionPlanDTO dto)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
