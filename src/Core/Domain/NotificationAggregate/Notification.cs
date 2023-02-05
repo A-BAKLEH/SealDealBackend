@@ -42,6 +42,7 @@ public class Notification : Entity<int>
 
   //public bool IsBackendEvent { get; set; }
 
+
   //Processing Part--------------------------
 
   /// <summary>
@@ -50,12 +51,20 @@ public class Notification : Entity<int>
   public bool DeleteAfterProcessing { get; set; } = false;
 
   /// <summary>
-  /// when has to be handled by an action plan
+  /// true if the notif reflects an action done by an action plan,used to filter notifs and find result of a given actionPlan's action on a lead
+  /// and similar queries
+  /// </summary>
+  public bool IsActionPlanResult { get; set; } = false;
+
+  /// <summary>
+  /// DONT USE FOR NOW, doesnt take into account when notif has to be handled by more than 1 actino plan
+  /// when notif itself has to be handled by an action plan like when it triggers an action plan or stops it
+  /// useful to check if action plan has already handled this notif to prevent duplication
   /// </summary>
   public APHandlingStatus? APHandlingStatus { get; set; }
 
   /// <summary>
-  /// When Outbox Handler has to process the Notif
+  /// When Outbox Handler has to process the Notif, even if its just to send notifs to the frontend
   /// </summary>
   public ProcessingStatus ProcessingStatus { get; set; } = ProcessingStatus.NoNeed;
 
@@ -81,11 +90,12 @@ public enum NotifType
   /// </summary>
   CallMissed = 1 << 3,
   /// <summary>
-  /// data: old status, new status, reason? or action planId who did it
-  /// </summary>
+  /// data: old status, new status, if IsActionPlanResult:  ActionPlanId, ActionId,APAssID
+  /// process: signalR/push notif
+  /// </summary>                                           
   LeadStatusChange = 1 << 4,
-  /// <summary>
-  /// data: listing Id, name or Id of actor who did it
+  /// <summary>                                         
+  /// data: listing Id, name or Id of actor who did it 
   /// </summary>
   ListingAssigned = 1 << 5,
 
@@ -113,9 +123,13 @@ public enum NotifType
   LeadUnAssigned = 1 << 9,
 
   /// <summary>
-  /// data: triggger, response event id
+  /// data: props : APTriggerType, ActionPlanId
   /// </summary>
   ActionPlanStarted = 1 << 10,
+
+  /// <summary>
+  /// data: props :  ActionPlanId, APFinishedReason
+  /// </summary>
   ActionPlanFinished = 1 << 11,
 
   /// <summary>

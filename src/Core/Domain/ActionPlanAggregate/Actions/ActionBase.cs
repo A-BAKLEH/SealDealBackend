@@ -9,7 +9,7 @@ public abstract class ActionBase: Entity<int>
   /// <summary>
   /// starts at 1 for first action in action plan
   /// </summary>
-  public int ActionLevel { get; set; }
+  public byte ActionLevel { get; set; }
 
   /// <summary>
   /// NON instance-specific properties like

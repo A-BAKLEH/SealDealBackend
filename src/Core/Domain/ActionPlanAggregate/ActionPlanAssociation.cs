@@ -32,7 +32,6 @@ public class ActionPlanAssociation: Entity<int>
   /// Updated whenever an action execution completes, when scheduling next action with delay, the new delayed actionId is inserted here
   /// </summary>
   public int? currentTrackedActionId { get; set; }
-  public string? FirstActionHangfireId { get; set; }
 }
 
 public enum ActionPlanStatus

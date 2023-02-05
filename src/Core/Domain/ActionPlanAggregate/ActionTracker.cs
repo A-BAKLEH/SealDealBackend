@@ -1,4 +1,5 @@
 ﻿using Core.Domain.ActionPlanAggregate.Actions;
+using Core.Domain.NotificationAggregate;
 using SharedKernel;
 
 namespace Core.Domain.ActionPlanAggregate;
@@ -22,13 +23,17 @@ public class ActionTracker : EntityBase
   public DateTimeOffset? HangfireScheduledStartTime { get; set; }
   public DateTimeOffset? ExecutionCompletedTime { get; set; }
   /// <summary>
+  /// if need to track action result
+  /// </summary>
+  public string? ActionResultId { get; set; }
+
+  // ------ NO NEED FOR NOW FOR BELOW ---- 
+  /// <summary>
   /// Details about failures or other relevant Status Info
   /// </summary>
-  public string? ActionStatusInfo { get; set; }
-  /// <summary>
-  /// can be the sent emailId, sent smsId, Some action result that should be tracked
-  /// </summary>
-  public int? ActionResultId { get; set; }
+  //public string? ActionStatusInfo { get; set; }
+
+
 }
 public enum ActionStatus
 {

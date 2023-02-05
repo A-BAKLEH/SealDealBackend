@@ -57,23 +57,63 @@ public class TestController : ControllerBase
     this._distributedCache = _distributedCache;
     _appDbContext = appDbContext;
     _templatesQService = templatesQService;
-    _brokerTagsQService= brokerTagsQService;
-    _agencyQService= agencyQService;
+    _brokerTagsQService = brokerTagsQService;
+    _agencyQService = agencyQService;
     _adGraphWrapper = aDGraph;
+  }
+  [HttpGet("test-ef-navigation")]
+  public async Task<IActionResult> test_ef_navigation()
+  {
+    var broker = _appDbContext.Brokers.Include(b => b.Notifs).Single();
+    var notifs = broker.Notifs;
+    notifs[0].NotifType = NotifType.None;
+
+    _appDbContext.SaveChanges();
+    return Ok();
+  }
+
+  [HttpGet("test-params")]
+  public async Task<IActionResult> test_params()
+  {
+    var broker = _appDbContext.Brokers.Include(b => b.Notifs).Single();
+    OuterMethod(broker);
+
+    _appDbContext.SaveChanges();
+    return Ok();
+  }
+
+  //pass lead
+  private static void OuterMethod(params Object[] pars)
+  {
+    //this method is ovveriden and will know which innerMethod to call
+    InnerMthod1(pars);
+  }
+  private static dynamic InnerMthod1(params Object[] pars)
+  {
+    Broker b = (Broker) pars[0];
+    b.Notifs[0].ReadByBroker = true;
+    return "lol";
+  }
+  private static dynamic InnerMthod2(params Object[] pars)
+  {
+    return null;
   }
 
   [HttpGet("test-json")]
   public async Task<IActionResult> testJSON()
   {
-    _appDbContext.TestEntity1.Add(new Core.Domain.TestAggregate.TestEntity1 { testJSON = new Core.Domain.TestAggregate.TestJSON
+    _appDbContext.TestEntity1.Add(new Core.Domain.TestAggregate.TestEntity1
     {
-      one = new Core.Domain.TestAggregate.Test1Props { prop1 = "lol"}
-    } });
+      testJSON = new Core.Domain.TestAggregate.TestJSON
+      {
+        one = new Core.Domain.TestAggregate.Test1Props { prop1 = "lol" }
+      }
+    });
     _appDbContext.TestEntity2.Add(new Core.Domain.TestAggregate.TestEntity2
     {
       testJSON = new Core.Domain.TestAggregate.TestJSON
       {
-        two = new Core.Domain.TestAggregate.Test2Props { prop_2_2 = "lol2"}
+        two = new Core.Domain.TestAggregate.Test2Props { prop_2_2 = "lol2" }
       }
     });
     _appDbContext.SaveChanges();
@@ -136,7 +176,7 @@ public class TestController : ControllerBase
     var exc = new CustomBadRequestException("details lolol", "title lol");
     //exc.Errors["leadname"] = "no lead name";
     //exc.Errors["phone"] = "bad format";
-    exc.ErrorsJSON = new Agency { Id = 1};
+    exc.ErrorsJSON = new Agency { Id = 1 };
     throw exc;
     /*List<Agency> lis = new();
     lis.Add(new Agency {Id = 1 });*/
@@ -191,7 +231,7 @@ public class TestController : ControllerBase
       .Select(b => new
       {
         b.Id,
-        agency = new { b.Agency.Id, b.Agency.HasAdminEmailConsent, b.Agency.AzureTenantID},
+        agency = new { b.Agency.Id, b.Agency.HasAdminEmailConsent, b.Agency.AzureTenantID },
         b.Notifs
       }
       ).First(b => b.Id == Guid.Parse("00000000-0000-0000-0000-000000000000"));
@@ -200,7 +240,7 @@ public class TestController : ControllerBase
     return Ok();
   }
 
-  
+
 
   private async Task<dynamic> TestAnonym()
   {
@@ -216,21 +256,21 @@ public class TestController : ControllerBase
 
     var broker = new Broker
     {
-      AccountActive= true,
-      isAdmin= true,
+      AccountActive = true,
+      isAdmin = true,
       Created = DateTime.UtcNow,
       FirstName = "test",
       LastName = "test",
-      LoginEmail= "test",
+      LoginEmail = "test",
     };
     var agency = new Agency
-    { 
-      AgencyName= "Test",
-      NumberOfBrokersInDatabase= 1,
-      NumberOfBrokersInSubscription= 1,
-      SignupDateTime= DateTime.UtcNow,
+    {
+      AgencyName = "Test",
+      NumberOfBrokersInDatabase = 1,
+      NumberOfBrokersInSubscription = 1,
+      SignupDateTime = DateTime.UtcNow,
       StripeSubscriptionStatus = StripeSubscriptionStatus.Active,
-      AgencyBrokers= new List<Broker> { broker}
+      AgencyBrokers = new List<Broker> { broker }
     };
     _appDbContext.Agencies.Add(agency);
     _appDbContext.SaveChanges();
@@ -247,7 +287,7 @@ public class TestController : ControllerBase
     {
       APHandlingStatus = APHandlingStatus.Scheduled,
       BrokerId = Guid.Parse("00000000-0000-0000-0000-000000000000"),
-      EventTimeStamp= DateTime.UtcNow,
+      EventTimeStamp = DateTime.UtcNow,
       NotifType = NotifType.BrokerCreated,
       NotifyBroker = false,
       ReadByBroker = false,
@@ -255,7 +295,7 @@ public class TestController : ControllerBase
     notif.NotifProps.Add("lolkey", "lolvalue");
     _appDbContext.Notifications.Add(notif);
     _appDbContext.SaveChanges();
-    var brokerCreated = new BrokerCreated {NotifId = notif.Id };
+    var brokerCreated = new BrokerCreated { NotifId = notif.Id };
     var id = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated));
 
     return Ok();
@@ -284,7 +324,7 @@ public class TestController : ControllerBase
     var timeZoneId = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
     var converted = MyTimeZoneConverter.ConvertToUTC(timeZoneId, dto.DateOfListing);
 
-    
+
 
 
     /* var timeZoneInfo = TZConvert.GetTimeZoneInfo("America/Toronto");
@@ -359,7 +399,7 @@ public class TestController : ControllerBase
   [HttpGet("createTemaplate")]
   public async Task<IActionResult> TestTemplate()
   {
-    var CreateTemplateDto = new CreateTemplateDTO{subject = "this is emails subject", TemplateType = "e", text = "hello abdul wassup" };
+    var CreateTemplateDto = new CreateTemplateDTO { subject = "this is emails subject", TemplateType = "e", text = "hello abdul wassup" };
     var template = await _templatesQService.CreateTemplateAsync(CreateTemplateDto, Guid.Parse("1B935034-6F92-41C7-99D0-A41181A7DF54"));
     return Ok();
   }
@@ -375,7 +415,7 @@ public class TestController : ControllerBase
   [HttpGet("test-get/{id?}")]
   public async Task<IActionResult> TestGet(int? id = null)
   {
-    
+
     Console.WriteLine(id);
     return Ok();
   }
@@ -385,7 +425,7 @@ public class TestController : ControllerBase
   {
     _appDbContext.Leads.Add(new Lead
     {
-      AgencyId =3,
+      AgencyId = 3,
       Budget = 1000,
       Email = "lol@hotmail123.com",
       EntryDate = DateTime.Now,
@@ -612,7 +652,7 @@ public class TestController : ControllerBase
       LeadStatus = LeadStatus.New,
       PhoneNumber = "514"
     };*/
-   // _appDbContext.Notifications.AddRange(notifsLead11);
+    // _appDbContext.Notifications.AddRange(notifsLead11);
     _appDbContext.SaveChanges();
 
     return Ok();

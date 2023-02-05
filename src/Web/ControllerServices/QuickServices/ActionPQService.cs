@@ -4,6 +4,7 @@ using Core.Domain.ActionPlanAggregate.Actions;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
+using Hangfire.Server;
 using Humanizer;
 using Infrastructure.Data;
 using Infrastructure.Migrations;
@@ -11,7 +12,9 @@ using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using Web.ApiModels.APIResponses.ActionPlans;
 using Web.ApiModels.RequestDTOs.ActionPlans;
+using Web.Constants;
 using Web.Outbox;
+using Web.Outbox.Config;
 using Web.Processing.ActionPlans;
 
 namespace Web.ControllerServices.QuickServices;
@@ -41,6 +44,7 @@ public class ActionPQService
         throw new CustomBadRequestException("invalid trigger", ProblemDetailsTitles.InvalidInput);
     };
 
+
     if (dto.FirstActionDelay != null)
     {
       var delays = dto.FirstActionDelay.Trim().Split(':');
@@ -60,6 +64,7 @@ public class ActionPQService
       Name = dto.Name,
       StopPlanOnInteraction = dto.StopPlanOnInteraction,
       FirstActionDelay = dto.FirstActionDelay,
+      Actions = new()
     };
 
     if (dto.StopPlanOnInteraction)
@@ -100,7 +105,7 @@ public class ActionPQService
         throw new CustomBadRequestException($"input {dto.FirstActionDelay}", ProblemDetailsTitles.InvalidInput);
       }
 
-      actionBase.ActionLevel = actionDTO.ActionLevel;
+      actionBase.ActionLevel = (byte)actionDTO.ActionLevel;
       actionBase.NextActionDelay = actionDTO.NextActionDelay;
       actionPlan.Actions.Add(actionBase);
     }
@@ -140,57 +145,47 @@ public class ActionPQService
       });
     }
     return result;
-
   }
-  public async Task StartLeadActionPlanManually(Broker broker, int LeadId, int ActionPlanId)
+  public async Task StartLeadActionPlanManually(Guid brokerId, int LeadId, int ActionPlanId, string? customDelay = null)
   {
-    //params to add
-    string? customDelay = null;
-    //
-
-    using var transaction = _appDbContext.Database.BeginTransaction();
-    //check lead is not already associated to actionPlan
-    var existingAP = _appDbContext.ActionPlanAssociations.FirstOrDefault(apass => apass.ActionPlanId == ActionPlanId);
-    if (existingAP != null)
+    //check lead is not already associated to this actionPlan
+    var APAssExists = await _appDbContext.ActionPlanAssociations
+      .AnyAsync(apass => apass.ActionPlanId == ActionPlanId && apass.LeadId == LeadId);
+    if (APAssExists)
     {
       throw new CustomBadRequestException("Action Plan Already Associated", ProblemDetailsTitles.AlreadyAssociatedToLead);
     }
+
+    var timeNow = DateTime.UtcNow;
     //create actionPlanAssociation associated to Lead
-    var apProjection = _appDbContext.ActionPlans.
+    var apProjection = await _appDbContext.ActionPlans.
       Select(ap => new
       {
         ap.Id,
         ap.StopPlanOnInteraction,
         ap.FirstActionDelay,
         ap.NotifsToListenTo,
-        firstAction = ap.Actions.First(a => a.Id == ActionPlanId)
+        firstAction = ap.Actions.Select(fa => new { fa.ActionLevel, fa.Id }).First(a => a.ActionLevel == 1)
       })
-      .First(app => app.Id == ActionPlanId);
+      .FirstAsync(app => app.Id == ActionPlanId);
 
     var FirstActionDelay = customDelay ?? apProjection.FirstActionDelay;
     var delays = FirstActionDelay?.Split(':');
     string HangfireJobId = "";
-    //TODO IMPORTANT ACTION ID TO PASS TO HANGFIRE
-    if(delays != null)
+
+    TimeSpan timespan = TimeSpan.Zero;
+    if (delays != null)
     {
-      var timespan = TimeSpan.Zero;
       if (int.TryParse(delays[0], out var days)) timespan += TimeSpan.FromDays(days);
-      if (int.TryParse(delays[1], out var hours)) timespan+= TimeSpan.FromHours(hours);
-      if (int.TryParse(delays[2], out var minutes)) timespan+= TimeSpan.FromMinutes(minutes);
-
-      HangfireJobId = Hangfire.BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(1),timespan);
-    }
-    else
-    {
-      HangfireJobId = Hangfire.BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(1));
+      if (int.TryParse(delays[1], out var hours)) timespan += TimeSpan.FromHours(hours);
+      if (int.TryParse(delays[2], out var minutes)) timespan += TimeSpan.FromMinutes(minutes);
     }
 
-    
     var actionTracker = new ActionTracker
     {
       TrackedActionId = apProjection.firstAction.Id,
       ActionStatus = ActionStatus.ScheduledToStart,
-      HangfireJobId = HangfireJobId
+      HangfireScheduledStartTime = timeNow + timespan,
     };
     var apAssociation = new ActionPlanAssociation
     {
@@ -198,41 +193,46 @@ public class ActionPQService
       ActionPlanId = ActionPlanId,
       TriggerNotificationId = null, //cuz triggered manually
       LeadId = LeadId,
-      ActionPlanTriggeredAt = DateTime.UtcNow,
+      ActionPlanTriggeredAt = timeNow,
       ThisActionPlanStatus = ActionPlanStatus.Running,
       ActionTrackers = new() { actionTracker },
       currentTrackedActionId = apProjection.firstAction.Id,
-
-      //FirstActionHangfireId FOR NOW IGNORE, PROBABLY TO BE DELETED
     };
 
-    if(apProjection.StopPlanOnInteraction)
+    //assign Lead's NotifsToListenTo if StopPlanOnInteraction is True
+    if (apProjection.StopPlanOnInteraction)
+    {
+      var lead = await _appDbContext.Leads.FirstAsync(l => l.Id == LeadId);
+      var StopNotifs = NotifType.EmailEvent | NotifType.SmsEvent | NotifType.CallMissed | NotifType.CallEvent;
+      if (!lead.NotifsForActionPlans.HasFlag(StopNotifs))
+      {
+        lead.NotifsForActionPlans |= StopNotifs;
+      }
+    }
+    var notif = new Notification
+    {
+      BrokerId = brokerId,
+      LeadId = LeadId,
+      EventTimeStamp = timeNow,
+      NotifType = NotifType.ActionPlanStarted,
+      ReadByBroker = true,
+      NotifyBroker = false,
+      ProcessingStatus = ProcessingStatus.NoNeed,
+    };
+    notif.NotifProps[NotificationJSONKeys.APTriggerType] = NotificationJSONKeys.TriggeredManually;
+    notif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
+    _appDbContext.Notifications.Add(notif);
 
-    transaction.Commit();
-  /// <summary>
-  /// hangfire job that will execute THIS tracked action, not the one after the delay
-  /// </summary>
-  /*public string? HangfireJobId { get; set; }
-  /// <summary>
-  /// if null immediate
-  /// </summary>
-  public DateTimeOffset? HangfireScheduledStartTime { get; set; }
-  public DateTimeOffset? ExecutionCompletedTime { get; set; }
-  /// <summary>
-  /// Details about failures or other relevant Status Info
-  /// </summary>
-  public string? ActionStatusInfo { get; set; }
-  /// <summary>
-  /// can be the sent emailId, sent smsId, Some action result that should be tracked
-  /// </summary>
-  public int? ActionResultId { get; set; }*/
+    if (delays != null)
+    {
+      HangfireJobId = Hangfire.BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId), timespan);
+    }
+    else
+    {
+      HangfireJobId = Hangfire.BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId));
+    }
+    actionTracker.HangfireJobId = HangfireJobId;
 
-
-
-
-  //change lead NotifsTOListenTo if necessary ,fow now this is only
-  //if stopplanoninteraction == true
-
-  //create notif ActionPlan Started
+    await _appDbContext.SaveChangesAsync();
   }
 }

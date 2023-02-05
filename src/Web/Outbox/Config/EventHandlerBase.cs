@@ -1,7 +1,6 @@
 ﻿using Core.Domain.NotificationAggregate;
 using Infrastructure.Data;
 using MediatR;
-using Microsoft.Graph;
 
 namespace Web.Outbox.Config;
 
@@ -20,6 +19,7 @@ public abstract class EventHandlerBase<TEvent> : INotificationHandler<TEvent> wh
   /// If Notif.DeleteAfterProcessin == true deletes Notif 
   /// Else marks its ProcessingStatus as Done
   /// then Removes Notif from Scheduled Dictionary and Error Dictionary juste au cas ou.
+  /// Saves database
   /// </summary>
   /// <param name="notif"></param>
   /// <returns></returns>

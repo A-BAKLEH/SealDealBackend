@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Core.ExternalServiceInterfaces.ActionPlans;
 using SharedKernel;
 using Web.Config;
 using Web.ControllerServices;
@@ -20,6 +21,10 @@ public class WebModule : Module
 
   protected override void Load(ContainerBuilder builder)
   {
+    builder.RegisterType<ActionExecuter>().As<IActionExecuter>().InstancePerLifetimeScope();
+
+
+
     builder.RegisterType(typeof(AuthorizationService)).AsSelf().InstancePerLifetimeScope();
     builder.RegisterType(typeof(BrokerQService)).AsSelf().InstancePerLifetimeScope();
     builder.RegisterType(typeof(LeadQService)).AsSelf().InstancePerLifetimeScope();

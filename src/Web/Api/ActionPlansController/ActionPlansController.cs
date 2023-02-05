@@ -46,8 +46,8 @@ public class ActionPlansController : BaseApiController
   /// </summary>
   /// <param name="dto"></param>
   /// <returns></returns>
-  [HttpPost("/ManualStart/{LeadId}/{ActionPlanId}")]
-  public async Task<IActionResult> ManualStart(int LeadId,int ActionPlanId)
+  [HttpPost("/ManualStart")]
+  public async Task<IActionResult> ManualStart([FromBody] StartActionPlanDTO dto)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -57,10 +57,7 @@ public class ActionPlansController : BaseApiController
       return Forbid();
     }
 
-     await _actionPQService.StartLeadActionPlanManually(brokerTuple.Item1,LeadId,ActionPlanId);
-
-    //var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
-    //result.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, result.TimeCreated);
+     await _actionPQService.StartLeadActionPlanManually(id,dto.LeadId,dto.ActionPlanID, dto.customDelay);
 
     return Ok();
   }
