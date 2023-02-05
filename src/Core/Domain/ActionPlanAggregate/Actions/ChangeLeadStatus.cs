@@ -1,4 +1,6 @@
 ﻿
+using Core.ExternalServiceInterfaces.ActionPlans;
+
 namespace Core.Domain.ActionPlanAggregate.Actions;
 public class ChangeLeadStatus : ActionBase
 {
@@ -8,10 +10,8 @@ public class ChangeLeadStatus : ActionBase
   /// 
   /// outside inputs: LeadId
   /// </summary>
-  public async override Task<Tuple<int?, string?>> Execute()
+  public async override Task<bool> Execute(params Object[] pars)
   {
-
-    Console.WriteLine("executing from ChangeStatusAction");
-    return null;
+    return await _IActionExecuter.ExecuteChangeLeadStatus(pars);
   }
 }

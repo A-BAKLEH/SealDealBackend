@@ -1,11 +1,10 @@
-﻿using System.Reflection.Metadata;
+﻿using System.Collections.Generic;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.ActionPlanAggregate.Actions;
-using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
+using Core.ExternalServiceInterfaces.ActionPlans;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Pipelines.Sockets.Unofficial.Arenas;
 using Web.Constants;
 
 namespace Web.Processing.ActionPlans;
@@ -14,10 +13,12 @@ public class APProcessor
 {
   private readonly AppDbContext _appDbContext;
   private readonly ILogger<APProcessor> _logger;
-  public APProcessor(AppDbContext appDbContext, ILogger<APProcessor> logger)
+  public readonly IActionExecuter _actionExecuter;
+  public APProcessor(AppDbContext appDbContext, IActionExecuter actionExecuter,ILogger<APProcessor> logger)
   {
     _appDbContext = appDbContext;
     _logger = logger;
+    _actionExecuter = actionExecuter;
   }
 
   /// <summary>
@@ -48,59 +49,21 @@ public class APProcessor
 
     var lead = ActionPlanAssociation.lead;
     var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
-    var CurrentAction = actions.Single(a => a.Id == ActionId && a.ActionLevel == ActionLevel);
+    var CurrentAction = actions[0];
     var currentActionLevel = CurrentAction.ActionLevel;
 
     Guid brokerId = lead.BrokerId ?? _appDbContext.ActionPlans.Select(a => new { a.BrokerId, a.Id }).Single(a => a.Id == ActionPlanId).BrokerId;
 
-    var timeNow = DateTimeOffset.UtcNow;
+    var timeNow = DateTime.UtcNow;
 
     //START ----Specific Action Handling------------
-    var atype = CurrentAction.GetType();
-
-    //1) Change Lead Status Action
-    // inputs : currentAction, lead, timeNow, ActionPlanId, actionId, APAssId, old new status
-    if (atype == typeof(ChangeLeadStatus)) 
-    {
-      string NewStatusString = CurrentAction.ActionProperties[ChangeLeadStatus.NewLeadStatus];
-
-      Enum.TryParse<LeadStatus>(NewStatusString, true, out var NewLeadStatus);
-      if (lead.LeadStatus == NewLeadStatus) return;
-      var oldStatus = lead.LeadStatus;
-      lead.LeadStatus = NewLeadStatus;
-
-      var StatusChangeNotif = new Notification
-      {
-        LeadId = LeadId,
-        BrokerId = brokerId,
-        EventTimeStamp = timeNow,
-        NotifType = NotifType.LeadStatusChange,
-        ReadByBroker = false,
-        NotifyBroker = true,
-        IsActionPlanResult = true,
-        //ProcessingStatus NO NEED for now, if later needs to be handled by outbox then assign
-      };
-      StatusChangeNotif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
-      StatusChangeNotif.NotifProps[NotificationJSONKeys.ActionId] = CurrentAction.Id.ToString();
-      StatusChangeNotif.NotifProps[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
-
-      StatusChangeNotif.NotifProps[NotificationJSONKeys.OldLeadStatus] = oldStatus.ToString();
-      StatusChangeNotif.NotifProps[NotificationJSONKeys.NewLeadStatus] = lead.LeadStatus.ToString();
-      _appDbContext.Notifications.Add(StatusChangeNotif);
-      // TODO------------- signalR and push Notif
-    }
-    else if (atype == typeof(SendEmail))
-    {
-
-    }
-    else if (atype == typeof(SendEmail))
-    {
-
-    }
-    else
-    {
-      throw new NotImplementedException(CurrentAction.GetType().ToString());
-    }
+    CurrentAction._IActionExecuter = _actionExecuter;
+    //0) ActionPlanAssociation - ActionPlanAssociation
+    //1) List < ActionBase > -actions
+    //2) Guid - brokerId
+    //3) DateTime - timeNow
+    var ContinueProcessing = await CurrentAction.Execute(ActionPlanAssociation, actions, brokerId, timeNow);
+    if (!ContinueProcessing) return;
     // END---------Specific action handling done --------
 
 

@@ -6,6 +6,7 @@ using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.Domain.TasksAggregate;
+using Core.ExternalServiceInterfaces.ActionPlans;
 using SharedKernel;
 
 namespace Core.Domain.BrokerAggregate;
@@ -27,7 +28,7 @@ public class Broker : Entity<Guid>
   public Boolean AccountActive { get; set; }
   public string? PhoneNumber { get; set; }
   public string LoginEmail { get; set; }
-  public DateTimeOffset Created { get; set;} = DateTimeOffset.Now;
+  public DateTimeOffset Created { get; set; } = DateTimeOffset.Now;
   /// <summary>
   /// Notif types that can act as triggers to Broker's active Action Plans OR for action plans
   /// that listen to notifs that ARE NOT RELATED DIRECTLY TO LEADS

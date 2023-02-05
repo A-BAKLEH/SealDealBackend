@@ -1,9 +1,10 @@
-﻿using SharedKernel;
+﻿using Core.ExternalServiceInterfaces.ActionPlans;
+using SharedKernel;
 
 namespace Core.Domain.ActionPlanAggregate.Actions;
 public abstract class ActionBase: Entity<int>
 {
-
+  public IActionExecuter? _IActionExecuter { get; set; }
   public int ActionPlanId { get; set; }
   public ActionPlan ActionPlan { get; set; }
   /// <summary>
@@ -26,10 +27,6 @@ public abstract class ActionBase: Entity<int>
   /// integer values only
   /// </summary>
   public string? NextActionDelay { get; set; }
-  /// <summary>
-  /// returns Tuple
-  /// T1:ActionResultId for sentEmail for example and T2: string for info
-  /// </summary>
-  /// <returns></returns>
-  public abstract Task<Tuple<int?, string?>> Execute();
+
+  public abstract Task<bool> Execute(params Object[] pars);
 }

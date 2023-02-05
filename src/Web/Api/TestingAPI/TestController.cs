@@ -76,9 +76,10 @@ public class TestController : ControllerBase
   public async Task<IActionResult> test_params()
   {
     var broker = _appDbContext.Brokers.Include(b => b.Notifs).Single();
-    OuterMethod(broker);
+    ///OuterMethod(broker);
+    //await broker._IActionExecuter.ExecuteSendEmail();
 
-    _appDbContext.SaveChanges();
+    //_appDbContext.SaveChanges();
     return Ok();
   }
 
