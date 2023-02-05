@@ -33,19 +33,16 @@ public class APProcessor
   { // 89 1 1 1 
     // want a query that will give me curret action and next one (where action level == currentLevel +1)
     // 
-    var ActionPlanAssociationTask = _appDbContext.ActionPlanAssociations
+    var ActionPlanAssociation = await _appDbContext.ActionPlanAssociations
       .Include(ass => ass.ActionTrackers.Where(a => a.TrackedActionId == ActionId))
       .Include(ass => ass.lead)
       .FirstAsync(ass => ass.LeadId == LeadId && ass.ActionPlanId == ActionPlanId);
 
-    var actionsTask = _appDbContext.Actions
+    var actions = await _appDbContext.Actions
       .Where(a => a.ActionPlanId == ActionPlanId && (a.ActionLevel == ActionLevel || a.ActionLevel == ActionLevel + 1))
       .OrderBy(a => a.ActionLevel)
       .AsNoTracking()
       .ToListAsync();
-
-    var ActionPlanAssociation = await ActionPlanAssociationTask;
-    var actions = await actionsTask;
 
     var lead = ActionPlanAssociation.lead;
     var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
