@@ -232,6 +232,7 @@ public class ActionPQService
       HangfireJobId = Hangfire.BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId));
     }
     actionTracker.HangfireJobId = HangfireJobId;
+    _appDbContext.ActionPlanAssociations.Add(apAssociation);
 
     await _appDbContext.SaveChangesAsync();
   }
