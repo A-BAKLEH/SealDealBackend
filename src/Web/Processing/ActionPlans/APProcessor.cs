@@ -30,11 +30,11 @@ public class APProcessor
   /// <param name="ActionPlanId"></param>
   /// <returns></returns>
   public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId)
-  {
+  { // 89 1 1 1 
     // want a query that will give me curret action and next one (where action level == currentLevel +1)
     // 
     var ActionPlanAssociationTask = _appDbContext.ActionPlanAssociations
-      .Include(ass => ass.ActionTrackers.First(a => a.TrackedActionId == ActionId))
+      .Include(ass => ass.ActionTrackers.Where(a => a.TrackedActionId == ActionId))
       .Include(ass => ass.lead)
       .FirstAsync(ass => ass.LeadId == LeadId && ass.ActionPlanId == ActionPlanId);
 
