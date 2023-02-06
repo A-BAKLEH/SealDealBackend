@@ -29,7 +29,8 @@ public class CreateActionDTO
   /// key value pairs
   /// If ChangeLeadStatus => "NewLeadStatus":New, Active, Client, Closed, Dead<para />
   /// If SendSms => "SmsTemplateId":SmsTemplateId <para/>
-  /// If SendEmail => "EmailTemplateId": EmailTemplateId<para/>
+  /// If SendEmail => "EmailTemplateId": EmailTemplateId //Assume 1 connected email for broker
+  /// for now <para/>
   /// </summary>
   public Dictionary<string, string> Properties { get; set; }
 }

@@ -53,8 +53,8 @@ public class ListingController : BaseApiController
     {
       listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
     }
-    var respnse = new AgencyListingsDTO { listings = listings };
-    return Ok(respnse);
+    //var respnse = new AgencyListingsDTO { listings = listings };
+    return Ok(listings);
   }
 
   /// <summary>
@@ -109,8 +109,8 @@ public class ListingController : BaseApiController
       listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
     }
     
-    var respnse = new BrokersListingsDTO { listings = listings };
-    return Ok(respnse);
+    //var respnse = new BrokersListingsDTO { listings = listings };
+    return Ok(listings);
   }
 
 

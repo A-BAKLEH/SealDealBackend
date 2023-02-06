@@ -1,5 +1,4 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.LeadAggregate;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
