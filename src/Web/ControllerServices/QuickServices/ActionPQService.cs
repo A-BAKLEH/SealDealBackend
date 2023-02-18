@@ -32,10 +32,10 @@ public class ActionPQService
   {
 
     var actionPlans = await _appDbContext.ActionPlans
+      .Where(a => a.BrokerId == brokerId)
       .Select(a => new ActionPlanDTO
         {
           id= a.Id,
-          brokerId = a.BrokerId,
           FirstActionDelay = a.FirstActionDelay,
           isActive = a.isActive,
           name = a.Name,
@@ -51,7 +51,6 @@ public class ActionPQService
           }),
           ActiveOnXLeads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Count(),
         })
-      .Where(a => a.brokerId == brokerId)
       .OrderByDescending(a => a.ActiveOnXLeads).ThenByDescending(a => a.TimeCreated)
       .ToListAsync();
 
