@@ -12,9 +12,8 @@ using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using Web.ApiModels.APIResponses.ActionPlans;
 using Web.ApiModels.RequestDTOs.ActionPlans;
+using Web.Config.EnumExtens;
 using Web.Constants;
-using Web.Outbox;
-using Web.Outbox.Config;
 using Web.Processing.ActionPlans;
 
 namespace Web.ControllerServices.QuickServices;
@@ -29,7 +28,40 @@ public class ActionPQService
     _appDbContext = appDbContext;
   }
 
-  public async Task<ActionPlanDTO> CreateActionPlanAsync(CreateActionPlanDTO dto, Guid brokerId)
+  public async Task<List<ActionPlanDTO>> GetMyActionPlansAsync(Guid brokerId)
+  {
+
+    var actionPlans = await _appDbContext.ActionPlans
+      .Select(a => new ActionPlanDTO
+        {
+          id= a.Id,
+          brokerId = a.BrokerId,
+          FirstActionDelay = a.FirstActionDelay,
+          isActive = a.isActive,
+          name = a.Name,
+          ActionsCount = a.ActionsCount,
+          StopPlanOnInteraction = a.StopPlanOnInteraction,
+          TimeCreated = a.TimeCreated.UtcDateTime,
+          FlagTrigger = a.Triggers,
+          Actions = a.Actions.OrderBy(a => a.ActionLevel).Select(aa => new ActionDTO
+          {
+            ActionLevel= aa.ActionLevel,
+            ActionProperties = aa.ActionProperties,
+            NextActionDelay= aa.NextActionDelay,
+          }),
+          ActiveOnXLeads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Count(),
+        })
+      .Where(a => a.brokerId == brokerId)
+      .OrderByDescending(a => a.ActiveOnXLeads).ThenByDescending(a => a.TimeCreated)
+      .ToListAsync();
+
+    foreach (var item in actionPlans)
+    {
+      item.Triggers = item.FlagTrigger.GetIndividualFlags().Select(f => f.ToString()).ToList();
+    }
+    return actionPlans;
+  }
+  public async Task<ActionPlan1DTO> CreateActionPlanAsync(CreateActionPlanDTO dto, Guid brokerId)
   {
     NotifType trigger;
     switch (dto.Trigger)
@@ -43,8 +75,6 @@ public class ActionPQService
       default:
         throw new CustomBadRequestException("invalid trigger", ProblemDetailsTitles.InvalidInput);
     };
-
-
     if (dto.FirstActionDelay != null)
     {
       var delays = dto.FirstActionDelay.Trim().Split(':');
@@ -123,7 +153,7 @@ public class ActionPQService
     _appDbContext.ActionPlans.Add(actionPlan);
     await _appDbContext.SaveChangesAsync();
 
-    var result = new ActionPlanDTO
+    var result = new ActionPlan1DTO
     {
       ActionsCount = actionPlan.ActionsCount,
       FirstActionDelay = actionPlan.FirstActionDelay,
@@ -133,11 +163,11 @@ public class ActionPQService
       StopPlanOnInteraction = actionPlan.StopPlanOnInteraction,
       TimeCreated = actionPlan.TimeCreated.UtcDateTime,
       Trigger = dto.Trigger,
-      Actions = new List<ActionDTO>()
+      Actions = new List<Action1DTO>()
     };
     foreach (var action in actionPlan.Actions)
     {
-      result.Actions.Add(new ActionDTO
+      result.Actions.Add(new Action1DTO
       {
         ActionLevel = action.ActionLevel,
         ActionProperties = action.ActionProperties,
@@ -157,7 +187,6 @@ public class ActionPQService
     }
 
     var timeNow = DateTime.UtcNow;
-    //create actionPlanAssociation associated to Lead
     var apProjection = await _appDbContext.ActionPlans.
       Select(ap => new
       {
@@ -235,5 +264,6 @@ public class ActionPQService
     _appDbContext.ActionPlanAssociations.Add(apAssociation);
 
     await _appDbContext.SaveChangesAsync();
+
   }
 }

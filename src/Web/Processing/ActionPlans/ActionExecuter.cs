@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Infrastructure.ExternalServices;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph;
+using Core.Domain.BrokerAggregate.Templates;
 
 namespace Web.Processing.ActionPlans;
 
@@ -107,60 +108,38 @@ public class ActionExecuter : IActionExecuter
     // Broker's Connected email => Tenant Id
     var TemplateId = int.Parse(CurrentAction.ActionProperties[SendEmail.EmailTemplateId]);
     var broker = await _appDbContext.Brokers
-      .Select(b => new {b.Id, b.ConnectedEmails, Templates = b.Templates.Where(t => t.Id == TemplateId)})
+      .Select(b => new { b.Id, b.ConnectedEmails, Templates = b.Templates.Where(t => t.Id == TemplateId) })
       .FirstAsync(b => b.Id == brokerId);
 
     var connEmail = broker.ConnectedEmails[0];
-    var template = broker.Templates.FirstOrDefault();
- 
+    var template = (EmailTemplate?) broker.Templates.FirstOrDefault();
 
     _adGraphWrapper.CreateClient(connEmail.tenantId);
 
     var message = new Message
     {
-      Subject = "Meet for lunch?",
+      Subject = template.EmailTemplateSubject,
       Body = new ItemBody
       {
         ContentType = BodyType.Text,
-        Content = "The new cafeteria is open."
+        Content = template.templateText
       },
       ToRecipients = new List<Recipient>()
-  {
-    new Recipient
-    {
-      EmailAddress = new EmailAddress
       {
-        Address = "frannis@contoso.onmicrosoft.com"
-      }
-    }
-  },
-      CcRecipients = new List<Recipient>()
-  {
-    new Recipient
-    {
-      EmailAddress = new EmailAddress
-      {
-        Address = "danas@contoso.onmicrosoft.com"
-      }
-    }
-  }
+        new Recipient
+        {
+          EmailAddress = new EmailAddress
+          {
+            Address = lead.Email
+          }
+        }
+      },
     };
 
-    var saveToSentItems = false;
-
     await _adGraphWrapper._graphClient.Users[connEmail.Email]
-      .SendMail(message, saveToSentItems)
+      .SendMail(message, true)
       .Request()
       .PostAsync();
-
-
-    //await _adGraphWrapper._graphClient
-    //  .Users["bashar.eskandar@sealdeal.ca"]
-    //  .MailFolders["Inbox"]
-    //.Messages
-    //  .Delta()
-    //  .Request(options)
-    //  .GetAsync();
     return true;
   }
 

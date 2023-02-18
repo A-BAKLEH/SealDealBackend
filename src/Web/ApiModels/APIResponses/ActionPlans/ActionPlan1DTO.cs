@@ -1,24 +1,19 @@
-﻿using Core.Domain.NotificationAggregate;
+﻿namespace Web.ApiModels.APIResponses.ActionPlans;
 
-namespace Web.ApiModels.APIResponses.ActionPlans;
-
-public class ActionPlanDTO
+public class ActionPlan1DTO
 {
   public int id { get; set; }
   public string name { get; set; }
-  public Guid brokerId { get; set; }
   public bool isActive { get; set; }
-  public NotifType FlagTrigger { get; set; }
-  public List<string> Triggers { get; set; }
+  public string Trigger { get; set; }
   public bool StopPlanOnInteraction { get; set; }
   public string? FirstActionDelay { get; set; }
   public DateTime TimeCreated { get; set; }
   public int ActionsCount { get; set; }
-  public int ActiveOnXLeads { get; set; }
-  public IEnumerable<ActionDTO> Actions { get; set; }
+  public List<Action1DTO> Actions { get; set; }
 }
 
-public class ActionDTO
+public class Action1DTO
 {
   public int ActionLevel { get; set; }
   public Dictionary<string, string> ActionProperties { get; set; }
