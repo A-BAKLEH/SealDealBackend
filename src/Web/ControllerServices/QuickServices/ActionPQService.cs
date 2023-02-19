@@ -51,7 +51,7 @@ public class ActionPQService
           }),
           ActiveOnXLeads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Count(),
         })
-      .OrderByDescending(a => a.ActiveOnXLeads).ThenByDescending(a => a.TimeCreated)
+      .OrderByDescending(a => a.ActiveOnXLeads)
       .ToListAsync();
 
     foreach (var item in actionPlans)

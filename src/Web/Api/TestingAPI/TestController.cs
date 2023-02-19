@@ -47,10 +47,12 @@ public class TestController : ControllerBase
   private readonly IDistributedCache _distributedCache;
   private readonly BrokerQService _brokerTagsQService;
   private readonly AgencyQService _agencyQService;
+  private readonly ActionPQService _actionPQService;
 
   public TestController(IMediator mediator, ILogger<TestController> logger, ADGraphWrapper aDGraph,
      AppDbContext appDbContext, IB2CGraphService msGraphService, TemplatesQService templatesQService,
-     IDistributedCache _distributedCache, BrokerQService brokerTagsQService, AgencyQService agencyQService)
+     IDistributedCache _distributedCache, BrokerQService brokerTagsQService,
+     ActionPQService actionPQService, AgencyQService agencyQService)
   {
     _mediator = mediator;
     _logger = logger;
@@ -60,6 +62,7 @@ public class TestController : ControllerBase
     _brokerTagsQService = brokerTagsQService;
     _agencyQService = agencyQService;
     _adGraphWrapper = aDGraph;
+    _actionPQService = actionPQService;
   }
   [HttpGet("test-ef-navigation")]
   public async Task<IActionResult> test_ef_navigation()
@@ -217,10 +220,10 @@ public class TestController : ControllerBase
 
   }
 
-  [HttpGet("test-dynamic")]
-  public async Task<IActionResult> testdynamic()
+  [HttpGet("test-efffff")]
+  public async Task<IActionResult> testeffffff()
   {
-    dynamic res = await TestAnonym();
+    var res = await _actionPQService.GetMyActionPlansAsync(Guid.Parse("FECFA5F2-9DDD-4623-9AC9-46229FFC4524"));
     return Ok(res);
   }
 
