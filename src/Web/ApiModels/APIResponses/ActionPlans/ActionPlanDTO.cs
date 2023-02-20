@@ -15,7 +15,9 @@ public class ActionPlanDTO
   public DateTime TimeCreated { get; set; }
   public int ActionsCount { get; set; }
   public int ActiveOnXLeads { get; set; }
+  public IEnumerable<LeadNameIdDTO> leads { get; set; }
   public IEnumerable<ActionDTO> Actions { get; set; }
+
 }
 
 public class ActionDTO
@@ -23,4 +25,11 @@ public class ActionDTO
   public int ActionLevel { get; set; }
   public Dictionary<string, string> ActionProperties { get; set; }
   public string? NextActionDelay { get; set; }
+}
+
+public class LeadNameIdDTO
+{
+  public string firstName { get; set; }
+  public string lastName { get; set; }
+  public int LeadId { get; set; }
 }

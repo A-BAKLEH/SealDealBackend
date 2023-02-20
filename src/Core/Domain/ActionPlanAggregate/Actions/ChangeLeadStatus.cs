@@ -10,8 +10,9 @@ public class ChangeLeadStatus : ActionBase
   /// 
   /// outside inputs: LeadId
   /// </summary>
-  public async override Task<bool> Execute(params Object[] pars)
+  public async override Task<Tuple<bool, object?>> Execute(params Object[] pars)
   {
-    return await _IActionExecuter.ExecuteChangeLeadStatus(pars);
+    var b = await _IActionExecuter.ExecuteChangeLeadStatus(pars);
+    return Tuple.Create<bool,object?>(b,null);
   }
 }

@@ -91,7 +91,7 @@ public class ActionExecuter : IActionExecuter
   /// <param name="pars"></param>
   /// <returns></returns>
   /// <exception cref="NotImplementedException"></exception>
-  public async Task<bool> ExecuteSendEmail(params Object[] pars)
+  public async Task<Tuple<bool, EmailTemplate?>> ExecuteSendEmail(params Object[] pars)
   {
     var ActionPlanAssociation = (ActionPlanAssociation)pars[0];
     var actions = (List<ActionBase>)pars[1];
@@ -103,19 +103,23 @@ public class ActionExecuter : IActionExecuter
     var CurrentAction = actions[0];
     var currentActionLevel = CurrentAction.ActionLevel;
 
-    // lead Email
-    // TemplateId => Template
-    // Broker's Connected email => Tenant Id
     var TemplateId = int.Parse(CurrentAction.ActionProperties[SendEmail.EmailTemplateId]);
     var broker = await _appDbContext.Brokers
       .Select(b => new { b.Id, b.ConnectedEmails, Templates = b.Templates.Where(t => t.Id == TemplateId) })
       .FirstAsync(b => b.Id == brokerId);
 
     var connEmail = broker.ConnectedEmails[0];
-    var template = (EmailTemplate?) broker.Templates.FirstOrDefault();
+    var template = (EmailTemplate)broker.Templates.First();
 
+
+    //TODO determine if already sent
+    bool alreadySent = false;
+    if (alreadySent) return Tuple.Create<bool,EmailTemplate?>(false,null);
     _adGraphWrapper.CreateClient(connEmail.tenantId);
 
+    //TODO replace variables in template text
+
+    var tag = ActionPlanAssociation.Id.ToString() + "x" + template.Id;
     var message = new Message
     {
       Subject = template.EmailTemplateSubject,
@@ -134,15 +138,42 @@ public class ActionExecuter : IActionExecuter
           }
         }
       },
+      SingleValueExtendedProperties = new MessageSingleValueExtendedPropertiesCollectionPage()
+      {
+        new SingleValueLegacyExtendedProperty
+        {
+          Id = APIConstants.APSentEmailExtendedPropId,
+          Value = tag
+        }
+      }
     };
 
     await _adGraphWrapper._graphClient.Users[connEmail.Email]
-      .SendMail(message, true)
-      .Request()
-      .PostAsync();
-    return true;
-  }
+        .SendMail(message, true)
+        .Request()
+        .PostAsync();
 
+    template.TimesUsed++;
+    var EmailSentNotif = new Notification
+    {
+      LeadId = lead.Id,
+      BrokerId = brokerId,
+      EventTimeStamp = timeNow,
+      NotifType = NotifType.EmailEvent,
+      ReadByBroker = false,
+      NotifyBroker = true,
+      IsActionPlanResult = true,
+      IsRecevied= false,
+      //ProcessingStatus NO NEED for now, if later needs to be handled by outbox then assign
+    };
+    EmailSentNotif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
+    EmailSentNotif.NotifProps[NotificationJSONKeys.ActionId] = CurrentAction.Id.ToString();
+    EmailSentNotif.NotifProps[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
+    _appDbContext.Notifications.Add(EmailSentNotif);
+    // TODO------------- signalR and push Notif
+
+    return Tuple.Create(true, template);
+  }
   /// <summary>
   /// Returns true if continue processing, false stop right away dont need to
   /// </summary>

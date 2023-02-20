@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.ActionPlanAggregate.Actions;
+using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces.ActionPlans;
 using Infrastructure.Data;
@@ -14,7 +15,7 @@ public class APProcessor
   private readonly AppDbContext _appDbContext;
   private readonly ILogger<APProcessor> _logger;
   public readonly IActionExecuter _actionExecuter;
-  public APProcessor(AppDbContext appDbContext, IActionExecuter actionExecuter,ILogger<APProcessor> logger)
+  public APProcessor(AppDbContext appDbContext, IActionExecuter actionExecuter, ILogger<APProcessor> logger)
   {
     _appDbContext = appDbContext;
     _logger = logger;
@@ -30,7 +31,7 @@ public class APProcessor
   /// <param name="ActionPlanId"></param>
   /// <returns></returns>
   public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId)
-  { 
+  {
     var ActionPlanAssociation = await _appDbContext.ActionPlanAssociations
       .Include(ass => ass.ActionTrackers.Where(a => a.TrackedActionId == ActionId))
       .Include(ass => ass.lead)
@@ -47,6 +48,11 @@ public class APProcessor
     var CurrentAction = actions[0];
     var currentActionLevel = CurrentAction.ActionLevel;
 
+    if(CurrentActionTracker.ActionStatus != ActionStatus.ScheduledToStart)
+    {
+      _logger.LogError("{DoAction} processing action with id {ActionId} for lead {LeadId} with status {ActionTrackerStatus}", "doAction", ActionId, LeadId,CurrentActionTracker.ActionStatus.ToString());
+      return;
+    }
     Guid brokerId = lead.BrokerId ?? _appDbContext.ActionPlans.Select(a => new { a.BrokerId, a.Id }).Single(a => a.Id == ActionPlanId).BrokerId;
 
     var timeNow = DateTime.UtcNow;
@@ -57,8 +63,8 @@ public class APProcessor
     //1) List < ActionBase > -actions
     //2) Guid - brokerId
     //3) DateTime - timeNow
-    var ContinueProcessing = await CurrentAction.Execute(ActionPlanAssociation, actions, brokerId, timeNow);
-    if (!ContinueProcessing) return;
+    var ResTuple = await CurrentAction.Execute(ActionPlanAssociation, actions, brokerId, timeNow);
+    if (!ResTuple.Item1) return;
     // END---------Specific action handling done --------
 
 
@@ -126,6 +132,45 @@ public class APProcessor
       _appDbContext.Notifications.Add(APDoneNotif);
 
       // TODO SignalR and push notifs
+    }
+    bool saved = false;
+    while (!saved)
+    {
+      try
+      {
+        // Attempt to save changes to the database
+        await _appDbContext.SaveChangesAsync();
+        saved = true;
+      }
+      catch (DbUpdateConcurrencyException ex)
+      {
+        foreach (var entry in ex.Entries)
+        {
+          if (entry.Entity is EmailTemplate emailTemplate)
+          {
+            var proposedValues = entry.CurrentValues;
+            var databaseValues = entry.GetDatabaseValues();
+
+            foreach (var property in proposedValues.Properties)
+            {
+              var proposedValue = proposedValues[property];
+              var databaseValue = databaseValues[property];
+
+              // TODO: decide which value should be written to database
+              // proposedValues[property] = <value to be saved>;
+            }
+
+            // Refresh original values to bypass next concurrency check
+            entry.OriginalValues.SetValues(databaseValues);
+          }
+          else
+          {
+            throw new NotSupportedException(
+                "Don't know how to handle concurrency conflicts for "
+                + entry.Metadata.Name);
+          }
+        }
+      }
     }
     await _appDbContext.SaveChangesAsync();
     // END---- Handle Next Action DONE--------

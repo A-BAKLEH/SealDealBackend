@@ -28,5 +28,5 @@ public abstract class ActionBase: Entity<int>
   /// </summary>
   public string? NextActionDelay { get; set; }
 
-  public abstract Task<bool> Execute(params Object[] pars);
+  public abstract Task<Tuple<bool,object?>> Execute(params Object[] pars);
 }

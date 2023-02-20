@@ -28,6 +28,7 @@ using Web.Outbox;
 using Infrastructure.Migrations;
 using Core.Domain.ActionPlanAggregate;
 using Hangfire.Server;
+using Core.Domain.BrokerAggregate.Templates;
 
 namespace Web.Api.TestingAPI;
 
@@ -94,7 +95,7 @@ public class TestController : ControllerBase
   }
   private static dynamic InnerMthod1(params Object[] pars)
   {
-    Broker b = (Broker) pars[0];
+    Broker b = (Broker)pars[0];
     b.Notifs[0].ReadByBroker = true;
     return "lol";
   }
@@ -223,8 +224,51 @@ public class TestController : ControllerBase
   [HttpGet("test-efffff")]
   public async Task<IActionResult> testeffffff()
   {
-    var res = await _actionPQService.GetMyActionPlansAsync(Guid.Parse("FECFA5F2-9DDD-4623-9AC9-46229FFC4524"));
-    return Ok(res);
+
+    var temp = _appDbContext.Templates.First(t => t.Id == 45);
+    temp.TimesUsed++;
+    bool saved = false;
+    while (!saved)
+    {
+      try
+      {
+        // Attempt to save changes to the database
+        await _appDbContext.SaveChangesAsync();
+        saved = true;
+      }
+      catch (DbUpdateConcurrencyException ex)
+      {
+        foreach (var entry in ex.Entries)
+        {
+          if (entry.Entity is EmailTemplate)
+          {
+            EmailTemplate emailTemplate = (EmailTemplate)entry.Entity;
+            var proposedValues = entry.CurrentValues;
+            var databaseValues = entry.GetDatabaseValues();
+
+            foreach (var property in proposedValues.Properties)
+            {
+              var proposedValue = proposedValues[property];
+              var databaseValue = databaseValues[property];
+
+              // TODO: decide which value should be written to database
+              // proposedValues[property] = <value to be saved>;
+            }
+
+            // Refresh original values to bypass next concurrency check
+            entry.OriginalValues.SetValues(databaseValues);
+          }
+          else
+          {
+            throw new NotSupportedException(
+                "Don't know how to handle concurrency conflicts for "
+                + entry.Metadata.Name);
+          }
+        }
+      }
+    }
+
+    return Ok();
   }
 
   [HttpGet("test-ef")]
