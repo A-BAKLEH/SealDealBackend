@@ -29,6 +29,7 @@ using Infrastructure.Migrations;
 using Core.Domain.ActionPlanAggregate;
 using Hangfire.Server;
 using Core.Domain.BrokerAggregate.Templates;
+using Newtonsoft.Json.Linq;
 
 namespace Web.Api.TestingAPI;
 
@@ -242,18 +243,26 @@ public class TestController : ControllerBase
         {
           if (entry.Entity is EmailTemplate)
           {
-            EmailTemplate emailTemplate = (EmailTemplate)entry.Entity;
             var proposedValues = entry.CurrentValues;
             var databaseValues = entry.GetDatabaseValues();
 
-            foreach (var property in proposedValues.Properties)
-            {
-              var proposedValue = proposedValues[property];
-              var databaseValue = databaseValues[property];
+            databaseValues.TryGetValue("TimesUsed", out int dbcount);
+            dbcount++;
+            EmailTemplate emailTemplate = (EmailTemplate)entry.Entity;
+            emailTemplate.TimesUsed = dbcount;
+            //var countProp = proposedValues.Properties.First(p => p.Name == "TimesUsed");
+            //countProp = dbcount;
+            //var proposedValue = proposedValues[countProp];
+            //var databaseValue = databaseValues[countProp];
 
-              // TODO: decide which value should be written to database
-              // proposedValues[property] = <value to be saved>;
-            }
+            //foreach (var property in proposedValues.Properties)
+            //{
+            //  var proposedValue1 = proposedValues[property];
+            //  var databaseValue1 = databaseValues[property];
+
+            //  // TODO: decide which value should be written to database
+            //  // proposedValues[property] = <value to be saved>;
+            //}
 
             // Refresh original values to bypass next concurrency check
             entry.OriginalValues.SetValues(databaseValues);

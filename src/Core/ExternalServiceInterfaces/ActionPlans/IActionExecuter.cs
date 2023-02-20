@@ -19,7 +19,7 @@ public interface IActionExecuter
   /// </summary>
   /// <param name="pars"></param>
   /// <returns></returns>
-  Task<Tuple<bool,EmailTemplate?>> ExecuteSendEmail(params Object[] pars);
+  Task<bool> ExecuteSendEmail(params Object[] pars);
   /// <summary>
   /// Returns true if continue processing, false stop right away dont need to
   /// </summary>

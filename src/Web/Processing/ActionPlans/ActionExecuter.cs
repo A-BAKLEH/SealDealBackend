@@ -91,7 +91,7 @@ public class ActionExecuter : IActionExecuter
   /// <param name="pars"></param>
   /// <returns></returns>
   /// <exception cref="NotImplementedException"></exception>
-  public async Task<Tuple<bool, EmailTemplate?>> ExecuteSendEmail(params Object[] pars)
+  public async Task<bool> ExecuteSendEmail(params Object[] pars)
   {
     var ActionPlanAssociation = (ActionPlanAssociation)pars[0];
     var actions = (List<ActionBase>)pars[1];
@@ -114,7 +114,7 @@ public class ActionExecuter : IActionExecuter
 
     //TODO determine if already sent
     bool alreadySent = false;
-    if (alreadySent) return Tuple.Create<bool,EmailTemplate?>(false,null);
+    if (alreadySent) return false;
     _adGraphWrapper.CreateClient(connEmail.tenantId);
 
     //TODO replace variables in template text
@@ -172,7 +172,7 @@ public class ActionExecuter : IActionExecuter
     _appDbContext.Notifications.Add(EmailSentNotif);
     // TODO------------- signalR and push Notif
 
-    return Tuple.Create(true, template);
+    return true;
   }
   /// <summary>
   /// Returns true if continue processing, false stop right away dont need to

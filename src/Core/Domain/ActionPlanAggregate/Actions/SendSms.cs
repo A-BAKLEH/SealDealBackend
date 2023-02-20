@@ -1,6 +1,4 @@
-﻿
-
-namespace Core.Domain.ActionPlanAggregate.Actions;
+﻿namespace Core.Domain.ActionPlanAggregate.Actions;
 public class SendSms : ActionBase
 {
   public const string SmsTemplateId = "SmsTemplateId"; //int value 

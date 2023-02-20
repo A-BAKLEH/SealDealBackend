@@ -133,6 +133,7 @@ public class APProcessor
 
       // TODO SignalR and push notifs
     }
+
     bool saved = false;
     while (!saved)
     {
@@ -146,21 +147,16 @@ public class APProcessor
       {
         foreach (var entry in ex.Entries)
         {
-          if (entry.Entity is EmailTemplate emailTemplate)
+          if (entry.Entity is EmailTemplate)
           {
             var proposedValues = entry.CurrentValues;
             var databaseValues = entry.GetDatabaseValues();
 
-            foreach (var property in proposedValues.Properties)
-            {
-              var proposedValue = proposedValues[property];
-              var databaseValue = databaseValues[property];
+            databaseValues.TryGetValue("TimesUsed", out int dbcount);
+            dbcount++;
+            EmailTemplate emailTemplate = (EmailTemplate)entry.Entity;
+            emailTemplate.TimesUsed = dbcount;
 
-              // TODO: decide which value should be written to database
-              // proposedValues[property] = <value to be saved>;
-            }
-
-            // Refresh original values to bypass next concurrency check
             entry.OriginalValues.SetValues(databaseValues);
           }
           else
@@ -172,7 +168,6 @@ public class APProcessor
         }
       }
     }
-    await _appDbContext.SaveChangesAsync();
     // END---- Handle Next Action DONE--------
   }
 }
