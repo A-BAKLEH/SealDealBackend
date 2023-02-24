@@ -117,7 +117,6 @@ public class BrokerController : BaseApiController
       broker.created = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, broker.created);
     }
     if (brokers == null || !brokers.Any()) return NotFound();
-    var res = new BrokersList { brokers = brokers };
-    return Ok(res);
+    return Ok(brokers);
   }
 }

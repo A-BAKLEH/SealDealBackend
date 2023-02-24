@@ -51,8 +51,8 @@ public class TemplateController : BaseApiController
     {
       dto.Modified = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, dto.Modified);
     }
-    
-    return Ok(templatesDTO);
+    var res = templatesDTO.allTemplates;
+    return Ok(res);
   }
 
   [HttpPost]
