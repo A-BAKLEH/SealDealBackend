@@ -23,6 +23,7 @@ public class ActionPlanDTO
 public class ActionDTO
 {
   public int ActionLevel { get; set; }
+  public int? TemplateId { get; set; }
   public Dictionary<string, string> ActionProperties { get; set; }
   public string? NextActionDelay { get; set; }
 }

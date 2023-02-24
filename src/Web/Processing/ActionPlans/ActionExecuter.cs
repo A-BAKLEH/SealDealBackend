@@ -1,7 +1,5 @@
-﻿using System;
-using Core.Domain.ActionPlanAggregate.Actions;
+﻿using Core.Domain.ActionPlanAggregate.Actions;
 using Core.Domain.ActionPlanAggregate;
-using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces.ActionPlans;
@@ -9,7 +7,6 @@ using Infrastructure.Data;
 using Web.Constants;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.ExternalServices;
-using Microsoft.Extensions.Options;
 using Microsoft.Graph;
 using Core.Domain.BrokerAggregate.Templates;
 
@@ -19,11 +16,13 @@ public class ActionExecuter : IActionExecuter
 {
   private readonly AppDbContext _appDbContext;
   private readonly ADGraphWrapper _adGraphWrapper;
+  private readonly ILogger<ActionExecuter> _logger;
 
-  public ActionExecuter(AppDbContext appDbContext, ADGraphWrapper adGraphWrapper)
+  public ActionExecuter(AppDbContext appDbContext, ADGraphWrapper adGraphWrapper, ILogger<ActionExecuter> logger)
   {
     _appDbContext = appDbContext;
     _adGraphWrapper = adGraphWrapper;
+    _logger = logger;
   }
 
   /// <summary>
@@ -103,7 +102,7 @@ public class ActionExecuter : IActionExecuter
     var CurrentAction = actions[0];
     var currentActionLevel = CurrentAction.ActionLevel;
 
-    var TemplateId = int.Parse(CurrentAction.ActionProperties[SendEmail.EmailTemplateId]);
+    var TemplateId = CurrentAction.DataId;
     var broker = await _appDbContext.Brokers
       .Select(b => new { b.Id, b.ConnectedEmails, Templates = b.Templates.Where(t => t.Id == TemplateId) })
       .FirstAsync(b => b.Id == brokerId);
@@ -180,8 +179,48 @@ public class ActionExecuter : IActionExecuter
   /// <param name="pars"></param>
   /// <returns></returns>
   /// <exception cref="NotImplementedException"></exception>
-  public Task<bool> ExecuteSendSms(params Object[] pars)
+  public async Task<bool> ExecuteSendSms(params Object[] pars)
   {
-    throw new NotImplementedException();
+    var ActionPlanAssociation = (ActionPlanAssociation)pars[0];
+    var actions = (List<ActionBase>)pars[1];
+    var brokerId = (Guid)pars[2];
+    var timeNow = (DateTime)pars[3];
+
+    var lead = ActionPlanAssociation.lead;
+    var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
+    var CurrentAction = actions[0];
+    var currentActionLevel = CurrentAction.ActionLevel;
+
+    var TemplateId = CurrentAction.DataId;
+    var broker = await _appDbContext.Brokers
+      .Select(b => new { b.Id, Templates = b.Templates.Where(t => t.Id == TemplateId) })
+      .FirstAsync(b => b.Id == brokerId);
+
+    var template = (SmsTemplate)broker.Templates.First();
+
+    //TODO determine if already sent
+    bool alreadySent = false;
+    if (alreadySent) return false;
+
+    _logger.LogWarning("SendSMS: Sending SMS with template {}",template.Title);
+
+    template.TimesUsed++;
+    var SmsSentNotif = new Notification
+    {
+      LeadId = lead.Id,
+      BrokerId = brokerId,
+      EventTimeStamp = timeNow,
+      NotifType = NotifType.SmsEvent,
+      ReadByBroker = false,
+      NotifyBroker = true,
+      IsActionPlanResult = true,
+      IsRecevied = false,
+      //ProcessingStatus NO NEED for now, if later needs to be handled by outbox then assign
+    };
+    SmsSentNotif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
+    SmsSentNotif.NotifProps[NotificationJSONKeys.ActionId] = CurrentAction.Id.ToString();
+    SmsSentNotif.NotifProps[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
+    _appDbContext.Notifications.Add(SmsSentNotif);
+    return true;
   }
 }

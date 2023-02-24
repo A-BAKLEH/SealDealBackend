@@ -21,6 +21,10 @@ public abstract class ActionBase: Entity<int>
   public Dictionary<string, string> ActionProperties { get; set; } = new();
   public List<ActionTracker> ActionTrackers { get; set; }
 
+  //used to store Id of template used by action or any other useful related data that can be
+  //represented as an int
+  public int? DataId { get; set; }
+
   /// <summary>
   /// delay before executing next action
   /// format: Days:hours:minutes

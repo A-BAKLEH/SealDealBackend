@@ -18,6 +18,18 @@ public class TemplatesQService
     _appDbContext = appDbContext;
   }
 
+  public async Task<TemplateDTO> UpdateTemplateAsync(UpdateTemplateDTO dto, Guid brokerId)
+  {
+    dynamic template = await _appDbContext.Templates.FirstAsync(t =>t.Id == dto.TemplateId && t.BrokerId == brokerId);
+
+    if(dto.text != null) template.templateText= dto.text;
+    if(dto.TemplateName != null) template.Title = dto.TemplateName;
+    if(dto.TemplateType == "e" && dto.subject != null) template.EmailTemplateSubject= dto.subject;
+    template.Modified = DateTimeOffset.UtcNow;
+    await _appDbContext.SaveChangesAsync();
+    return template.MapToDTO();
+
+  }
   public async Task<TemplateDTO> CreateTemplateAsync(CreateTemplateDTO dto, Guid brokerId)
   {
     if (_appDbContext.Templates.Any(t => t.BrokerId == brokerId && t.Title == dto.TemplateName))

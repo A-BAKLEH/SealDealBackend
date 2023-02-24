@@ -48,9 +48,9 @@ public class APProcessor
     var CurrentAction = actions[0];
     var currentActionLevel = CurrentAction.ActionLevel;
 
-    if(CurrentActionTracker.ActionStatus != ActionStatus.ScheduledToStart)
+    if (CurrentActionTracker.ActionStatus != ActionStatus.ScheduledToStart)
     {
-      _logger.LogError("{DoAction} processing action with id {ActionId} for lead {LeadId} with status {ActionTrackerStatus}", "doAction", ActionId, LeadId,CurrentActionTracker.ActionStatus.ToString());
+      _logger.LogError("{DoAction} processing action with id {ActionId} for lead {LeadId} with status {ActionTrackerStatus}", "doAction", ActionId, LeadId, CurrentActionTracker.ActionStatus.ToString());
       return;
     }
     Guid brokerId = lead.BrokerId ?? _appDbContext.ActionPlans.Select(a => new { a.BrokerId, a.Id }).Single(a => a.Id == ActionPlanId).BrokerId;
@@ -147,16 +147,23 @@ public class APProcessor
       {
         foreach (var entry in ex.Entries)
         {
-          if (entry.Entity is EmailTemplate)
+          if (entry.Entity is EmailTemplate || entry.Entity is SmsTemplate)
           {
             var proposedValues = entry.CurrentValues;
             var databaseValues = entry.GetDatabaseValues();
 
             databaseValues.TryGetValue("TimesUsed", out int dbcount);
             dbcount++;
-            EmailTemplate emailTemplate = (EmailTemplate)entry.Entity;
-            emailTemplate.TimesUsed = dbcount;
-
+            if (entry.Entity is EmailTemplate)
+            {
+              EmailTemplate emailTemplate = (EmailTemplate)entry.Entity;
+              emailTemplate.TimesUsed = dbcount;
+            }
+            else
+            {
+              SmsTemplate smsTemplate = (SmsTemplate)entry.Entity;
+              smsTemplate.TimesUsed = dbcount;
+            }
             entry.OriginalValues.SetValues(databaseValues);
           }
           else

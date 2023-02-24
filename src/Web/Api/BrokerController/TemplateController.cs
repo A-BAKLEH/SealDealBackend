@@ -74,4 +74,22 @@ public class TemplateController : BaseApiController
     return Ok(template);
   }
 
+  [HttpPatch]
+  public async Task<IActionResult> updateBrokerTemplate([FromBody] UpdateTemplateDTO dto)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to update template", TagConstants.Inactive, id);
+      return Forbid();
+    }
+
+    var template = await _templatesQService.UpdateTemplateAsync(dto, id);
+
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    template.Modified = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, template.Modified);
+    return Ok(template);
+  }
+
 }

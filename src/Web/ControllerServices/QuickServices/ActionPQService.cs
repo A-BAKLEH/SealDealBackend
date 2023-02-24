@@ -30,28 +30,28 @@ public class ActionPQService
 
   public async Task<List<ActionPlanDTO>> GetMyActionPlansAsync(Guid brokerId)
   {
-
     var actionPlans = await _appDbContext.ActionPlans
       .Where(a => a.BrokerId == brokerId)
       .Select(a => new ActionPlanDTO
+      {
+        id = a.Id,
+        FirstActionDelay = a.FirstActionDelay,
+        isActive = a.isActive,
+        name = a.Name,
+        ActionsCount = a.ActionsCount,
+        StopPlanOnInteraction = a.StopPlanOnInteraction,
+        TimeCreated = a.TimeCreated.UtcDateTime,
+        FlagTrigger = a.Triggers,
+        Actions = a.Actions.OrderBy(a => a.ActionLevel).Select(aa => new ActionDTO
         {
-          id= a.Id,
-          FirstActionDelay = a.FirstActionDelay,
-          isActive = a.isActive,
-          name = a.Name,
-          ActionsCount = a.ActionsCount,
-          StopPlanOnInteraction = a.StopPlanOnInteraction,
-          TimeCreated = a.TimeCreated.UtcDateTime,
-          FlagTrigger = a.Triggers,
-          Actions = a.Actions.OrderBy(a => a.ActionLevel).Select(aa => new ActionDTO
-          {
-            ActionLevel= aa.ActionLevel,
-            ActionProperties = aa.ActionProperties,
-            NextActionDelay= aa.NextActionDelay,
-          }),
-          ActiveOnXLeads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Count(),
-          leads = a.ActionPlanAssociations.Select(apa => new LeadNameIdDTO { LeadId= apa.LeadId,firstName = apa.lead.LeadFirstName, lastName = apa.lead.LeadLastName })
-        })
+          ActionLevel = aa.ActionLevel,
+          ActionProperties = aa.ActionProperties,
+          NextActionDelay = aa.NextActionDelay,
+          TemplateId = aa.DataId
+        }),
+        ActiveOnXLeads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Count(),
+        leads = a.ActionPlanAssociations.Select(apa => new LeadNameIdDTO { LeadId = apa.LeadId, firstName = apa.lead.LeadFirstName, lastName = apa.lead.LeadLastName })
+      })
       .OrderByDescending(a => a.ActiveOnXLeads)
       .ToListAsync();
 
@@ -110,8 +110,11 @@ public class ActionPQService
       switch (type)
       {
         case "SendEmail":
-          actionBase = new SendEmail();
-          actionBase.ActionProperties[SendEmail.EmailTemplateId] = actionDTO.Properties[SendEmail.EmailTemplateId];
+          if (actionDTO.TemplateId == null) throw new CustomBadRequestException("TemplateId empty", ProblemDetailsTitles.InvalidInput);
+          actionBase = new SendEmail
+          {
+            DataId = actionDTO.TemplateId
+          };
           break;
         case "ChangeLeadStatus":
           actionBase = new ChangeLeadStatus();
@@ -121,8 +124,11 @@ public class ActionPQService
           actionBase.ActionProperties[ChangeLeadStatus.NewLeadStatus] = NewLeadStatus.ToString();
           break;
         case "SendSms":
-          actionBase = new SendSms { };
-          actionBase.ActionProperties[SendSms.SmsTemplateId] = actionDTO.Properties[SendSms.SmsTemplateId];
+          if (actionDTO.TemplateId == null) throw new CustomBadRequestException("TemplateId empty", ProblemDetailsTitles.InvalidInput);
+          actionBase = new SendSms
+          {
+            DataId = actionDTO.TemplateId
+          };
           break;
         default:
           throw new CustomBadRequestException($"Invalid action {actionDTO.ActionType}", ProblemDetailsTitles.InvalidInput);
@@ -167,12 +173,14 @@ public class ActionPQService
     };
     foreach (var action in actionPlan.Actions)
     {
-      result.Actions.Add(new Action1DTO
+      var dtoo = new Action1DTO
       {
         ActionLevel = action.ActionLevel,
         ActionProperties = action.ActionProperties,
         NextActionDelay = action.NextActionDelay,
-      });
+        TemplateId = action.DataId
+      };
+      result.Actions.Add(dtoo);
     }
     return result;
   }

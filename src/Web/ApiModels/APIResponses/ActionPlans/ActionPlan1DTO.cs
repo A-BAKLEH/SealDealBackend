@@ -16,6 +16,7 @@ public class ActionPlan1DTO
 public class Action1DTO
 {
   public int ActionLevel { get; set; }
-  public Dictionary<string, string> ActionProperties { get; set; }
+  public int? TemplateId { get; set; }
+  public Dictionary<string, string> ActionProperties { get; set; } = new();
   public string? NextActionDelay { get; set; }
 }

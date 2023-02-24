@@ -25,11 +25,12 @@ public class CreateActionDTO
   [Required]
   public string NextActionDelay { get; set; }
 
+  //Email or Sms Template ID
+  public int? TemplateId { get; set; }
+
   /// <summary>
   /// key value pairs
   /// If ChangeLeadStatus => "NewLeadStatus":New, Active, Client, Closed, Dead<para />
-  /// If SendSms => "SmsTemplateId":SmsTemplateId <para/>
-  /// If SendEmail => "EmailTemplateId": EmailTemplateId //Assume 1 connected email for broker
   /// for now <para/>
   /// </summary>
   public Dictionary<string, string> Properties { get; set; }
