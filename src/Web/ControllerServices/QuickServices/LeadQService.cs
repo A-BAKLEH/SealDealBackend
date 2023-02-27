@@ -67,6 +67,7 @@ public class LeadQService
     var lead = await _appDbContext.Leads.Include(l => l.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running))
       .ThenInclude(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
       .Include(l => l.ToDoTasks.Where(t => t.IsDone == false))
+      .AsNoTracking()
       .FirstAsync(l => l.Id == leadId);
     if (lead.BrokerId != null && lead.BrokerId != brokerId) throw new CustomBadRequestException("nop", ProblemDetailsTitles.UserNoPermission, 403);
     if (lead.BrokerId == null && !isAdmin) throw new CustomBadRequestException("nop", ProblemDetailsTitles.UserNoPermission, 403);
