@@ -1,5 +1,4 @@
 ﻿using Core.Domain.ActionPlanAggregate.Actions;
-using Core.Domain.NotificationAggregate;
 using SharedKernel;
 
 namespace Core.Domain.ActionPlanAggregate;

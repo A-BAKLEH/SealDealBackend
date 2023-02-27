@@ -11,10 +11,11 @@ public class ActionTrackerConfig : IEntityTypeConfiguration<ActionTracker>
     builder.HasOne(at => at.TrackedAction)
             .WithMany(action => action.ActionTrackers)
             .HasForeignKey(at => at.TrackedActionId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.ClientCascade);
+
     builder.HasOne(at => at.ActionPlanAssociation)
         .WithMany(actionPlanAssociation => actionPlanAssociation.ActionTrackers)
         .HasForeignKey(at => at.ActionPlanAssociationId)
-        .OnDelete(DeleteBehavior.ClientCascade);
+        .OnDelete(DeleteBehavior.Cascade);
   }
 }
