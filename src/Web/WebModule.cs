@@ -37,6 +37,7 @@ public class WebModule : Module
     builder.RegisterType(typeof(HandleTodo)).AsSelf().InstancePerLifetimeScope();
     builder.RegisterType(typeof(APProcessor)).AsSelf().InstancePerLifetimeScope();
     
+    builder.RegisterType(typeof(ToDoTaskQService)).AsSelf().InstancePerLifetimeScope();
 
     builder.RegisterType(typeof(MSFTWebhookHandler)).AsSelf().InstancePerLifetimeScope();
     builder.RegisterType(typeof(EmailProcessor)).AsSelf().InstancePerLifetimeScope();

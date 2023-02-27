@@ -107,6 +107,20 @@ public class ListingController : BaseApiController
     return Ok(listings);
   }
 
+  [HttpPatch("{listingid}")]
+  public async Task<IActionResult> EditListing([FromBody] EditListingDTO dto ,int listingid)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item2 || !brokerTuple.Item3)
+    {
+      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to edit Listings", TagConstants.Inactive, id);
+      return Forbid();
+    }
+    await _listingQService.EditListingAsync(listingid,dto);
+    return Ok();
+  }
+
 
   [HttpPost("AssignToBroker/{listingid}/{brokerid}")]
   public async Task<IActionResult> AssignListingToBroker(int listingid, Guid brokerId)

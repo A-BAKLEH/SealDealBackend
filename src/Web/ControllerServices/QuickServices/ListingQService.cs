@@ -10,6 +10,7 @@ using Core.Domain.NotificationAggregate;
 using Web.Constants;
 using Web.Outbox.Config;
 using Web.Outbox;
+using Core.Domain.LeadAggregate;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -145,6 +146,33 @@ public class ListingQService
     return listingDTO;
   }
 
+  public async Task EditListingAsync(int listingId, EditListingDTO dto)
+  {
+    var listing = new Listing
+    {
+      Id = listingId,
+    };
+
+    bool change = false;
+    if(dto.Status != null && Enum.TryParse<ListingStatus>(dto.Status, true, out var lisStatus))
+    {
+      listing.Status = lisStatus;
+      change = true;
+    }
+    if (dto.URL != null)
+    {
+      listing.URL = dto.URL;
+      change = true;
+    }
+    if (dto.Price != null)
+    { listing.Price = (int)dto.Price; change = true; }
+    if (change)
+    {
+      _appDbContext.Listings.Update(listing);
+      await _appDbContext.SaveChangesAsync();
+    }
+    
+  }
   public async Task AssignListingToBroker(int listingId, Guid brokerId, Guid userId)
   {
 

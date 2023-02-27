@@ -12,7 +12,6 @@ using Web.Outbox.Config;
 using SharedKernel.Exceptions;
 using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.AgencyAggregate;
-using Core.Domain.BrokerAggregate.Templates;
 
 namespace Web.MediatrRequests.LeadRequests;
 
@@ -35,7 +34,6 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
 
   public async Task<LeadForListDTO> Handle(CreateLeadRequest request, CancellationToken cancellationToken)
   {
-    //using var transaction = _appDbContext.Database.BeginTransaction();
     var dto = request.createLeadDTO;
 
     bool typeExists = Enum.TryParse<LeadType>(dto.leadType, true, out var leadType);
@@ -183,7 +181,6 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         OutboxMemCache.SchedulingErrorDict.Add(notifId, leadAssignedEvent);
       }
     }
-    //transaction.Commit();
     var response = new LeadForListDTO
     {
       Budget = lead.Budget,
