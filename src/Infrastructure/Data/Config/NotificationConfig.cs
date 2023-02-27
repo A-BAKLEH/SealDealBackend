@@ -23,6 +23,6 @@ public class NotificationConfig : IEntityTypeConfiguration<Notification>
       HasOne(x => x.lead)
       .WithMany(l => l.LeadHistoryEvents)
       .IsRequired(false)
-      .OnDelete(DeleteBehavior.ClientCascade);
+      .OnDelete(DeleteBehavior.Cascade);
   }
 }
