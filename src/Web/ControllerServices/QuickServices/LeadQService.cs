@@ -107,7 +107,7 @@ public class LeadQService
     //related Action plan associations should be deleted by cascade
     // Notifs will be deleted automatically. TODO see if u wanna move them to cold storage
     //the outbox handlers u dont have to do anything for now they are enqued on short term failure will be rare
-    await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM [dbo].[ToDoTasks] WHERE LeadId = {leadId} ");
+    await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM [dbo].[ToDoTasks] WHERE LeadId = {leadId};");
     var leadToDelete = new Lead { Id =leadId };
     _appDbContext.Remove(leadToDelete);
     await _appDbContext.SaveChangesAsync();
