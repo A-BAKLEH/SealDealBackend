@@ -35,9 +35,15 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+string myOttherPolicy = "otherPolicy";
 builder.Services.AddCors(options =>
 {
-  options.AddPolicy(name: MyAllowSpecificOrigins, policy => { policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
+  options.AddPolicy(name: MyAllowSpecificOrigins,
+    policy => { policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
+
+  options.AddPolicy(name: myOttherPolicy,
+    policy => { policy.WithOrigins("https://localhost:7156").AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
+
 });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddMicrosoftIdentityWebApi(options =>
@@ -124,6 +130,7 @@ else
 app.UseHttpsRedirection();
 
 app.UseCors(MyAllowSpecificOrigins);
+app.UseCors(myOttherPolicy);
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -125,10 +125,64 @@ public class TestController : ControllerBase
     _appDbContext.SaveChanges();
     return Ok();
   }
-  [HttpPost("test-LEadJSON")]
-  public async Task<IActionResult> cacheTest()
+  [HttpGet("createtestData")]
+  public async Task<IActionResult> createTestData()
   {
 
+    var listing = new Listing
+    {
+      Address = new Address
+      {
+        City = "laval",
+        StreetAddress = "611 rue dsi",
+        Country = "tanaka",
+        PostalCode = "h7psg5",
+        ProvinceState = "qc"
+      },
+      AgencyId = 40,
+      AssignedBrokersCount = 1,
+      BrokersAssigned = new List<BrokerListingAssignment>
+      {
+        new BrokerListingAssignment
+        {
+          assignmentDate= DateTime.UtcNow,
+          BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"),
+        }
+      }
+    };
+    var lead = new Lead
+    {
+      AgencyId = 40,
+      LeadFirstName = "asad",
+      LeadLastName = "abdullah",
+      EntryDate = DateTimeOffset.UtcNow,
+      source = LeadSource.manual,
+      leadType = LeadType.Buyer,
+      BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"),
+      Listing = listing,
+      Budget = 1000,
+      LeadStatus = LeadStatus.New,
+      Note = new Note { NotesText = "wlasdfjasdogihoig" },
+      Tags = new List<Tag> { new Tag { BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"), TagName = "wlakTagTaggedlmaoNerd" } },
+      LeadHistoryEvents = new List<Notification>
+      {
+        new Notification
+        {
+        DeleteAfterProcessing = false,
+        IsActionPlanResult = false,
+        BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"),
+        EventTimeStamp= DateTimeOffset.UtcNow,
+        IsRecevied= false,
+        NotifType = NotifType.LeadStatusChange,
+        NotifyBroker = false,
+        ProcessingStatus = ProcessingStatus.Done,
+        ReadByBroker= true
+        }
+      }
+    };
+
+    _appDbContext.Leads.Add(lead);
+    await _appDbContext.SaveChangesAsync();
     //var listing = new Listing { AgencyId = 1, AssignedBrokersCount = 0,
     //  DateOfListing = DateTime.UtcNow,
     //  Price = 1000,
@@ -157,7 +211,7 @@ public class TestController : ControllerBase
     //listing.BrokersAssigned = new List<BrokerListingAssignment> { brokerlisting };
     //_appDbContext.SaveChanges();
 
-    var listings = await _appDbContext.BrokerListingAssignments
+    /*var listings = await _appDbContext.BrokerListingAssignments
       .Where(b => b.BrokerId == Guid.Parse("00000000-0000-0000-0000-000000000000"))
       .OrderByDescending(a => a.assignmentDate)
       .Select(l => new BrokerListingDTO
@@ -169,10 +223,7 @@ public class TestController : ControllerBase
         Status = l.Listing.Status.ToString(),
         DateAssignedToMe = l.assignmentDate,
         AssignedBrokersCount = l.Listing.BrokersAssigned.Count
-      }).AsNoTracking().ToListAsync();
-
-
-
+      }).AsNoTracking().ToListAsync();*/
     return Ok();
   }
 
