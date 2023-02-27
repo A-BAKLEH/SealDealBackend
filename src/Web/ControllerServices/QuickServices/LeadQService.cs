@@ -6,7 +6,6 @@ using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
-using SharedKernel.Exceptions.CustomProblemDetails;
 using Web.ApiModels;
 
 namespace Web.ControllerServices.QuickServices;
@@ -22,7 +21,9 @@ public class LeadQService
 
   public async Task<LeadForListDTO> UpdateLeadAsync(int LeadId, UpdateLeadDTO dto, Guid brokerID)
   {
-    var lead = await _appDbContext.Leads.FirstAsync(l => l.Id == LeadId && l.BrokerId == brokerID);
+    var lead = await _appDbContext.Leads.
+      Include(l => l.Note)
+      .FirstAsync(l => l.Id == LeadId && l.BrokerId == brokerID);
     if (dto.LeadFirstName != null) lead.LeadFirstName = dto.LeadFirstName;
     if (dto.LeadLastName != null) lead.LeadLastName = dto.LeadLastName;
     if (dto.Areas != null) lead.Areas = dto.Areas;
@@ -39,7 +40,10 @@ public class LeadQService
       if (Enum.TryParse<LeadStatus>(dto.LeadStatus, true, out var leadStatus)) lead.LeadStatus = leadStatus;
       else throw new CustomBadRequestException($"input {dto.LeadStatus}", ProblemDetailsTitles.InvalidInput);
     }
-
+    if(dto.Note != null)
+    {
+      lead.Note.NotesText = dto.Note;
+    }
     await _appDbContext.SaveChangesAsync();
 
     var response = new LeadForListDTO

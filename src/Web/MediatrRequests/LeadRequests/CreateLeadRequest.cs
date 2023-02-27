@@ -42,7 +42,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
     var leadtype = typeExists ? leadType : LeadType.Unknown;
     var brokerToAssignToId = dto.AssignToSelf ? request.BrokerWhoRequested.Id : dto.AssignToBrokerId;
     if (!request.BrokerWhoRequested.isAdmin && dto.AssignToSelf == false)
-      throw new CustomBadRequestException("lead has to be assigned to self for broker who is not admin",ProblemDetailsTitles.AssignToSelf);
+      throw new CustomBadRequestException("lead has to be assigned to self for broker who is not admin", ProblemDetailsTitles.AssignToSelf);
 
     var timestamp = DateTimeOffset.UtcNow;
     var lead = new Lead
@@ -103,22 +103,20 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
       }
     }
     lead.LeadHistoryEvents.Add(notifCreation);
-    if(LeadAssignedNotif!= null) lead.LeadHistoryEvents.Add(LeadAssignedNotif);
+    if (LeadAssignedNotif != null) lead.LeadHistoryEvents.Add(LeadAssignedNotif);
 
     if (dto.TagsIds != null && dto.TagsIds.Any())
     {
       var tags = await _appDbContext.Tags.Where(t => t.BrokerId == request.BrokerWhoRequested.Id && dto.TagsIds.Contains(t.Id)).ToListAsync();
       lead.Tags = tags;
     }
-    if (dto.leadNote != null)
+    //TODO insecure to input text directly, check how to store, display notes
+    lead.Note = new Note { NotesText = dto.leadNote ?? "" };
+    if (LeadAssignedNotif != null)
     {
-      //TODO insecure to input text directly, check how to store, display notes
-      lead.Note = new Note { NotesText = dto.leadNote };
-      if (LeadAssignedNotif != null)
-      {
-        LeadAssignedNotif.NotifProps[NotificationJSONKeys.AdminNote] = dto.leadNote;
-      }
+      LeadAssignedNotif.NotifProps[NotificationJSONKeys.AdminNote] = dto.leadNote;
     }
+
     if (dto.TagToAdd != null)
     {
       if (!_appDbContext.Tags.Any(t => t.BrokerId == request.BrokerWhoRequested.Id && t.TagName == dto.TagToAdd))
@@ -129,7 +127,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
     }
     _appDbContext.Leads.Add(lead);
 
-    if(request.createLeadDTO.ListingOfInterstId != null)
+    if (request.createLeadDTO.ListingOfInterstId != null)
     {
       var listing = await _appDbContext.Listings.FirstAsync(l => l.Id == request.createLeadDTO.ListingOfInterstId);
       listing.LeadsGeneratedCount++;

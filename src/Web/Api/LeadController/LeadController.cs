@@ -9,7 +9,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Web.ApiModels;
-using Core.Domain.LeadAggregate;
 
 namespace Web.Api.LeadController;
 
