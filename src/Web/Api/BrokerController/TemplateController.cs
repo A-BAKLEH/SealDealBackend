@@ -93,7 +93,7 @@ public class TemplateController : BaseApiController
   }
 
   //e for email, s for sms
-  [HttpDelete("/{TemplateType}/{Id}")]
+  [HttpDelete("{TemplateType}/{Id}")]
   public async Task<IActionResult> DeleteBrokerTemplate(string TemplateType,int Id)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);

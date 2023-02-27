@@ -1,6 +1,4 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.BrokerAggregate;
-using Web.ApiModels.APIResponses.Listing;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
@@ -8,7 +6,6 @@ using Web.ControllerServices.StaticMethods;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using TimeZoneConverter;
 namespace Web.Api.BrokerController;
 [Authorize]
 public class ListingController : BaseApiController
@@ -82,7 +79,6 @@ public class ListingController : BaseApiController
     return Ok(listing);
   }
 
-
   /// <summary>
   /// 
   /// </summary>
@@ -108,8 +104,6 @@ public class ListingController : BaseApiController
     {
       listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
     }
-    
-    //var respnse = new BrokersListingsDTO { listings = listings };
     return Ok(listings);
   }
 
@@ -128,8 +122,8 @@ public class ListingController : BaseApiController
     await _listingQService.AssignListingToBroker(listingid, brokerId, id);
     return Ok();
   }
-  [HttpDelete("DetachFromBroker/{listingid}/{brokerid}")]
-  public async Task<IActionResult> DetachListingFromBroker(int listingid, Guid brokerId)
+  [HttpDelete("{listingid}")]
+  public async Task<IActionResult> DetachListingFromBroker(int listingid)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -139,7 +133,7 @@ public class ListingController : BaseApiController
       return Unauthorized();
     }
 
-    await _listingQService.DetachBrokerFromListing(listingid, brokerId, id);
+    await _listingQService.DeleteAgencyListingAsync(listingid,brokerTuple.Item1.AgencyId);
 
     return Ok();
   }

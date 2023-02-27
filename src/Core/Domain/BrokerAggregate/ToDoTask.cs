@@ -10,8 +10,14 @@ public class ToDoTask : Entity<int>
   /// </summary>
   public string? Description { get; set; }
   public string TaskName { get; set; }
-  public DateTimeOffset TaskDueDate { get; set; }
 
+  /// <summary>
+  /// can be true to set it for deletion, so its not automaticaly deleted in case broker wants
+  /// to review
+  /// </summary>
+  public bool IsDone { get; set; } = false;
+  public DateTimeOffset TaskDueDate { get; set; }
+  public string? HangfireReminderId { get; set; }
   public Guid BrokerId { get; set; }
   public Broker Broker { get; set; }
   public int? LeadId { get; set; }

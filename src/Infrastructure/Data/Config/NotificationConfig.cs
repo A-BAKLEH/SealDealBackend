@@ -18,5 +18,11 @@ public class NotificationConfig : IEntityTypeConfiguration<Notification>
             s => JsonSerializer.Deserialize<Dictionary<string, string>>(s, options)!,
             ValueComparer.CreateDefault(typeof(Dictionary<string, string>), true)
         );
+
+    builder.
+      HasOne(x => x.lead)
+      .WithMany(l => l.LeadHistoryEvents)
+      .IsRequired(false)
+      .OnDelete(DeleteBehavior.ClientCascade);
   }
 }

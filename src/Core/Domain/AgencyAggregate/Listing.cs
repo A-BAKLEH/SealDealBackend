@@ -22,6 +22,10 @@ public class Listing : Entity<int>
   public int AssignedBrokersCount { get; set; } = 0;
   public List<BrokerListingAssignment>? BrokersAssigned { get; set; }
   public string? URL { get; set; }
+  /// <summary>
+  /// count includes leads that are deleted now
+  /// </summary>
+  public int LeadsGeneratedCount { get; set; }
   public List<Lead>? LeadsGenerated { get; set; }
 
 }

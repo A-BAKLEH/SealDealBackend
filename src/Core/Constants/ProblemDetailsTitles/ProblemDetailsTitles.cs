@@ -1,6 +1,9 @@
 ﻿namespace Core.Constants.ProblemDetailsTitles;
 public static class ProblemDetailsTitles
 {
+  public const string UserNoPermission = "UserNoPermission";
+
+
   public const string AlreadyExists = "AlreadyExists";
   public const string EmptyInput = "EmptyInput";
 

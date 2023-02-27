@@ -37,6 +37,11 @@ public class APProcessor
       .Include(ass => ass.lead)
       .FirstAsync(ass => ass.LeadId == LeadId && ass.ActionPlanId == ActionPlanId);
 
+    if (ActionPlanAssociation == null)
+    {
+      _logger.LogWarning("{location}: APAssociation is null for LeadId {LeadId} and ActionPlanId {ActionPlanId}", "APProcessor",LeadId,ActionPlanId);
+      return;
+    }
     var actions = await _appDbContext.Actions
       .Where(a => a.ActionPlanId == ActionPlanId && (a.ActionLevel == ActionLevel || a.ActionLevel == ActionLevel + 1))
       .OrderBy(a => a.ActionLevel)

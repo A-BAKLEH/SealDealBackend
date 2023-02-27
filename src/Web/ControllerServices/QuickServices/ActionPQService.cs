@@ -260,6 +260,7 @@ public class ActionPQService
     notif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
     _appDbContext.Notifications.Add(notif);
 
+
     if (delays != null)
     {
       HangfireJobId = Hangfire.BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId), timespan);
@@ -270,6 +271,9 @@ public class ActionPQService
     }
     actionTracker.HangfireJobId = HangfireJobId;
     _appDbContext.ActionPlanAssociations.Add(apAssociation);
+
+    //If this fails, ApProcessor's DoActionAsync method verifies if ActionPlanAssociation exists
+    //at beginning
 
     await _appDbContext.SaveChangesAsync();
 

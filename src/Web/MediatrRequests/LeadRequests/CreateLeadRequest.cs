@@ -11,6 +11,8 @@ using Web.Outbox;
 using Web.Outbox.Config;
 using SharedKernel.Exceptions;
 using Core.Constants.ProblemDetailsTitles;
+using Core.Domain.AgencyAggregate;
+using Core.Domain.BrokerAggregate.Templates;
 
 namespace Web.MediatrRequests.LeadRequests;
 
@@ -126,9 +128,47 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
       }
     }
     _appDbContext.Leads.Add(lead);
-    await _appDbContext.SaveChangesAsync();
 
-    if(LeadAssignedNotif != null)
+    if(request.createLeadDTO.ListingOfInterstId != null)
+    {
+      var listing = await _appDbContext.Listings.FirstAsync(l => l.Id == request.createLeadDTO.ListingOfInterstId);
+      listing.LeadsGeneratedCount++;
+    }
+    //concnurrency handling for listing LeadsGeneratedCount
+    bool saved = false;
+    while (!saved)
+    {
+      try
+      {
+        await _appDbContext.SaveChangesAsync();
+        saved = true;
+      }
+      catch (DbUpdateConcurrencyException ex)
+      {
+        foreach (var entry in ex.Entries)
+        {
+          if (entry.Entity is Listing)
+          {
+            var proposedValues = entry.CurrentValues;
+            var databaseValues = entry.GetDatabaseValues();
+
+            databaseValues.TryGetValue("LeadsGeneratedCount", out int dbcount);
+            dbcount++;
+            Listing listing = (Listing)entry.Entity;
+            listing.LeadsGeneratedCount = dbcount;
+            entry.OriginalValues.SetValues(databaseValues);
+          }
+          else
+          {
+            throw new NotSupportedException(
+                "Don't know how to handle concurrency conflicts for "
+                + entry.Metadata.Name);
+          }
+        }
+      }
+    }
+
+    if (LeadAssignedNotif != null)
     {
       var notifId = LeadAssignedNotif.Id;
       var leadAssignedEvent = new LeadAssigned { NotifId = notifId };

@@ -8,6 +8,8 @@ using Web.MediatrRequests.LeadRequests;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Web.ApiModels;
+using Core.Domain.LeadAggregate;
 
 namespace Web.Api.LeadController;
 
@@ -22,31 +24,6 @@ public class LeadController : BaseApiController
     _logger = logger;
     _leadQService = leadQService;
   }
-
-  //[HttpPost]
-  //public async Task<IActionResult> CreateLead([FromBody] IEnumerable<CreateLeadDTO> createLeadDTO)
-  //{
-  //  var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-  //  var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-  //  if (!brokerTuple.Item2)
-  //  {
-  //    _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
-  //    return Forbid();
-  //  }
-  //  var broker = brokerTuple.Item1;
-  //  var leads = await _mediator.Send(new CreateLeadRequest
-  //  {
-  //    BrokerWhoRequested = brokerTuple.Item1,
-  //    createLeadDTOs = createLeadDTO
-  //  });
-
-  //  var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
-  //  foreach (var lead in leads)
-  //  {
-  //    lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
-  //  }
-  //  return Ok(leads);
-  //}
 
   [HttpPost]
   public async Task<IActionResult> CreateLead([FromBody] CreateLeadDTO createLeadDTO)
@@ -79,6 +56,41 @@ public class LeadController : BaseApiController
 
     return Ok(lead);
   }
+
+  //only for leads that are assigned to a broker/admin
+  [HttpPatch("{LeadId}")]
+  public async Task<IActionResult> UpdateLead([FromBody] UpdateLeadDTO dto, int LeadId)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to update Lead", TagConstants.Unauthorized, id);
+      return Forbid();
+    }
+    var lead = await _leadQService.UpdateLeadAsync(LeadId, dto,id);
+
+    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+    lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
+    return Ok(lead);
+  }
+
+  //only for leads that are assigned to a broker/admin
+  //admin can also delete lead that is not assigned to anybody
+  [HttpDelete("{LeadId}")]
+  public async Task<IActionResult> DeleteLead( int LeadId)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to delete Lead", TagConstants.Unauthorized, id);
+      return Forbid();
+    }
+    await _leadQService.DeleteLeadAsync(LeadId,id,brokerTuple.Item1.isAdmin);
+    return Ok();
+  }
+
 
   /// <summary>
   /// for Allah Lead, gets all lead's info, no paging for now

@@ -38,7 +38,7 @@ public class ListingQService
         ListingURL = l.URL,
         Price = l.Price,
         Status = l.Status.ToString(),
-        GeneratedLeadsCount = l.LeadsGenerated.Count,
+        GeneratedLeadsCount = l.LeadsGeneratedCount,
         AssignedBrokers = l.BrokersAssigned.Select(b => new BrokerPerListingDTO
         {
           BrokerId = b.BrokerId,
@@ -82,7 +82,8 @@ public class ListingQService
       URL = dto.URL,
       Status = dto.Status == "l" ? ListingStatus.Listed : ListingStatus.Sold,
       AssignedBrokersCount = brokersCount,
-      BrokersAssigned = brokersAssignments
+      BrokersAssigned = brokersAssignments,
+      LeadsGeneratedCount = 0
     };
     _appDbContext.Listings.Add(listing);
     await _appDbContext.SaveChangesAsync();
@@ -239,6 +240,11 @@ public class ListingQService
         OutboxMemCache.SchedulingErrorDict.Add(notifId, ListingUnAssigned);
       }
     }
-
+  }
+  public async Task DeleteAgencyListingAsync(int listingId,int Agencyid)
+  {
+    var listing = new Listing { Id = listingId, AgencyId= Agencyid };
+    _appDbContext.Remove(listing);
+    await _appDbContext.SaveChangesAsync();
   }
 }

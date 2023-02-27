@@ -58,6 +58,7 @@ public class Lead : Entity<int>
   public Listing? Listing { get; set; }
   public Note? Note { get; set; }
   public List<Tag>? Tags { get; set; }
+  public List<ToDoTask> ToDoTasks { get; set; }
   public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }
   public List<Notification>? LeadHistoryEvents { get; set; }
   public List<LeadInteraction>? LeadInteractions { get; set; }
