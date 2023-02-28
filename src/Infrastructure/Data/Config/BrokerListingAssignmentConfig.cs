@@ -13,11 +13,11 @@ public class BrokerListingAssignmentConfig : IEntityTypeConfiguration<BrokerList
     builder.HasOne(bl => bl.Broker)
             .WithMany(broker => broker.AssignedListings)
             .HasForeignKey(bl => bl.BrokerId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.ClientCascade);
 
     builder.HasOne(bl => bl.Listing)
         .WithMany(listing => listing.BrokersAssigned)
         .HasForeignKey(bl => bl.ListingId)
-        .OnDelete(DeleteBehavior.ClientCascade);
+        .OnDelete(DeleteBehavior.Cascade);
   }
 }

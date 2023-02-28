@@ -155,7 +155,7 @@ public class ListingQService
     };
 
     bool change = false;
-    if(dto.Status != null && Enum.TryParse<ListingStatus>(dto.Status, true, out var lisStatus))
+    if (dto.Status != null && Enum.TryParse<ListingStatus>(dto.Status, true, out var lisStatus))
     {
       listing.Status = lisStatus;
       change = true;
@@ -172,7 +172,7 @@ public class ListingQService
       _appDbContext.Listings.Update(listing);
       await _appDbContext.SaveChangesAsync();
     }
-    
+
   }
   public async Task AssignListingToBroker(int listingId, Guid brokerId, Guid userId)
   {
@@ -229,8 +229,8 @@ public class ListingQService
   public async Task DetachBrokerFromListing(int listingId, Guid brokerId, Guid userId)
   {
 
-    var listing = _appDbContext.Listings.Where(l => l.Id == listingId)
-      .Include(l => l.BrokersAssigned).FirstOrDefault();
+    var listing = await _appDbContext.Listings
+      .Include(l => l.BrokersAssigned).FirstOrDefaultAsync(l => l.Id == listingId);
     if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound, 404);
     else if (listing.BrokersAssigned != null && !listing.BrokersAssigned.Any(l => l.BrokerId == brokerId)) return;
     else
@@ -270,9 +270,50 @@ public class ListingQService
       }
     }
   }
-  public async Task DeleteAgencyListingAsync(int listingId,int Agencyid)
+  public async Task DeleteAgencyListingAsync(int listingId, int Agencyid, Guid userId)
   {
-    var listing = new Listing { Id = listingId, AgencyId= Agencyid };
+    using var trans = _appDbContext.Database.BeginTransaction();
+
+    var listing = await _appDbContext.Listings
+      .Include(l => l.BrokersAssigned).FirstOrDefaultAsync(l => l.Id == listingId);
+    if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound, 404);
+
+    List<Notification> notifs = new();
+    foreach (var brokerAssignments in listing.BrokersAssigned)
+    {
+      var notif = new Notification
+      {
+        DeleteAfterProcessing = false,
+        BrokerId = brokerAssignments.BrokerId,
+        EventTimeStamp = DateTime.UtcNow,
+        NotifType = NotifType.ListingUnAssigned,
+        ProcessingStatus = ProcessingStatus.Scheduled,
+        NotifyBroker = true,
+        ReadByBroker = false
+      };
+      notif.NotifProps[NotificationJSONKeys.UserId] = userId.ToString();
+      notifs.Add(notif);
+    }
+    await _appDbContext.SaveChangesAsync();
+
+    foreach (var notif in notifs)
+    {
+      var notifId = notif.Id;
+      var ListingUnAssigned = new ListingUnAssigned { NotifId = notifId };
+      try
+      {
+        var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingUnAssigned));
+        OutboxMemCache.ScheduledDict.Add(notifId, HangfireJobId);
+      }
+      catch (Exception ex)
+      {
+        //TODO refactor log message
+        _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingUnAssigned Event for notif" +
+          "with {NotifId} with error {Error}", notifId, ex.Message);
+        OutboxMemCache.SchedulingErrorDict.Add(notifId, ListingUnAssigned);
+      }
+    }
+    var listingDelete = new Listing { Id = listingId, AgencyId = Agencyid };
     _appDbContext.Remove(listing);
     await _appDbContext.SaveChangesAsync();
   }

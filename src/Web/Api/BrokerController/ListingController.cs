@@ -136,8 +136,9 @@ public class ListingController : BaseApiController
     await _listingQService.AssignListingToBroker(listingid, brokerId, id);
     return Ok();
   }
-  [HttpDelete("{listingid}")]
-  public async Task<IActionResult> DetachListingFromBroker(int listingid)
+
+  [HttpDelete("DetachFromBroker/{listingid}/{brokerid}")]
+  public async Task<IActionResult> DetachListingFromBroker(int listingid, Guid brokerId)
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -147,7 +148,23 @@ public class ListingController : BaseApiController
       return Unauthorized();
     }
 
-    await _listingQService.DeleteAgencyListingAsync(listingid,brokerTuple.Item1.AgencyId);
+    await _listingQService.DetachBrokerFromListing(listingid, brokerId, id);
+
+    return Ok();
+  }
+
+  [HttpDelete("{listingid}")]
+  public async Task<IActionResult> DeleteListing(int listingid)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item3 || !brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to detach Listing from broker", TagConstants.Inactive, id);
+      return Unauthorized();
+    }
+
+    await _listingQService.DeleteAgencyListingAsync(listingid,brokerTuple.Item1.AgencyId,id);
 
     return Ok();
   }

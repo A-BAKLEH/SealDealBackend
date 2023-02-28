@@ -96,15 +96,15 @@ public class TemplateController : BaseApiController
   [HttpDelete("{TemplateType}/{Id}")]
   public async Task<IActionResult> DeleteBrokerTemplate(string TemplateType,int Id)
   {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
     if (!brokerTuple.Item2)
     {
-      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to delete template", TagConstants.Inactive, id);
+      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to delete template", TagConstants.Inactive, brokerId);
       return Forbid();
     }
 
-    var names = await _templatesQService.DeleteTemplateAsync(Id,TemplateType,id);
+    var names = await _templatesQService.DeleteTemplateAsync(Id,TemplateType,brokerId);
     if(names.Any()) return BadRequest(names);
     return Ok();
   }
