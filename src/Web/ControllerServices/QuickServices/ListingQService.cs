@@ -316,5 +316,6 @@ public class ListingQService
     var listingDelete = new Listing { Id = listingId, AgencyId = Agencyid };
     _appDbContext.Remove(listing);
     await _appDbContext.SaveChangesAsync();
+    trans.Commit();
   }
 }
