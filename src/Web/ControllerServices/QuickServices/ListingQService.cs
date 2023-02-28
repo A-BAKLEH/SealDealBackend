@@ -294,6 +294,7 @@ public class ListingQService
       notif.NotifProps[NotificationJSONKeys.UserId] = userId.ToString();
       notifs.Add(notif);
     }
+    _appDbContext.Notifications.AddRange(notifs);
     await _appDbContext.SaveChangesAsync();
 
     foreach (var notif in notifs)
