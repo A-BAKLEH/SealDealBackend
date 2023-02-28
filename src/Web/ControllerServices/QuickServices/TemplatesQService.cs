@@ -29,13 +29,7 @@ public class TemplatesQService
     }
     if (!apNames.Any())
     {
-      Template temp;
-      if (tempType == "e")
-      {
-        _appDbContext.EmailTemplates.Remove(new EmailTemplate { Id = templateId });
-      }
-      else _appDbContext.SmsTemplates.Remove(new SmsTemplate { Id = templateId });
-      await _appDbContext.SaveChangesAsync();
+      await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM [db].[Templates] WHERE Id = {templateId};");
     }
     return apNames;
   }
