@@ -48,6 +48,7 @@ public class BrokerQService
       .OrderByDescending(a => a.assignmentDate)
       .Select(l => new BrokerListingDTO
       {
+        ListingId = l.ListingId,
         Address = l.Listing.Address,
         DateOfListing = l.Listing.DateOfListing.UtcDateTime,
         ListingURL = l.Listing.URL,

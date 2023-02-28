@@ -34,6 +34,7 @@ public class ListingQService
     List<AgencyListingDTO> listings = await query
       .Select(l => new AgencyListingDTO
       {
+        ListingId = l.Id,
         Address = new AddressDTO { StreetAddress = l.Address.StreetAddress, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
         DateOfListing = l.DateOfListing.UtcDateTime,
         ListingURL = l.URL,
