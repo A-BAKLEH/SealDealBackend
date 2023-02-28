@@ -41,6 +41,24 @@ public class ActionPlansController : BaseApiController
   }
 
 
+  [HttpDelete("{ActionPlanId}")]
+  public async Task<IActionResult> Delete(int ActionPlanId)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
+      return Forbid();
+    }
+
+    await _actionPQService.DeleteActionPlanAsync(id,ActionPlanId);
+
+
+    return Ok();
+  }
+
+
   [HttpGet]
   public async Task<IActionResult> GetMyAPs()
   {

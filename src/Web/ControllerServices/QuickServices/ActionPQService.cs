@@ -4,6 +4,7 @@ using Core.Domain.ActionPlanAggregate.Actions;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
+using Hangfire;
 using Hangfire.Server;
 using Humanizer;
 using Infrastructure.Data;
@@ -276,6 +277,43 @@ public class ActionPQService
     //at beginning
 
     await _appDbContext.SaveChangesAsync();
+
+  }
+
+
+  public async Task DeleteActionPlanAsync(Guid brokerId, int ActionPlanId)
+  {
+    //delete actions in Hangfire
+    //delete actionplanassociations and their action trackers
+    //delete ActionPlan and its actions
+    var exists = await _appDbContext.ActionPlans.AnyAsync(ap => ap.Id == ActionPlanId && ap.BrokerId == brokerId);
+    if (!exists) throw new CustomBadRequestException("ActionPlan Not Found", ProblemDetailsTitles.NotFound, 404);
+    var ActionPlanAssociations = await _appDbContext.ActionPlanAssociations
+      .Where(apa => apa.ActionPlanId == ActionPlanId && apa.ActionPlan.BrokerId == brokerId)
+      .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
+      .AsSplitQuery()
+      .AsNoTracking()
+      .ToListAsync();
+
+    foreach (var apass in ActionPlanAssociations)
+    {
+      if (apass.ActionTrackers.Any())
+      {
+        foreach (var ta in apass.ActionTrackers)
+        {
+          var jobId = ta.HangfireJobId;
+          if (jobId != null)
+            try
+            {
+              BackgroundJob.Delete(jobId);
+            }
+            catch (Exception) { }
+        }
+      }
+    }
+    //this will delete action trackers  and Actions also
+    await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM ActionPlanAssociations WHERE ActionPlanId = {ActionPlanId};"
+      + $"DELETE FROM ActionPlans WHERE Id = {ActionPlanId};");
 
   }
 }

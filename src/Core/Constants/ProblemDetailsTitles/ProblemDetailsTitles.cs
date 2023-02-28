@@ -2,7 +2,7 @@
 public static class ProblemDetailsTitles
 {
   public const string UserNoPermission = "UserNoPermission";
-
+  public const string NotFound = "NotFound";
 
   public const string AlreadyExists = "AlreadyExists";
   public const string EmptyInput = "EmptyInput";
