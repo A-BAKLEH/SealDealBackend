@@ -29,7 +29,7 @@ public class TemplatesQService
     }
     if (!apNames.Any())
     {
-      await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM [db].[Templates] WHERE Id = {templateId};");
+      await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM [dbo].[Templates] WHERE Id = {templateId};");
     }
     return apNames;
   }
