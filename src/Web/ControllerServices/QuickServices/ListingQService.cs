@@ -10,7 +10,6 @@ using Core.Domain.NotificationAggregate;
 using Web.Constants;
 using Web.Outbox.Config;
 using Web.Outbox;
-using Core.Domain.LeadAggregate;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -109,7 +108,7 @@ public class ListingQService
         notif.NotifProps[NotificationJSONKeys.UserId] = UserId.ToString();
         notifs.Add(notif);
       }
-
+      _appDbContext.Notifications.AddRange(notifs);
       await _appDbContext.SaveChangesAsync();
       foreach (var notif in notifs)
       {
