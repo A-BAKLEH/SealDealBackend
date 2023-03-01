@@ -9,4 +9,5 @@ public interface IStripeSubscriptionService
   /// <param name="QuantityToAdd"></param>
   /// <returns></returns>
   Task<int> AddSubscriptionQuantityAsync(string SubsId, int QuantityToAdd, int CurrentQuantity);
+  Task<int> DecreaseSubscriptionQuantityAsync(string SubsId,int CurrentQuantity);
 }

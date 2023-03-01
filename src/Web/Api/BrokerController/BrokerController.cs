@@ -9,10 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Web.ControllerServices.StaticMethods;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices.QuickServices;
-using Web.ApiModels.APIResponses.Broker;
 using SharedKernel.Exceptions.CustomProblemDetails;
 using Core.Constants.ProblemDetailsTitles;
-using TimeZoneConverter;
 
 namespace Web.Api.BrokerController;
 [Authorize]
@@ -43,6 +41,8 @@ public class BrokerController : BaseApiController
       BrokersQuantity = brokerTuple.Item1.Agency.NumberOfBrokersInDatabase
     });*/
 
+
+
   [HttpPost]
   public async Task<IActionResult> AddBrokers([FromBody] IEnumerable<NewBrokerDTO> brokers)
   {
@@ -51,7 +51,7 @@ public class BrokerController : BaseApiController
     if (!brokerTuple.Item3 || !brokerTuple.Item2)
     {
       _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to add brokers", TagConstants.Unauthorized, id);
-      return Forbid();
+      return Unauthorized();
     }
     var command = new AddBrokersRequest();
     command.admin = brokerTuple.Item1;
@@ -118,5 +118,19 @@ public class BrokerController : BaseApiController
     }
     if (brokers == null || !brokers.Any()) return NotFound();
     return Ok(brokers);
+  }
+
+  [HttpDelete("{BrokerId}")]
+  public async Task<IActionResult> DeleteBroker(Guid BrokerId)
+  {
+    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+    if (!brokerTuple.Item3 || !brokerTuple.Item2)
+    {
+      _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} or Non-paying tried to delete broker", TagConstants.Unauthorized, id);
+      return Unauthorized();
+    }
+    await _brokerTagsQService.DeleteBrokerAsync(BrokerId, id, brokerTuple.Item1.AgencyId);
+    return Ok();
   }
 }

@@ -26,7 +26,7 @@ public class ActionPlan : Entity<int>
   /// <summary>
   /// only relevant for action plans that have automatic triggering
   /// </summary>
-  public bool isActive;
+  public bool isActive { get; set; }
   
   public int ActionsCount { get; set; }
   public string Name { get; set; }

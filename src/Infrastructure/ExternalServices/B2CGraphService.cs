@@ -31,6 +31,18 @@ public class B2CGraphService : IB2CGraphService
     _graphClient = new GraphServiceClient(clientSecretCredential, scopes);
   }
 
+  public async Task DeleteB2CUserAsync(Guid brokerId)
+  {
+    try
+    {
+      await _graphClient.Users[$"{brokerId}"].Request().DeleteAsync();
+    }
+    catch(Exception ex)
+    {
+      Thread.Sleep(1000);
+      await _graphClient.Users[$"{brokerId}"].Request().DeleteAsync();
+    }
+  }
   public async Task<Tuple<string, string>> createB2CUser(Broker broker)
   {
     //TODO make password random
@@ -58,7 +70,7 @@ public class B2CGraphService : IB2CGraphService
     };
 
     var created = await _graphClient.Users.Request().AddAsync(user);
-    return Tuple.Create(created.Id,password);
+    return Tuple.Create(created.Id, password);
   }
 
   public async Task test()
@@ -71,7 +83,7 @@ public class B2CGraphService : IB2CGraphService
     var clientSecretCredential = new ClientSecretCredential(
         "6f64f9eb-73c2-4e0c-b1c6-2bb14c3b2d14", "f60efc37-251c-4d97-bb07-554000f5057f", "5ud8Q~VO9RxZ9srylubIcMXvuFRWPezGs8gGXaH1", options);
 
-    var  client = new GraphServiceClient(clientSecretCredential, scopes);
+    var client = new GraphServiceClient(clientSecretCredential, scopes);
 
     var clients = await client.Users.Request().GetAsync();
 

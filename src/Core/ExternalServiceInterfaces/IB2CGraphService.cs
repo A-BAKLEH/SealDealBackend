@@ -10,6 +10,6 @@ public interface IB2CGraphService
   /// <param name="broker"></param>
   /// <returns></returns>
   Task<Tuple<string, string>> createB2CUser(Broker broker);
-
+  Task DeleteB2CUserAsync(Guid id);
   Task test();
 }
