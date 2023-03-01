@@ -133,7 +133,6 @@ app.UseAuthorization();
 
 app.MapHub<NotifsHub>("/notifs");
 
-
 app.MapControllers();
 app.MapHangfireDashboard();
 app.Run();

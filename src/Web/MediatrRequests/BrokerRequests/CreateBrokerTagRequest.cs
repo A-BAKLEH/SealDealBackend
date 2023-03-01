@@ -4,7 +4,6 @@ using Core.DTOs.ProcessingDTOs;
 using Infrastructure.Data;
 using SharedKernel.Exceptions;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Web.MediatrRequests.BrokerRequests;
 

@@ -51,10 +51,7 @@ public class ActionPlansController : BaseApiController
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
       return Forbid();
     }
-
     await _actionPQService.DeleteActionPlanAsync(id,ActionPlanId);
-
-
     return Ok();
   }
 
