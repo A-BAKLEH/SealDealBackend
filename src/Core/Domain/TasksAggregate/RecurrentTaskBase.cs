@@ -4,7 +4,7 @@ using SharedKernel;
 namespace Core.Domain.TasksAggregate;
 public abstract class RecurrentTaskBase : Entity<int>
 {
-  public Guid? BrokerId { get; set; }
+  public Guid BrokerId { get; set; }
   public Broker Broker { get; set; }
   public string? HangfireTaskId { get; set; }
   public DateTimeOffset? NextScheduledTime { get; set;}
@@ -26,4 +26,5 @@ public enum HangfireTaskStatus {
   /// <summary>
   /// To use only in Cache
   /// </summary>
-  Processing}
+  Processing
+}

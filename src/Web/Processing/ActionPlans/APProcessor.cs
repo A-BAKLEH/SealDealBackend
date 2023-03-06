@@ -37,7 +37,7 @@ public class APProcessor
       .Include(ass => ass.lead)
       .FirstAsync(ass => ass.LeadId == LeadId && ass.ActionPlanId == ActionPlanId);
 
-    if (ActionPlanAssociation == null)
+    if (ActionPlanAssociation == null || !ActionPlanAssociation.ActionTrackers.Any() || ActionPlanAssociation.lead == null)
     {
       _logger.LogWarning("{location}: APAssociation is null for LeadId {LeadId} and ActionPlanId {ActionPlanId}", "APProcessor",LeadId,ActionPlanId);
       return;

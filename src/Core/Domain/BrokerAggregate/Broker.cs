@@ -1,12 +1,10 @@
-﻿
-using Core.Domain.ActionPlanAggregate;
+﻿using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.Domain.TasksAggregate;
-using Core.ExternalServiceInterfaces.ActionPlans;
 using SharedKernel;
 
 namespace Core.Domain.BrokerAggregate;
