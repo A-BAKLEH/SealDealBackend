@@ -81,6 +81,7 @@ public class BrokerQService
   {
     //TODO create a deletion tracking object in a NoSql data store and update it after completion of each step here
     //try to retrieve it beginning of delete operation
+    using var transaction = _appDbContext.Database.BeginTransaction();
 
     //check broker exists, belongs to this agency, is not an admin
     var agency = await _appDbContext.Agencies
@@ -162,6 +163,7 @@ public class BrokerQService
         "with {NotifId} with error {Error}", StripeNotifId, ex.Message);
       OutboxMemCache.SchedulingErrorDict.Add(StripeNotifId, stripeSubsChange);
     }
+    transaction.Commit();
 
   }
 }
