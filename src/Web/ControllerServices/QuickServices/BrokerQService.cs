@@ -126,11 +126,11 @@ public class BrokerQService
     //TODO delete or by eventual consistency () make sure that hangfire jobs dont execute for
     // action plans, recurrentTasks, outbox events
     await _appDbContext.Database.ExecuteSqlRawAsync
-      ($"DELETE FROM [dbo].[ToDoTasks] WHERE BrokerId = {brokerDeleteId};" +
-      $"DELETE FROM [dbo].[Notifications] WHERE BrokerId = {brokerDeleteId};" +
-      $"DELETE FROM [dbo].[Leads] WHERE BrokerId = {brokerDeleteId};" +
-      $"DELETE FROM [dbo].[BrokerListingAssignments] WHERE BrokerId = {brokerDeleteId};" +
-      $"DELETE FROM [dbo].[Brokers] WHERE BrokerId = {brokerDeleteId};");
+      ($"DELETE FROM [dbo].[ToDoTasks] WHERE BrokerId = '{brokerDeleteId}';" +
+      $"DELETE FROM [dbo].[Notifications] WHERE BrokerId = '{brokerDeleteId}';" +
+      $"DELETE FROM [dbo].[Leads] WHERE BrokerId = '{brokerDeleteId}';" +
+      $"DELETE FROM [dbo].[BrokerListingAssignments] WHERE BrokerId = '{brokerDeleteId}';" +
+      $"DELETE FROM [dbo].[Brokers] WHERE Id = '{brokerDeleteId}';");
 
     
     //delete Leads -> delete notifs and todoTasks
