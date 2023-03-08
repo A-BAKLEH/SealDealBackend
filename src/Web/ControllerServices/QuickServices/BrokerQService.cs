@@ -86,7 +86,7 @@ public class BrokerQService
     var agency = await _appDbContext.Agencies
       .Include(a => a.AgencyBrokers.Where(b => b.Id == brokerDeleteId && b.isAdmin == false ))
       .FirstAsync(a => a.Id == AgencyId);
-    if (agency == null || agency.AgencyBrokers.Count != 1) throw new CustomBadRequestException("invalid", ProblemDetailsTitles.InvalidInput);
+    if (agency == null || agency.AgencyBrokers.First(b => b.Id == brokerDeleteId) == null) throw new CustomBadRequestException("invalid", ProblemDetailsTitles.InvalidInput);
 
 
     //delete from B2C
