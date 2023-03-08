@@ -110,6 +110,7 @@ public class BrokerQService
       ReadByBroker = true,
     };
     StripeNotif.NotifProps.Add(NotificationJSONKeys.EmailSent, "0");
+    _appDbContext.Notifications.Add(StripeNotif);
     //delete broker tadmir
     var todoTasks = await _appDbContext.ToDoTasks.Where(t => t.BrokerId == brokerDeleteId && t.IsDone == false)
       .Select(t => t.HangfireReminderId)
