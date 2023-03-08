@@ -103,6 +103,7 @@ public class BrokerQService
     //send notif to admin about stripe quantity change
     var StripeNotif = new Notification
     {
+      BrokerId = userId,
       EventTimeStamp = DateTimeOffset.UtcNow,
       NotifType = NotifType.StripeSubsChanged,
       NotifyBroker = false,
