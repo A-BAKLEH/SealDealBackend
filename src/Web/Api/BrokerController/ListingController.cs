@@ -11,7 +11,7 @@ namespace Web.Api.BrokerController;
 public class ListingController : BaseApiController
 {
   private readonly ILogger<ListingController> _logger;
-  private readonly BrokerQService _brokerTagsQService; 
+  private readonly BrokerQService _brokerQService; 
   private readonly ListingQService _listingQService;
   public ListingController(AuthorizationService authorizeService, IMediator mediator,
     BrokerQService brokerTagsQService,
@@ -20,7 +20,7 @@ public class ListingController : BaseApiController
     ILogger<ListingController> logger) : base(authorizeService, mediator)
   {
     _logger = logger;
-    _brokerTagsQService = brokerTagsQService;
+    _brokerQService = brokerTagsQService;
     _listingQService = listingQService;
   }
 
@@ -31,28 +31,28 @@ public class ListingController : BaseApiController
   /// <param name="lastListingId"></param>
   /// <returns>
   /// </returns>
-  [HttpGet("All/{includeSold}/{lastListingId}")]
-  public async Task<IActionResult> GetAgencyListings(int includeSold, int lastListingId)
-  {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-    if (!brokerTuple.Item3 || !brokerTuple.Item2)
-    {
-      _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
-      return Forbid();
-    }
-    var listings = await _listingQService.GetAgencyListings(brokerTuple.Item1.AgencyId, includeSold == 1 ? true : false);
+  //[HttpGet("All/{includeSold}/{lastListingId}")]
+  //public async Task<IActionResult> GetAgencyListings(int includeSold, int lastListingId)
+  //{
+  //  var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+  //  var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+  //  if (!brokerTuple.Item3 || !brokerTuple.Item2)
+  //  {
+  //    _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
+  //    return Forbid();
+  //  }
+  //  var listings = await _listingQService.GetAgencyListings(brokerTuple.Item1.AgencyId, includeSold == 1 ? true : false);
 
-    if (listings == null || !listings.Any()) return NotFound();
+  //  if (listings == null || !listings.Any()) return NotFound();
 
-    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
-    foreach (var listing in listings)
-    {
-      listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
-    }
-    //var respnse = new AgencyListingsDTO { listings = listings };
-    return Ok(listings);
-  }
+  //  var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+  //  foreach (var listing in listings)
+  //  {
+  //    listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
+  //  }
+  //  //var respnse = new AgencyListingsDTO { listings = listings };
+  //  return Ok(listings);
+  //}
 
   /// <summary>
   /// IMPORTANT: Z after Datetime means kind.UTC
@@ -85,8 +85,31 @@ public class ListingController : BaseApiController
   /// <returns>listings assigned to broker only. If admin calls it, will return listings that are assigned
   /// explicitly to him, not all agency's listings
   /// associatedto other brokers</returns>
-  [HttpGet("MyListings")]
-  public async Task<IActionResult> GetBrokerListings(int includeSold)
+  //[HttpGet("MyListings")]
+  //public async Task<IActionResult> GetBrokerListings(int includeSold)
+  //{
+  //  var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+  //  var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+  //  if (!brokerTuple.Item2)
+  //  {
+  //    _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get broker's Listings", TagConstants.Inactive, id);
+  //    return Forbid();
+  //  }
+  //  var listings = await _brokerQService.GetBrokersListings(id);
+    
+  //  if (listings == null || !listings.Any()) return NotFound();
+
+  //  var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+  //  foreach (var listing in listings)
+  //  {
+  //    listing.DateOfListing = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, listing.DateOfListing);
+  //  }
+  //  return Ok(listings);
+  //}
+
+
+  [HttpGet]
+  public async Task<IActionResult> GetListings()
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
     var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -95,8 +118,8 @@ public class ListingController : BaseApiController
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get broker's Listings", TagConstants.Inactive, id);
       return Forbid();
     }
-    var listings = await _brokerTagsQService.GetBrokersListings(id);
-    
+    var listings = await _listingQService.GetListingsAsync(brokerTuple.Item1.AgencyId,id,brokerTuple.Item3);
+
     if (listings == null || !listings.Any()) return NotFound();
 
     var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
@@ -106,6 +129,8 @@ public class ListingController : BaseApiController
     }
     return Ok(listings);
   }
+
+
 
   [HttpPatch("{listingid}")]
   public async Task<IActionResult> EditListing([FromBody] EditListingDTO dto ,int listingid)

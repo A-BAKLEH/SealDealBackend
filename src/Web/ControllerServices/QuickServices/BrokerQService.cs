@@ -56,27 +56,26 @@ public class BrokerQService
       .ToListAsync();
     return brokers;
   }
+  //public async Task<List<BrokerListingDTO>> GetBrokersListings(Guid brokerId)
+  //{
 
-  public async Task<List<BrokerListingDTO>> GetBrokersListings(Guid brokerId)
-  {
+  //  var listings = await _appDbContext.BrokerListingAssignments
+  //    .Where(b => b.BrokerId == brokerId)
+  //    .OrderByDescending(a => a.assignmentDate)
+  //    .Select(l => new BrokerListingDTO
+  //    {
+  //      ListingId = l.ListingId,
+  //      Address = l.Listing.Address,
+  //      DateOfListing = l.Listing.DateOfListing.UtcDateTime,
+  //      ListingURL = l.Listing.URL,
+  //      Price = l.Listing.Price,
+  //      Status = l.Listing.Status.ToString(),
+  //      DateAssignedToMe = l.assignmentDate,
+  //      AssignedBrokersCount = l.Listing.BrokersAssigned.Count
+  //    }).AsNoTracking().ToListAsync();
 
-    var listings = await _appDbContext.BrokerListingAssignments
-      .Where(b => b.BrokerId == brokerId)
-      .OrderByDescending(a => a.assignmentDate)
-      .Select(l => new BrokerListingDTO
-      {
-        ListingId = l.ListingId,
-        Address = l.Listing.Address,
-        DateOfListing = l.Listing.DateOfListing.UtcDateTime,
-        ListingURL = l.Listing.URL,
-        Price = l.Listing.Price,
-        Status = l.Listing.Status.ToString(),
-        DateAssignedToMe = l.assignmentDate,
-        AssignedBrokersCount = l.Listing.BrokersAssigned.Count
-      }).AsNoTracking().ToListAsync();
-
-    return listings;
-  }
+  //  return listings;
+  //}
   public async Task DeleteBrokerAsync(Guid brokerDeleteId, Guid userId, int AgencyId)
   {
     //TODO create a deletion tracking object in a NoSql data store and update it after completion of each step here

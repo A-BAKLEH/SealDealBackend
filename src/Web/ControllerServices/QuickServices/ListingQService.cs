@@ -22,15 +22,44 @@ public class ListingQService
     _appDbContext = appDbContext;
     _logger = logger;
   }
-  public async Task<List<AgencyListingDTO>> GetAgencyListings(int Agencyid, bool includeSold)
+  //public async Task<List<AgencyListingDTO>> GetAgencyListings(int Agencyid, bool includeSold)
+  //{
+  //  var query = _appDbContext.Listings
+  //    .OrderByDescending(l => l.DateOfListing)
+  //    .Where(l => l.AgencyId == Agencyid);
+
+  //  if (!includeSold) query = query.Where(l => l.Status == ListingStatus.Listed);
+
+  //  List<AgencyListingDTO> listings = await query
+  //    .Select(l => new AgencyListingDTO
+  //    {
+  //      ListingId = l.Id,
+  //      Address = new AddressDTO { StreetAddress = l.Address.StreetAddress, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
+  //      DateOfListing = l.DateOfListing.UtcDateTime,
+  //      ListingURL = l.URL,
+  //      Price = l.Price,
+  //      Status = l.Status.ToString(),
+  //      GeneratedLeadsCount = l.LeadsGeneratedCount,
+  //      AssignedBrokers = l.BrokersAssigned.Select(b => new BrokerPerListingDTO
+  //      {
+  //        BrokerId = b.BrokerId,
+  //        firstName = b.Broker.FirstName,
+  //        lastName = b.Broker.LastName
+  //      })
+  //    }).AsNoTracking()
+  //    .ToListAsync();
+  //  return listings;
+  //}
+
+  public async Task<List<AgencyListingDTO>> GetListingsAsync(int Agencyid,Guid brokerId, bool isAdmin)
   {
-    var query = _appDbContext.Listings
+    List<AgencyListingDTO> listings;
+
+    if(isAdmin)
+    {
+      listings = await _appDbContext.Listings
       .OrderByDescending(l => l.DateOfListing)
-      .Where(l => l.AgencyId == Agencyid);
-
-    if (!includeSold) query = query.Where(l => l.Status == ListingStatus.Listed);
-
-    List<AgencyListingDTO> listings = await query
+      .Where(l => l.AgencyId == Agencyid)
       .Select(l => new AgencyListingDTO
       {
         ListingId = l.Id,
@@ -48,8 +77,33 @@ public class ListingQService
         })
       }).AsNoTracking()
       .ToListAsync();
+    }
+    else
+    {
+      listings = await _appDbContext.BrokerListingAssignments
+      .Where(bla => bla.BrokerId == brokerId)
+      .Select(bla => new AgencyListingDTO
+      {
+        ListingId = bla.ListingId,
+        Address = new AddressDTO { StreetAddress = bla.Listing.Address.StreetAddress, City = bla.Listing.Address.City, Country = bla.Listing.Address.Country, PostalCode = bla.Listing.Address.PostalCode, ProvinceState = bla.Listing.Address.ProvinceState },
+        DateOfListing = bla.Listing.DateOfListing.UtcDateTime,
+        ListingURL = bla.Listing.URL,
+        Price = bla.Listing.Price,
+        Status = bla.Listing.Status.ToString(),
+        GeneratedLeadsCount = bla.Listing.LeadsGeneratedCount,
+        AssignedBrokers = bla.Listing.BrokersAssigned.Select(b => new BrokerPerListingDTO
+        {
+          BrokerId = b.BrokerId,
+          firstName = b.Broker.FirstName,
+          lastName = b.Broker.LastName
+        })
+      }).AsNoTracking()
+      .ToListAsync();
+    }
     return listings;
   }
+
+
   public async Task<AgencyListingDTO> CreateListing(int AgencyId, CreateListingRequestDTO dto, Guid UserId)
   {
     using var transaction = _appDbContext.Database.BeginTransaction();
