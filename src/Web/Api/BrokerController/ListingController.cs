@@ -120,7 +120,7 @@ public class ListingController : BaseApiController
     }
     var listings = await _listingQService.GetListingsAsync(brokerTuple.Item1.AgencyId,id,brokerTuple.Item3);
 
-    if (listings == null || !listings.Any()) return NotFound();
+    if (listings == null || !listings.Any()) return NotFound(); 
 
     var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
     foreach (var listing in listings)

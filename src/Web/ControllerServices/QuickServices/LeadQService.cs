@@ -135,7 +135,9 @@ public class LeadQService
         PhoneNumber = l.PhoneNumber,
         source = l.source.ToString(),
         Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName })
-      }).ToListAsync();
+      })
+      .OrderByDescending(l => l.LeadId)
+      .ToListAsync();
 
     return leads;
   }
