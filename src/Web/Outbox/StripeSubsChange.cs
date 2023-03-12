@@ -35,8 +35,6 @@ public class StripeSubsChangeHandler : EventHandlerBase<StripeSubsChange>
         notif.NotifProps[NotificationJSONKeys.EmailSent] = "1";
         _context.Notifications.Update(notif);
       }
-      
-
       await this.FinishProcessing(notif);
     }
     catch (Exception ex)
@@ -44,6 +42,7 @@ public class StripeSubsChangeHandler : EventHandlerBase<StripeSubsChange>
       _logger.LogError("Handling StripeSubsChange Failed for notif with notifId {notifId} with error {error}", stripeSubsChange.NotifId, ex.Message);
       notif.ProcessingStatus = ProcessingStatus.Failed;
       await _context.SaveChangesAsync();
+      throw;
     }
   }
 }

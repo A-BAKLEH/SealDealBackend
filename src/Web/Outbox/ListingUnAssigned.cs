@@ -36,6 +36,7 @@ public class ListingUnAssignedHandler : EventHandlerBase<ListingUnAssigned>
       _logger.LogError("Handling ListingUnAssigned Failed for notif with notifId {notifId} with error {error}", ListingUnAssigned.NotifId, ex.Message);
       notif.ProcessingStatus = ProcessingStatus.Failed;
       await _context.SaveChangesAsync();
+      throw;
     }
   }
 }

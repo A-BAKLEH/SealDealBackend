@@ -39,10 +39,6 @@ public class Notification : Entity<int>
   /// true if notifType: sms received, 
   /// </summary>
   public bool NotifyBroker { get; set; }
-
-  //public bool IsBackendEvent { get; set; }
-
-
   //Processing Part--------------------------
 
   /// <summary>
@@ -51,7 +47,8 @@ public class Notification : Entity<int>
   public bool DeleteAfterProcessing { get; set; } = false;
 
   /// <summary>
-  /// true if the notif reflects an action done by an action plan,used to filter notifs and find result of a given actionPlan's action on a lead
+  /// true if the notif reflects an action done by an action plan,
+  /// used to filter notifs and find result of a given actionPlan's action on a lead
   /// and similar queries
   /// </summary>
   public bool IsActionPlanResult { get; set; } = false;

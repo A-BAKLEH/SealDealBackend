@@ -1,6 +1,4 @@
-﻿using Core.Constants;
-using Core.Constants.ProblemDetailsTitles;
-using Core.Domain.BrokerAggregate;
+﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
@@ -8,7 +6,6 @@ using SharedKernel.Exceptions;
 using Web.Processing.EmailAutomation;
 using Hangfire;
 using Microsoft.Graph;
-using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
 
 namespace Web.ControllerServices.QuickServices;
@@ -16,15 +13,13 @@ namespace Web.ControllerServices.QuickServices;
 public class MSFTEmailQService
 {
   private readonly AppDbContext _appDbContext;
-  private readonly ADGraphWrapper _adGraphWrapper;
-  private readonly IConfigurationSection _configurationSection;
   private readonly ILogger<MSFTEmailQService> _logger;
-  public MSFTEmailQService(AppDbContext appDbContext, ADGraphWrapper aDGraph, IConfiguration config, ILogger<MSFTEmailQService> logger)
+  private readonly EmailProcessor _emailProcessor;
+  public MSFTEmailQService(AppDbContext appDbContext,EmailProcessor emailProcessor, ADGraphWrapper aDGraph, IConfiguration config, ILogger<MSFTEmailQService> logger)
   {
     _appDbContext = appDbContext;
-    _adGraphWrapper = aDGraph;
-    _configurationSection = config.GetSection("URLs");
     _logger = logger;
+    _emailProcessor = emailProcessor;
   }
 
   public async Task<dynamic> GetConnectedEmails(Guid brokerId)
@@ -83,7 +78,7 @@ public class MSFTEmailQService
     {
       try
       {
-        await CreateEmailSubscriptionAsync(connectedEmail);
+        await _emailProcessor.CreateEmailSubscriptionAsync(connectedEmail);
       }
       catch (ServiceException ex)
       {
@@ -92,48 +87,12 @@ public class MSFTEmailQService
           _logger.LogError("Connect Email: agency hadAdminConsent true so tried to create subsription but forbidden");
           broker.Agency.HasAdminEmailConsent = false;
           connectedEmail.hasAdminConsent = false;
-          BackgroundJob.Enqueue<SubscriptionService>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
+          BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
           await _appDbContext.SaveChangesAsync();
         }
       }
     }
     return new { connectedEmail.Email, connectedEmail.hasAdminConsent };
-  }
-
-  public async Task CreateEmailSubscriptionAsync(ConnectedEmail connectedEmail, bool save = true)
-  {
-    var currDateTime = DateTime.UtcNow;
-    //the maxinum subs period = just under 3 days
-    DateTimeOffset SubsEnds = currDateTime + new TimeSpan(0, 4230, 0);
-
-    var subs = new Subscription
-    {
-      ChangeType = "created",
-      ClientState = VariousCons.MSFtWebhookSecret,
-      ExpirationDateTime = SubsEnds,
-      NotificationUrl = _configurationSection["MainAPI"] + "/MsftWebhook/Webhook",
-      Resource = $"users/{connectedEmail.Email}/messages"
-    };
-
-    _adGraphWrapper.CreateClient(connectedEmail.tenantId);
-    //will validate through the webhook before returning the subscription here
-    var CreatedSubs = await _adGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
-
-    //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work
-    //will have to consider current leads in the system, current listings assigned, websites from which
-    //emails will be parsed to detect new leads
-
-    connectedEmail.FirstSync = currDateTime;
-    connectedEmail.LastSync = currDateTime;
-    connectedEmail.SubsExpiryDate = (DateTime)(CreatedSubs.ExpirationDateTime?.UtcDateTime);
-    connectedEmail.GraphSubscriptionId = Guid.Parse(CreatedSubs.Id);
-
-    //renew 60 minutes before subs Ends
-    var renewalTime = SubsEnds - TimeSpan.FromMinutes(60);
-    string RenewalJobId = BackgroundJob.Schedule<SubscriptionService>(s => s.RenewSubscription(connectedEmail.Email), renewalTime);
-    connectedEmail.SubsRenewalJobId = RenewalJobId;
-
-    if (save) await _appDbContext.SaveChangesAsync();
   }
   /// <summary>
   /// To be primarily called by hangfire after a notif comes in
@@ -240,7 +199,7 @@ public class MSFTEmailQService
       {
         if (e.tenantId == tenantId && e.GraphSubscriptionId == null)
         {
-          await CreateEmailSubscriptionAsync(e, false);
+          await _emailProcessor.CreateEmailSubscriptionAsync(e, false);
           e.hasAdminConsent = true;
         }
 
@@ -254,7 +213,7 @@ public class MSFTEmailQService
         {
           _logger.LogError("HandleAdminConsent: agency hadAdminConsent true so tried to create subsription but forbidden");
           broker.Agency.HasAdminEmailConsent = false;
-          BackgroundJob.Enqueue<SubscriptionService>(s => s.HandleAdminConsentConflict(broker.Id, email));
+          BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, email));
           await _appDbContext.SaveChangesAsync();
         }
         return new Tuple<dynamic, bool>(null, false);

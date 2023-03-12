@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using Core.Domain.ActionPlanAggregate;
-using Core.Domain.ActionPlanAggregate.Actions;
+﻿using Core.Domain.ActionPlanAggregate;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces.ActionPlans;

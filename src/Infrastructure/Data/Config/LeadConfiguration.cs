@@ -11,7 +11,7 @@ public class LeadConfiguration : IEntityTypeConfiguration<Lead>
   public void Configure(EntityTypeBuilder<Lead> builder)
   {
     builder.Property(b => b.LeadStatus).HasConversion<string>();
-
+    builder.HasIndex(b => b.Email);
     builder
         .HasMany(l => l.Tags)
         .WithMany(t => t.Leads)

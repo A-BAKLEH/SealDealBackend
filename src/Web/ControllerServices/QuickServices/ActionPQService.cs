@@ -253,6 +253,7 @@ public class ActionPQService
       LeadId = LeadId,
       EventTimeStamp = timeNow,
       NotifType = NotifType.ActionPlanStarted,
+      IsActionPlanResult = true,
       ReadByBroker = true,
       NotifyBroker = false,
       ProcessingStatus = ProcessingStatus.NoNeed,
@@ -264,11 +265,11 @@ public class ActionPQService
 
     if (delays != null)
     {
-      HangfireJobId = Hangfire.BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId), timespan);
+      HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId), timespan);
     }
     else
     {
-      HangfireJobId = Hangfire.BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId));
+      HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId));
     }
     actionTracker.HangfireJobId = HangfireJobId;
     _appDbContext.ActionPlanAssociations.Add(apAssociation);

@@ -163,6 +163,7 @@ public class ActionExecuter : IActionExecuter
       NotifyBroker = true,
       IsActionPlanResult = true,
       IsRecevied= false,
+      ProcessingStatus = ProcessingStatus.NoNeed
       //ProcessingStatus NO NEED for now, if later needs to be handled by outbox then assign
     };
     EmailSentNotif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();

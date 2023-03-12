@@ -3,6 +3,9 @@ using Core.DTOs.ProcessingDTOs;
 using Infrastructure.Data;
 using Web.ApiModels.APIResponses.Broker;
 using Microsoft.EntityFrameworkCore;
+using Azure.Core;
+using Core.Constants.ProblemDetailsTitles;
+using SharedKernel.Exceptions;
 
 namespace Web.ControllerServices.QuickServices;
 public class TagQService
@@ -39,7 +42,7 @@ public class TagQService
     return new BrokerTagsDTO { tags = res };
   }
 
-  public async Task<CreateTagResultDTO> CreateBrokerTagAsync(Guid brokerId, string tagName)
+  public async Task<TagDTO> CreateBrokerTagAsync(Guid brokerId, string tagName)
   {
     CreateTagResultDTO result = new();
 
@@ -47,12 +50,12 @@ public class TagQService
     {
       result.Success = false;
       result.message = "tag already exists";
+      throw new CustomBadRequestException("tag with name already exists", ProblemDetailsTitles.TagAlreadyExists);
     }
-    var tag = new Tag { BrokerId = brokerId, TagName = tagName };
-    _appDbContext.Tags.Add(tag);
+    var tagToAdd = new Tag { BrokerId = brokerId, TagName = tagName};
+    _appDbContext.Tags.Add(tagToAdd);
     await _appDbContext.SaveChangesAsync();
-    result.Success = true;
-    result.tag = tag;
-    return result;
+
+    return new TagDTO { id = tagToAdd.Id, name = tagToAdd.TagName };
   }
 }

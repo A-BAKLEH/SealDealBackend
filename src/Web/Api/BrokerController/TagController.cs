@@ -27,7 +27,7 @@ public class TagController: BaseApiController
   {
     //Not checking active, permissions
     var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var tagDTO = await _mediator.Send(new CreateBrokerTagRequest { BrokerId = brokerId, TagName = tagname });
+    var tagDTO = await _TagQService.CreateBrokerTagAsync(brokerId, tagname);
     return Ok(tagDTO);
   }
 

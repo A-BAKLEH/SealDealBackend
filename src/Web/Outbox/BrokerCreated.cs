@@ -35,9 +35,7 @@ public class BrokerCreatedHandler : EventHandlerBase<BrokerCreated>
         notif.NotifProps[NotificationJSONKeys.EmailSent] = "1";
         _context.Notifications.Update(notif);
       }
-
       Console.WriteLine("from handler:" + BrokerCreatedEvent.NotifId);
-
       await this.FinishProcessing(notif);
     }
     catch(Exception ex)
@@ -45,7 +43,7 @@ public class BrokerCreatedHandler : EventHandlerBase<BrokerCreated>
       _logger.LogError("Handling BrokerCreated Failed for notif with notifId {notifId} with error {error}", BrokerCreatedEvent.NotifId,ex.Message);
       notif.ProcessingStatus = ProcessingStatus.Failed;
       await _context.SaveChangesAsync();
+      throw;
     }
- 
   }
 }

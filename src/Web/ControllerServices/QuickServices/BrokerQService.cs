@@ -155,7 +155,7 @@ public class BrokerQService
     var stripeSubsChange = new StripeSubsChange { NotifId = StripeNotifId };
     try
     {
-      var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(stripeSubsChange));
+      var HangfireJobId = BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(stripeSubsChange));
       OutboxMemCache.ScheduledDict.Add(StripeNotifId, HangfireJobId);
     }
     catch (Exception ex)
