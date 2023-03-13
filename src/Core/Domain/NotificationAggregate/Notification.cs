@@ -5,7 +5,7 @@ namespace Core.Domain.NotificationAggregate;
 
 public enum APHandlingStatus{ Handled, Scheduled, Failed}
 
-public enum ProcessingStatus { NoNeed,Scheduled, Failed,Done }
+public enum ProcessingStatus { NoNeed,Scheduled, Failed,WaitingInBatch,Done }
 /// <summary>
 /// Represents an event that happened in the app, always related to a broker but can also relate to lead
 /// </summary>

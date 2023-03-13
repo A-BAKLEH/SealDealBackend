@@ -1,10 +1,19 @@
-﻿using Core.Constants;
+﻿using System.Linq;
+using Azure.Core;
+using Core.Constants;
 using Core.Domain.BrokerAggregate.EmailConnection;
+using Core.Domain.LeadAggregate;
+using Core.Domain.NotificationAggregate;
 using Hangfire;
+using Humanizer;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
+using NuGet.Packaging.Signing;
+using NuGet.Protocol;
+using Web.Constants;
 
 namespace Web.Processing.EmailAutomation;
 
@@ -14,11 +23,11 @@ public class EmailProcessor
   private readonly ILogger<EmailProcessor> _logger;
   private ADGraphWrapper _aDGraphWrapper;
   private readonly IConfigurationSection _configurationSection;
-  public EmailProcessor(AppDbContext appDbContext, IConfiguration config, ADGraphWrapper  aDGraphWrapper,ILogger<EmailProcessor> logger)
+  public EmailProcessor(AppDbContext appDbContext, IConfiguration config, ADGraphWrapper aDGraphWrapper, ILogger<EmailProcessor> logger)
   {
     _appDbContext = appDbContext;
     _logger = logger;
-    _aDGraphWrapper= aDGraphWrapper;
+    _aDGraphWrapper = aDGraphWrapper;
     _configurationSection = config.GetSection("URLs");
   }
 
@@ -99,11 +108,12 @@ public class EmailProcessor
     var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
     if (!connEmail.SyncScheduled)
     {
-      var jobId = Hangfire.BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email), TimeSpan.FromSeconds(15));
+      var jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email), TimeSpan.FromSeconds(15));
       connEmail.SyncScheduled = true;
       connEmail.SyncJobId = jobId;
     }
   }
+
   /// <summary>
   /// fetch all emails from last sync date and process them
   /// if admin get all emails from known lead providers
@@ -114,7 +124,7 @@ public class EmailProcessor
   {
     //TODO Cache
     var connEmail = _appDbContext.ConnectedEmails
-      .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.Broker.isAdmin })
+      .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.Broker.isAdmin, e.BrokerId })
       .First(x => x.Email == email);
     _aDGraphWrapper.CreateClient(connEmail.tenantId);
 
@@ -124,10 +134,9 @@ public class EmailProcessor
 
     List<Option> options = new List<Option>();
     var date = lastSync.ToString("o");
-    options.Add(new QueryOption("$select", "id,sender,subject,isRead,conversationId,conversationIndex,receivedDateTime"));
+    options.Add(new QueryOption("$select", "id,sender,subject,isRead,conversationId,conversationIndex,receivedDateTime,body"));
     options.Add(new QueryOption("$filter", $"receivedDateTime gt {date}"));
     options.Add(new QueryOption("$orderby", "receivedDateTime"));
-
     options.Add(new HeaderOption("Prefer", "IdType=ImmutableId"));
 
     var messages = await _aDGraphWrapper._graphClient
@@ -137,27 +146,100 @@ public class EmailProcessor
       .Request(options)
       .GetAsync();
 
-    ProcessMessages(messages);
+    await ProcessMessagesAsync(messages, connEmail.isAdmin, connEmail.BrokerId);
 
     while (messages.NextPageRequest != null)
     {
       messages = messages.NextPageRequest
         .Header("Prefer", "IdType=ImmutableId")
         .GetAsync().Result;
-      ProcessMessages(messages);
+      await ProcessMessagesAsync(messages, connEmail.isAdmin, connEmail.BrokerId);
     }
   }
 
 
-  public void ProcessMessages(IMailFolderMessagesCollectionPage messages)
+  public async Task ProcessMessagesAsync(IMailFolderMessagesCollectionPage messages, bool isAdmin, Guid brokerId)
   {
-    foreach (var message in messages)
+    var groupedMessages = messages.GroupBy(m => m.Sender.EmailAddress.Address);
+    foreach (var messageGrp in groupedMessages)
     {
-      _logger.LogWarning($"message: {message}");
+      string fromEmailAddress = messageGrp.Key;
 
-      //if admin, for emails from lead providers, extract text and send to ChatGPT to get info.
-      // 
-      //maybe mark as processed with extension property?
+      //TODO decide what happens if this lead does does belong to any broker yet but it is created as
+      //agency lead
+      //TODO decide if lead assignation and to who, for now lead is just created without being assigned
+      //TODO implement list of knowns lead providers whose emails can be parsed
+      //create lead from parsed email
+      bool processed = false;
+      if (isAdmin && GlobalControl.LeadProviderEmails.Contains(fromEmailAddress))
+      {
+        foreach (var mess in messageGrp)
+        {
+          _logger.LogWarning($"admin: LeadParsing message content:\n{mess.Body.Content} \n");
+          //determine if actual new lead email
+          //send to ChatGPT to extract fields
+          //create lead in agency without assigning and send notif to admin.
+          //var lead = CreateLead();
+        }
+        processed = true;
+      }
+      else
+      {
+        //TODO cache
+        var lead = await _appDbContext.Leads
+          .Select(l => new { l.Id, l.Email, l.BrokerId })
+          .FirstAsync(l => l.BrokerId == brokerId && l.Email == fromEmailAddress);
+        if(lead != null)
+        {
+          foreach (var mess in messageGrp)
+          {
+            _logger.LogWarning($"Lead Interaction message content:\n{mess.Body.Content} \n");
+
+          }
+        }
+        processed = true;
+      }
+      if(!processed)
+      {
+        //maybe later run analyzer on emails that you are not parsing now
+      }
+      //TODO increase listing brought x leads count
+      //TODO process all notifs created in this webhook en masse, maybe by using WaitingInBath processing status
+      //and scheduling a task that will process all those notifs with that processing status for this
+      //particular broker
+      //TODO maybe mark as processed with extention property?
     }
+  }
+
+  public Lead CreateLead(string email,int agencyId,string emailId,Guid brokerId, LeadType leadType,string? firstName,string? lastName, string? phoneNumber,int? listingId  )
+  {
+    var lead = new Lead
+    {
+      AgencyId = agencyId,
+      BrokerId = null,
+      Email = email,
+      LeadFirstName = firstName ?? "-",
+      LeadLastName = lastName,
+      PhoneNumber = phoneNumber,
+      EntryDate = DateTime.UtcNow,
+      leadType = leadType,
+      source = LeadSource.emailAuto,
+      LeadStatus = LeadStatus.New,
+      ListingId = listingId,
+    };
+    lead.SourceDetails[NotificationJSONKeys.EmailId] = emailId;
+    
+    Notification notifCreation = new Notification
+    {
+      EventTimeStamp = DateTime.UtcNow,
+      DeleteAfterProcessing = false,
+      ProcessingStatus = ProcessingStatus.WaitingInBatch,
+      NotifyBroker = true,
+      ReadByBroker = false,
+      BrokerId = brokerId,
+      NotifType = NotifType.LeadCreated,
+    };
+    lead.LeadHistoryEvents = new() { notifCreation};
+    return lead;
   }
 }

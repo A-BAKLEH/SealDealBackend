@@ -28,7 +28,7 @@ public class Lead : Entity<int>
   /// affect 
   /// </summary>
   public NotifType NotifsForActionPlans { get; set; } = NotifType.None;
-
+  public DateTime LastNotifsViewedAt { get; set; }
   public DateTimeOffset EntryDate { get; set; }
   public LeadSource source { get; set; }
   public LeadType leadType { get; set; }
@@ -37,12 +37,6 @@ public class Lead : Entity<int>
   /// </summary>
   public Dictionary<string, string> SourceDetails { get; set; } = new();
   public LeadStatus LeadStatus { get; set; } = LeadStatus.New;
-  /// <summary>
-  /// true if created by admin manually OR automated, then assigned to a broker, then Id of admin is in source details
-  /// null if lead created and assigned to admin by himself or if just created
-  /// false if lead created by broker and assigned to himself
-  /// </summary>
-  //public bool? AssignedByAdmin { get; set; }
   /// <summary>
   /// just a string for now, dont use areasOfInterest
   /// </summary>
