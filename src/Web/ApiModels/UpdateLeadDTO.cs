@@ -14,5 +14,5 @@ public class UpdateLeadDTO
   //options : New, Active, Client, Closed, Dead
   public string? LeadStatus { get; set; }
   public string? Areas { get; set; }
-  public string? Note { get; set; }
+  public string? leadNote { get; set; }
 }
