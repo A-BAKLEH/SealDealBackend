@@ -40,14 +40,4 @@
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
   
-  <ItemGroup>
-    <Folder Include="Handlers\ActionPlanHandlers\EventHandlers\" />
-    <Folder Include="Handlers\ActionPlanHandlers\OutOfRequestHandler\" />
-    <Folder Include="Handlers\AgencyHandlers\OutOfRequestNotifs\" />
-    <Folder Include="Handlers\BrokerHandlers\EventHandlers\" />
-    <Folder Include="Handlers\LeadHandlers\EventHandlers\" />
-    <Folder Include="Handlers\LeadHandlers\OutOfRequestNotifs\" />
-    <Folder Include="Handlers\NotificationHandlers\" />
-  </ItemGroup>
-  
 </Project>

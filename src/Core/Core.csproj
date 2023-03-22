@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Domain\LeadAggregate\Events\**" />
+    <EmbeddedResource Remove="Domain\LeadAggregate\Events\**" />
+    <None Remove="Domain\LeadAggregate\Events\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Autofac" />
   </ItemGroup>
 
@@ -18,7 +24,6 @@
   <ItemGroup>
     <Folder Include="Domain\ActionPlanAggregate\Actions\ExecuteParamsObjects\" />
     <Folder Include="Domain\ActionPlanAggregate\Events\" />
-    <Folder Include="Domain\LeadAggregate\Events\" />
   </ItemGroup>
 
 </Project>
