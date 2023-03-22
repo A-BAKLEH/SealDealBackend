@@ -40,9 +40,9 @@ public class LeadQService
       if (Enum.TryParse<LeadStatus>(dto.LeadStatus, true, out var leadStatus)) lead.LeadStatus = leadStatus;
       else throw new CustomBadRequestException($"input {dto.LeadStatus}", ProblemDetailsTitles.InvalidInput);
     }
-    if(dto.Note != null)
+    if(dto.leadNote != null)
     {
-      lead.Note.NotesText = dto.Note;
+      lead.Note.NotesText = dto.leadNote;
     }
     await _appDbContext.SaveChangesAsync();
 
