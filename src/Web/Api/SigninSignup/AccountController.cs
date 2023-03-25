@@ -30,9 +30,9 @@ public class AccountController : BaseApiController
   public async Task<IActionResult> VerifyAccount()
   {
     var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var accountStatus = await this._authorizeService.VerifyAccountAsync(id);
+    var dto = await this._authorizeService.VerifyAccountAsync(id);
     
-    return Ok(accountStatus);
+    return Ok(dto);
   }
 
   [HttpPost("SetTimeZone")]

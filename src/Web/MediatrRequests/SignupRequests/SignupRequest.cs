@@ -57,7 +57,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             LoginEmail = request.email,
             isAdmin = true,
             AccountActive = false,
-            TimeZoneId = request.TimeZoneId
+            TimeZoneId = request.TimeZoneId,
+            isSolo = true
         };
         var agency = new Agency()
         {
@@ -80,6 +81,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
         response.LastName = broker.LastName;
         response.LoginEmail = broker.LoginEmail;
         response.PhoneNumber = broker.PhoneNumber;
+        response.markEmailsRead = broker.MarkEmailsRead;
+        response.SoloBroker = broker.isSolo;
         response.AccountStatus = new AccountStatusDTO
         {
             userAccountStatus = "inactive",

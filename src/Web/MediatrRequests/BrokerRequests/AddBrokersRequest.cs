@@ -102,6 +102,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
     agency.AgencyBrokers.AddRange(request.brokers);
     agency.NumberOfBrokersInSubscription = FinalQuantity;
     agency.NumberOfBrokersInDatabase = agency.NumberOfBrokersInDatabase + request.brokers.Count;
+    request.admin.isSolo = false;
     await _appDbContext.SaveChangesAsync();
 
     //Send email to brokers to login and RENEW PASSWORD

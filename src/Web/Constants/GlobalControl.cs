@@ -5,6 +5,6 @@
 /// </summary>
 public static class GlobalControl
 {
-  //------------testing----------------
-  public static List<string> LeadProviderEmails = new() { "abdallah@hotmail.com", "abdallah@hotmail.com" };
+    //------------testing----------------
+    public static List<string> LeadProviderEmails = new() { "abdallah@hotmail.com", "abdallah@hotmail.com" };
 }
