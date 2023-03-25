@@ -141,4 +141,28 @@ public class LeadQService
 
     return leads;
   }
+
+    public async Task<List<LeadForListDTO>> GetUnAssignedLeadsAsync(Guid brokerId, int AgencyId)
+    {
+        var leads = await _appDbContext.Leads.Where(l => l.AgencyId == AgencyId && l.BrokerId == null)
+          .Select(l => new LeadForListDTO
+          {
+              Budget = l.Budget,
+              Email = l.Email,
+              EntryDate = l.EntryDate.UtcDateTime,
+              LeadFirstName = l.LeadFirstName,
+              LeadId = l.Id,
+              LeadLastName = l.LeadLastName,
+              leadSourceDetails = l.SourceDetails,
+              LeadStatus = l.LeadStatus.ToString(),
+              leadType = l.leadType.ToString(),
+              PhoneNumber = l.PhoneNumber,
+              source = l.source.ToString(),
+              Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName })
+          })
+          .OrderByDescending(l => l.LeadId)
+          .ToListAsync();
+
+        return leads;
+    }
 }
