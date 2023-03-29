@@ -55,14 +55,27 @@ public class TestController : ControllerBase
         _adGraphWrapper = aDGraph;
         _actionPQService = actionPQService;
     }
-    [HttpGet("test-ef-navigation")]
+
+    [HttpGet("GetBrokersTestMemory")]
     public async Task<IActionResult> test_ef_navigation()
     {
-        var broker = _appDbContext.Brokers.Include(b => b.Notifs).Single();
-        var notifs = broker.Notifs;
-        notifs[0].NotifType = NotifType.None;
-
+        var notif = new Notification
+        {
+            BrokerId = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA"),
+            DeleteAfterProcessing = false,
+            IsActionPlanResult = false,
+            EventTimeStamp = DateTime.UtcNow,
+            IsRecevied = false,
+            NotifType = NotifType.None,
+            ReadByBroker = false,
+            NotifyBroker = false
+        };
+        _appDbContext.Notifications.Add(notif);
         _appDbContext.SaveChanges();
+
+        var notifId = notif.Id;
+        var test = new testEvent { NotifId = notifId };
+        var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(test));
         return Ok();
     }
 

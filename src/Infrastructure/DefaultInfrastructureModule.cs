@@ -75,11 +75,11 @@ public class DefaultInfrastructureModule : Module
 
         var mediatrOpenTypes = new[]
         {
-      typeof(IRequestHandler<,>),
-      typeof(IRequestExceptionHandler<,,>),
-      typeof(IRequestExceptionAction<,>),
-      typeof(INotificationHandler<>),
-    };
+            typeof(IRequestHandler<,>),
+            typeof(IRequestExceptionHandler<,,>),
+            typeof(IRequestExceptionAction<,>),
+            typeof(INotificationHandler<>),
+        };
 
         foreach (var mediatrOpenType in mediatrOpenTypes)
         {

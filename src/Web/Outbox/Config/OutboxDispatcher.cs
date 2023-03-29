@@ -11,6 +11,7 @@ public class OutboxDispatcher
   }
   public async Task Dispatch(EventBase Event)
   {
+        Console.WriteLine($"-----------------Dispatching Event with id{Event.NotifId}\n\n");
     await _mediator.Publish(Event);
   }
 }

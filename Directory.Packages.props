@@ -7,15 +7,17 @@
     <PackageVersion Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageVersion Include="Azure.Identity" Version="1.8" />
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.7.31" />
+    <PackageVersion Include="HangFire.Autofac" Version="2.3.1" />
     <PackageVersion Include="Hangfire.SqlServer" Version="1.7.31" />
     <PackageVersion Include="Hellang.Middleware.ProblemDetails" Version="6.5.1" />
+    <PackageVersion Include="HtmlAgilityPack" Version="1.11.46" />
     <PackageVersion Include="MediatR" Version="11.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.19.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.0"/>
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Graph" Version="4.47.0" />
     <PackageVersion Include="Microsoft.Identity.Web" Version="1.25.5" />
     <PackageVersion Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.0" />

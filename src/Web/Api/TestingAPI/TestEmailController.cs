@@ -1,8 +1,13 @@
 ﻿
 using Core.Constants;
+using HtmlAgilityPack;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
+using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using Web.ControllerServices.StaticMethods;
 
 namespace Web.Api.TestingAPI;
@@ -21,10 +26,10 @@ public class TestEmailController : ControllerBase
         _logger = logger;
         _adGraphWrapper = aDGraphWrapper;
     }
-    
 
-    [HttpGet("GetMessages")]
-    public async Task<IActionResult> GetMessages()
+
+    [HttpGet("GetMessages/{index}")]
+    public async Task<IActionResult> GetMessages(int index)
     {
         var SyncStartDate = new DateTime(2023, 1, 1).ToUniversalTime();
 
@@ -39,18 +44,59 @@ public class TestEmailController : ControllerBase
         options.Add(option);
         options.Add(option1);
 
-        var messages = await _adGraphWrapper._graphClient
+        var messages1 = await _adGraphWrapper._graphClient
           .Users["bashar.eskandar@sealdeal.ca"]
           .MailFolders["Inbox"]
           .Messages
           .Request(options)
           .GetAsync();
+        var messages = messages1.ToList();
+        var firstMessageContent = messages[index].Body.Content;
 
-        var firstMessageContent = messages.First().Body.Content;
-        _logger.LogCritical("1st message content:" + firstMessageContent);
+        HtmlDocument doc = new HtmlDocument();
+        doc.LoadHtml(firstMessageContent);
+        string text = doc.DocumentNode.InnerText;
+
+        var lenggg = text.Length;
+        var prompt = "extract lead's name,phone number,email address and the address of the property from this email: " + text;
+
+        var httpClient = new HttpClient()
+        {
+            BaseAddress = new Uri("https://api.openai.com/v1/chat/completions")
+            //BaseAddress = new Uri("https://api.openai.com/v1/completions")
+        };
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", santaBro);
+        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        StringContent jsonContent = new(
+        JsonSerializer.Serialize(new
+        {
+            model = "gpt-3.5-turbo",
+            //model = "text-curie-001",
+            //prompt = prompt,
+            messages = new List<GPTMessage>
+            {
+                new GPTMessage{role = "user", content = prompt},
+            },
+            temperature = 0,
+        }),
+        Encoding.UTF8,
+        "application/json");
+
+        var watch = new Stopwatch();
+        watch.Start();
+
+        HttpResponseMessage response = await httpClient.PostAsync("", content: jsonContent);
+
+        watch.Stop();
+        var responseTimeForCompleteRequest = watch.ElapsedMilliseconds;
+        _logger.LogCritical("response time: " + responseTimeForCompleteRequest.ToString());
+        var jsonResponse = await response.Content.ReadAsStringAsync();
+
+        var resWithTime = new { responseTimeForCompleteRequest, jsonResponse };
 
 
-        return Ok(messages);
+
+        return Ok(resWithTime);
     }
 
     [HttpGet("RenewSubs/{SubsId}")]
@@ -295,5 +341,9 @@ public class TestEmailController : ControllerBase
         }
         return Ok();
     }
-
+    public class GPTMessage
+    {
+        public string role { get; set; }
+        public string content { get; set; }
+    }
 }
