@@ -16,6 +16,12 @@ namespace Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
+    public string MessageWhenDisposed { get; set; } = "notSet";
+    public override void Dispose()
+    {
+        Console.WriteLine("********dbDispose****: "+ MessageWhenDisposed);
+        base.Dispose();
+    }
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {

@@ -23,7 +23,7 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
     _appDbContext = appDbContext;
   }
 
-  public async Task<Unit> Handle(SubscriptionUpdatedRequest request, CancellationToken cancellationToken)
+  public async Task Handle(SubscriptionUpdatedRequest request, CancellationToken cancellationToken)
   {
     Agency? agency = null;
     //CheckoutSessionCompleted event might not be fully processed yet
@@ -34,7 +34,7 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
       if (agency != null) break;
       else if (i < 2)
       {
-        Thread.Sleep(800);
+        await Task.Delay(800);
       }
       //add HangfireRetry
       else throw new InconsistentStateException("subscriptionUpdated-NoAgencyWithSubscriptionID", $"No agency found with subscriptionId {request.SubscriptionId}, new status is {request.SubsStatus}","No Matching Agency");
@@ -55,6 +55,5 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
     {
       //TODO handle other cases
     }
-    return Unit.Value;
   }
 }

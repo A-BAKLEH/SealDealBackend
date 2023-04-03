@@ -1,7 +1,4 @@
-﻿using Autofac;
-using Autofac.Extensions.DependencyInjection;
-using Core;
-using Core.Constants;
+﻿using Core.Constants;
 using Hangfire;
 using Hellang.Middleware.ProblemDetails;
 using Infrastructure;
@@ -19,15 +16,16 @@ using Web.SignalRInfra;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
-
 var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
 builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
   .WriteTo.Seq("http://localhost:5341", restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
   .Enrich.FromLogContext()
   .Enrich.WithProperty("AppVersion", version));
-//builder.Logging.ClearProviders();
+
 builder.Services.AddHangfire(builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.AddInfrastructureServices(builder.Configuration, Assembly.GetExecutingAssembly());
+builder.Services.AddWebServices();
+
 builder.Services.AddControllers();
 builder.Services.AddDbContext(builder.Configuration.GetConnectionString("DefaultConnection"));
 builder.Services.AddEndpointsApiExplorer();
@@ -58,7 +56,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddProblemDetails(options =>
 {
     options.IncludeExceptionDetails = (ctx, env) => false;
-
     options.Map<CustomBadRequestException>(ex => new BadRequestProblemDetails
     {
         Title = ex.title,
@@ -72,28 +69,11 @@ builder.Services.AddProblemDetails(options =>
         Status = ex.errorCode,
         Detail = ex.details,
     });
-
 });
 
-if (builder.Environment.IsEnvironment("Test"))
-{
 
-}
-//add redis in production instead
 if (builder.Environment.IsDevelopment())
 {
-    //builder.Services.AddStackExchangeRedisCache(options =>
-    //{
-    //  //options.Configuration = builder.Configuration.GetConnectionString("redis");
-    //  options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
-    //  {
-    //    EndPoints = { "redis-17282.c56.east-us.azure.cloud.redislabs.com:17282" },
-    //    Password = "m2qOkNVxZXxhXAwncrC5l0vpaCiBj3dc"
-    //  };
-    //  //options.InstanceName = "test1";
-    //});
-    ////builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
-    //builder.Services.AddSignalR().AddAzureSignalR();
 }
 
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -106,23 +86,15 @@ builder.Services.AddStackExchangeRedisCache(options =>
     };
     //options.InstanceName = "test1";
 });
-//builder.Services.AddDistributedMemoryCache(option => option.SizeLimit = 26);
+
 builder.Services.AddSignalR().AddAzureSignalR();
 
-builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
-{
-    containerBuilder.RegisterModule(new DefaultCoreModule());
-    containerBuilder.RegisterModule(new DefaultInfrastructureModule(builder.Environment.EnvironmentName == "Development", builder.Configuration, Assembly.GetExecutingAssembly()));
-    containerBuilder.RegisterModule(new WebModule(builder.Environment.EnvironmentName == "Development"));
-});
 //builder.Services.AddApplicationInsightsTelemetry();
-
 //builder.Logging.AddAzureWebAppDiagnostics(); //add this if deploying to Azure
+
 VariousCons.MainAPIURL = builder.Configuration.GetSection("URLs")["MainAPI"];
 
 var app = builder.Build();
-
-GlobalConfiguration.Configuration.UseAutofacActivator(app.Services.GetAutofacRoot(), false);
 
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseProblemDetails();

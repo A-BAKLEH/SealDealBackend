@@ -19,7 +19,6 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="HangFire.Autofac" />
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />
     <PackageReference Include="HtmlAgilityPack" />
     <PackageReference Include="MediatR" />

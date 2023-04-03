@@ -59,6 +59,7 @@ public class TestController : ControllerBase
     [HttpGet("GetBrokersTestMemory")]
     public async Task<IActionResult> test_ef_navigation()
     {
+
         var notif = new Notification
         {
             BrokerId = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA"),

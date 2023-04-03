@@ -8,6 +8,7 @@ using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Web.Constants;
+using Web.HTTPClients;
 
 namespace Web.Processing.EmailAutomation;
 
@@ -17,11 +18,13 @@ public class EmailProcessor
     private readonly ILogger<EmailProcessor> _logger;
     private ADGraphWrapper _aDGraphWrapper;
     private readonly IConfigurationSection _configurationSection;
-    public EmailProcessor(AppDbContext appDbContext, IConfiguration config, ADGraphWrapper aDGraphWrapper, ILogger<EmailProcessor> logger)
+    private readonly OpenAIGPT35Service _GPT35Service;
+    public EmailProcessor(AppDbContext appDbContext, IConfiguration config, ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, ILogger<EmailProcessor> logger)
     {
         _appDbContext = appDbContext;
         _logger = logger;
         _aDGraphWrapper = aDGraphWrapper;
+        _GPT35Service = openAIGPT35Service;
         _configurationSection = config.GetSection("URLs");
     }
 
@@ -138,7 +141,6 @@ public class EmailProcessor
 
     /// <summary>
     /// fetch all emails from last sync date and process them
-    /// if admin get all emails from known lead providers
     /// </summary>
     /// <param name="connEmailId"></param>
     /// <param name="tenantId"></param>
@@ -160,6 +162,7 @@ public class EmailProcessor
         options.Add(new QueryOption("$filter", $"receivedDateTime gt {date}"));
         options.Add(new QueryOption("$orderby", "receivedDateTime"));
         options.Add(new HeaderOption("Prefer", "IdType=ImmutableId"));
+        options.Add(new HeaderOption("Prefer", "odata.maxpagesize=15"));
 
         var messages = await _aDGraphWrapper._graphClient
           .Users[connEmail.Email]
@@ -183,78 +186,118 @@ public class EmailProcessor
     public async Task ProcessMessagesAsync(IMailFolderMessagesCollectionPage messages, bool isAdmin, Guid brokerId, bool SoloBroker)
     {
         var groupedMessages = messages.GroupBy(m => m.Sender.EmailAddress.Address);
+
+        List<Task<OpenAIResponse?>> LeadProviderTasks = new();
+        var leadProviderEmails = groupedMessages.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
+        foreach (var emailsGrouping in leadProviderEmails)
+        {
+            string fromEmailAddress = emailsGrouping.Key;
+            foreach (var email in emailsGrouping)
+            {
+                LeadProviderTasks.Add(_GPT35Service.ParseEmailAsync(email,true));
+            }
+        }
+
+        List<Task<OpenAIResponse?>> UnknownSenderTasks = new();
         foreach (var messageGrp in groupedMessages)
         {
             string fromEmailAddress = messageGrp.Key;
-
-            //TODO decide what happens if this lead does not belong to any broker yet but it is created as
-            //agency lead
-            //TODO decide if lead assignation and to who, for now lead is just created without being assigned
-            //TODO implement list of known lead providers whose emails can be parsed
-            //TODO index on listing street address maybe separate the fields of address
-            bool processed = false;
-            if (SoloBroker || isAdmin && GlobalControl.LeadProviderEmails.Contains(fromEmailAddress))
+            if (GlobalControl.LeadProviderEmails.Contains(fromEmailAddress)) continue;
+            var lead = _appDbContext.Leads
+                .Select(l => new { l.Id,l.Email,l.BrokerId})
+                .FirstOrDefaultAsync(l => l.Email == fromEmailAddress && l.BrokerId == brokerId);
+            if (lead != null)
             {
-                foreach (var mess in messageGrp)
+                foreach (var email in messageGrp)
                 {
-                    _logger.LogWarning($"admin: LeadParsing message content:\n{mess.Body.Content} \n");
-                    //determine preliminarly if actual new lead email by subject or style or whatever
-                    //if YES send to ChatGPT to extract fields including for listing address and lead info,
-                    //if NO log warning or error with
-                    //the email content so that it can be manually parsed and added to the system, skip this message
-
-                    //if lead extracted create lead, If NOT log parsed info and email text as error to manually review and
-                    //skip this message
-
-                    //search for listing record by street address AND agencyId of this broker
-                    //if found:
-                    //increment listing leads count
-                    //set lead listing to this listing
-                    //if soloBroker OR listing has only 1 assigned broker assign lead to this broker and create proper notifs
-                    //else lead is unassigned and create notifs for admin (same as the one created when creating lead manually
-                    //without assigning it
-
-
-                    //else lead does not have a listing
-
-                    //admin's notif for lead creation has emailId in props
-
-                    //var lead = CreateLead();
-
+                    //TODO deal with correspondences from knwon leads
                 }
-                processed = true;
             }
-            else//email sender is a known lead
+            else // email is from unknown, send to chat gpt
             {
-                //TODO cache
-                var lead = await _appDbContext.Leads
-                  .Select(l => new { l.Id, l.Email, l.BrokerId })
-                  .FirstAsync(l => l.Email == fromEmailAddress && l.BrokerId == brokerId);
-                if (lead != null)
+                foreach (var email in messageGrp)
                 {
-                    foreach (var mess in messageGrp)
-                    {
-                        _logger.LogWarning($"Lead Interaction message content:\n{mess.Body.Content} \n");
-                        //TODO add email to notifs
-                    }
+                    //TODO deal with correspondences from unknwon senders
+                    //UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, false));
                 }
-                processed = true;
             }
-            if (!processed)
-            {
-                //ask chat GPT if this email is from a potential client who is inquiring about something. and if yes
-                //extract as much info as possible from email, create lead if possible. add notif with email ID and
-                //new notif type "potential lead" or something
-            }
-
-            //TODO process all notifs created in this webhook en masse, maybe by using WaitingInBath processing status
-            //and scheduling a task that will process all those notifs with that processing status for this
-            //particular broker
-
-            //TODO maybe mark as processed with extention property?
-
-            //TODO increment GPT usage for stats if necessary
         }
+        //foreach (var messageGrp in groupedMessages)
+        //{
+        //    string fromEmailAddress = messageGrp.Key;
+
+        //    //TODO implement list of known lead providers whose emails can be parsed
+        //    //TODO index on listing street address maybe separate the fields of address
+        //    bool processed = false;
+        //    if (GlobalControl.LeadProviderEmails.Contains(fromEmailAddress))
+        //    {
+        //        //parse leads and addresses from all emails in messGrp
+
+        //        //_GPT35Service.ParseEmailAsync();
+
+        //        if(SoloBroker)
+        //        {
+        //        }
+        //        foreach (var mess in messageGrp)
+        //        {
+        //            _logger.LogWarning($"admin: LeadParsing message content:\n{mess.Body.Content} \n");
+        //            //determine preliminarly if actual new lead email by subject or style or whatever
+        //            //if YES send to ChatGPT to extract fields including for listing address and lead info,
+        //            //if NO log warning or error with
+        //            //the email content so that it can be manually parsed and added to the system, skip this message
+
+        //            //if lead extracted create lead, If NOT log parsed info and email text as error to manually review and
+        //            //skip this message
+
+        //            //search for listing record by street address AND agencyId of this broker
+        //            //if found:
+        //            //increment listing leads count
+        //            //set lead listing to this listing
+        //            //if soloBroker OR listing has only 1 assigned broker assign lead to this broker and create proper notifs
+        //            //else lead is unassigned and create notifs for admin (same as the one created when creating lead manually
+        //            //without assigning it
+
+
+        //            //else lead does not have a listing
+
+        //            //admin's notif for lead creation has emailId in props
+
+        //            //var lead = CreateLead();
+
+        //        }
+        //        processed = true;
+        //    }
+        //    else//email sender is a known lead
+        //    {
+        //        //TODO cache
+        //        var lead = await _appDbContext.Leads
+        //          .Select(l => new { l.Id, l.Email, l.BrokerId })
+        //          .FirstAsync(l => l.Email == fromEmailAddress && l.BrokerId == brokerId);
+        //        if (lead != null)
+        //        {
+        //            foreach (var mess in messageGrp)
+        //            {
+        //                _logger.LogWarning($"Lead Interaction message content:\n{mess.Body.Content} \n");
+        //                //TODO add email to notifs
+        //            }
+        //        }
+        //        processed = true;
+        //    }
+        //    if (!processed)
+        //    {
+        //        //ask chat GPT if this email is from a potential client who is inquiring about something. and if yes
+        //        //extract as much info as possible from email, create lead if possible. add notif with email ID and
+        //        //new notif type "potential lead" or something
+        //    }
+
+        //    //TODO process all notifs created in this webhook en masse, maybe by using WaitingInBath processing status
+        //    //and scheduling a task that will process all those notifs with that processing status for this
+        //    //particular broker
+
+        //    //TODO maybe mark as processed with extention property?
+
+        //    //TODO increment GPT usage for stats if necessary
+        //}
     }
 
     public Lead CreateLead(string email, int agencyId, string emailId, Guid brokerId, LeadType leadType, string? firstName, string? lastName, string? phoneNumber, int? listingId)
@@ -287,5 +330,5 @@ public class EmailProcessor
         };
         lead.LeadHistoryEvents = new() { notifCreation };
         return lead;
-    }
+    }  
 }

@@ -1,4 +1,5 @@
 ﻿using Core.Domain.NotificationAggregate;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Web.Outbox;
 using Web.Outbox.Config;
@@ -7,6 +8,12 @@ namespace Web.Api.TestingAPI
 {
     public class test69 : ControllerBase
     {
+        private readonly AppDbContext _appDbContext;
+        public test69(AppDbContext appDbContext)
+        {
+            _appDbContext = appDbContext;
+        }
+
         [HttpGet("test69Abdallah")]
         public async Task<IActionResult> test_ef_navigation()
         {
@@ -21,8 +28,9 @@ namespace Web.Api.TestingAPI
                 ReadByBroker = false,
                 NotifyBroker = false
             };
-            //_appDbContext.Notifications.Add(notif);
-            //_appDbContext.SaveChanges();
+            _appDbContext.Notifications.Add(notif);
+            _appDbContext.MessageWhenDisposed = "test69controller";
+            _appDbContext.SaveChanges();
 
             var notifId = notif.Id;
             var test = new testEvent { NotifId = notifId };

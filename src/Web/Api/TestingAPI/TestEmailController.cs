@@ -4,11 +4,12 @@ using HtmlAgilityPack;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
-using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Web.Constants;
 using Web.ControllerServices.StaticMethods;
+using Web.HTTPClients;
 
 namespace Web.Api.TestingAPI;
 
@@ -28,8 +29,8 @@ public class TestEmailController : ControllerBase
     }
 
 
-    [HttpGet("GetMessages/{index}")]
-    public async Task<IActionResult> GetMessages(int index)
+    [HttpGet("GetMessages/{index}/{isNo}")]
+    public async Task<IActionResult> GetMessages(int index, bool isNo)
     {
         var SyncStartDate = new DateTime(2023, 1, 1).ToUniversalTime();
 
@@ -55,10 +56,12 @@ public class TestEmailController : ControllerBase
 
         HtmlDocument doc = new HtmlDocument();
         doc.LoadHtml(firstMessageContent);
-        string text = doc.DocumentNode.InnerText;
+        string text = doc.DocumentNode.InnerText; // copy paste stripped text
 
         var lenggg = text.Length;
-        var prompt = "extract lead's name,phone number,email address and the address of the property from this email: " + text;
+
+        var prompt = APIConstants.ParseLeadPrompt + text;
+        if (isNo) prompt = APIConstants.ParseLeadPrompt + "Hello, my name is abdul, are you interested in our new lead tracking software? let me know thank you! ---Lead provider---- abdul: abdul@hotmail.com, 514 522 5142";
 
         var httpClient = new HttpClient()
         {
@@ -73,30 +76,37 @@ public class TestEmailController : ControllerBase
             model = "gpt-3.5-turbo",
             //model = "text-curie-001",
             //prompt = prompt,
-            messages = new List<GPTMessage>
+            messages = new List<GPTRequest>
             {
-                new GPTMessage{role = "user", content = prompt},
+                new GPTRequest{role = "user", content = prompt},
             },
             temperature = 0,
         }),
         Encoding.UTF8,
         "application/json");
 
-        var watch = new Stopwatch();
-        watch.Start();
-
         HttpResponseMessage response = await httpClient.PostAsync("", content: jsonContent);
-
-        watch.Stop();
-        var responseTimeForCompleteRequest = watch.ElapsedMilliseconds;
-        _logger.LogCritical("response time: " + responseTimeForCompleteRequest.ToString());
+        response.EnsureSuccessStatusCode();
+        //check if answer is no before deserialising
         var jsonResponse = await response.Content.ReadAsStringAsync();
 
-        var resWithTime = new { responseTimeForCompleteRequest, jsonResponse };
+        var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
 
+        var cleanedGOAT = rawResponse.choices[0].message.content.Replace("\n", "");
+        var GOATpart = JsonSerializer.Deserialize<ResponseContent>(cleanedGOAT); ;
+        var resWithTime = new { jsonResponse, GOATpart };
 
 
         return Ok(resWithTime);
+    }
+
+    [HttpGet("testDeseralize")]
+    public async Task<IActionResult> renewsubsfdds()
+    {
+        var completed = "{\"id\":\"chatcmpl-6zxr35dNDqzyNiSGbSt5WwdXePKtg\",\"object\":\"chat.completion\",\"created\":1680226109,\"model\":\"gpt-3.5-turbo-0301\",\"usage\":{\"prompt_tokens\":683,\"completion_tokens\":82,\"total_tokens\":765},\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"{\\n   \\\"firstName\\\": \\\"Mohamed\\\",\\n   \\\"lastName\\\": \\\"Ibrahim\\\",\\n   \\\"Language\\\": \\\"English\\\",\\n   \\\"phoneNumber\\\": \\\"(514) 553-4577\\\",\\n   \\\"emailAddress\\\": \\\"mai307@nyu.edu\\\",\\n   \\\"PropertyAddress\\\": \\\"6370-6372 avenue fielding, Montreal, QC\\\",\\n   \\\"StreetNumber\\\": \\\"6370-6372\\\"\\n}\"},\"finish_reason\":\"stop\",\"index\":0}]}";
+        var cleaned = completed.Replace("\n", "");
+        var rawResponseGOAT = JsonSerializer.Deserialize<GPT35RawResponse>(cleaned);
+        return Ok(rawResponseGOAT);
     }
 
     [HttpGet("RenewSubs/{SubsId}")]
@@ -341,9 +351,5 @@ public class TestEmailController : ControllerBase
         }
         return Ok();
     }
-    public class GPTMessage
-    {
-        public string role { get; set; }
-        public string content { get; set; }
-    }
+
 }
