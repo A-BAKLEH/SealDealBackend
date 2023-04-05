@@ -60,6 +60,7 @@ public class TestEmailController : ControllerBase
 
         var lenggg = text.Length;
 
+        //var prompt = APIConstants.ParseLeadPrompt + text;
         var prompt = APIConstants.ParseLeadPrompt + text;
         if (isNo) prompt = APIConstants.ParseLeadPrompt + "Hello, my name is abdul, are you interested in our new lead tracking software? let me know thank you! ---Lead provider---- abdul: abdul@hotmail.com, 514 522 5142";
 

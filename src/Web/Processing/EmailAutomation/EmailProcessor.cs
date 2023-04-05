@@ -185,11 +185,11 @@ public class EmailProcessor
 
     public async Task ProcessMessagesAsync(IMailFolderMessagesCollectionPage messages, bool isAdmin, Guid brokerId, bool SoloBroker)
     {
-        var groupedMessages = messages.GroupBy(m => m.Sender.EmailAddress.Address);
+        var groupedMessagesBySender = messages.GroupBy(m => m.Sender.EmailAddress.Address);
 
         List<Task<OpenAIResponse?>> LeadProviderTasks = new();
-        var leadProviderEmails = groupedMessages.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
-        foreach (var emailsGrouping in leadProviderEmails)
+        var GroupedleadProviderEmails = groupedMessagesBySender.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
+        foreach (var emailsGrouping in GroupedleadProviderEmails)
         {
             string fromEmailAddress = emailsGrouping.Key;
             foreach (var email in emailsGrouping)
@@ -199,7 +199,7 @@ public class EmailProcessor
         }
 
         List<Task<OpenAIResponse?>> UnknownSenderTasks = new();
-        foreach (var messageGrp in groupedMessages)
+        foreach (var messageGrp in groupedMessagesBySender)
         {
             string fromEmailAddress = messageGrp.Key;
             if (GlobalControl.LeadProviderEmails.Contains(fromEmailAddress)) continue;
@@ -218,7 +218,7 @@ public class EmailProcessor
                 foreach (var email in messageGrp)
                 {
                     //TODO deal with correspondences from unknwon senders
-                    //UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, false));
+                    UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, false));
                 }
             }
         }

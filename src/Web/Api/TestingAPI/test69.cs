@@ -29,7 +29,6 @@ namespace Web.Api.TestingAPI
                 NotifyBroker = false
             };
             _appDbContext.Notifications.Add(notif);
-            _appDbContext.MessageWhenDisposed = "test69controller";
             _appDbContext.SaveChanges();
 
             var notifId = notif.Id;

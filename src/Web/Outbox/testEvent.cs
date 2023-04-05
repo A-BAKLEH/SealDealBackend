@@ -19,7 +19,6 @@ namespace Web.Outbox
             var notif = await _context.Notifications
                 .Include(n => n.Broker)
                 .FirstAsync(n => n.Id == notification.NotifId);
-            _context.MessageWhenDisposed = "YES IT WORKS LMAO";
             _logger.LogWarning($"handling notif with id {notif.Id}");
         }
     }

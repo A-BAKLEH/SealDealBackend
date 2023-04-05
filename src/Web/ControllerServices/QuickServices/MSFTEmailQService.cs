@@ -22,6 +22,23 @@ public class MSFTEmailQService
         _emailProcessor = emailProcessor;
     }
 
+    public async Task<dynamic> DummyMethodHandleAdminConsentAsync(string email, string tenantId, Guid brokerId)
+    {
+        var broker = await _appDbContext.Brokers
+          .Include(b => b.Agency)
+          .Include(b => b.ConnectedEmails.Where(e => e.tenantId == tenantId))
+          .FirstAsync(b => b.Id == brokerId);
+        foreach (var em in broker.ConnectedEmails)
+        {
+            em.isMSFT = true;
+            em.hasAdminConsent = true;
+            em.tenantId = tenantId;
+        }
+        broker.Agency.AzureTenantID = tenantId;
+        broker.Agency.HasAdminEmailConsent = true;
+        await _appDbContext.SaveChangesAsync();
+        return broker.ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent,e.isMSFT});
+    }
     public async Task<dynamic> GetConnectedEmails(Guid brokerId)
     {
         var connectedEmails = await _appDbContext.ConnectedEmails
