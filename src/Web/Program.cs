@@ -22,12 +22,15 @@ builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Con
   .Enrich.FromLogContext()
   .Enrich.WithProperty("AppVersion", version));
 
-builder.Services.AddHangfire(builder.Configuration.GetConnectionString("DefaultConnection"));
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddHangfire(connectionString);
 builder.Services.AddInfrastructureServices(builder.Configuration, Assembly.GetExecutingAssembly());
 builder.Services.AddWebServices();
 
 builder.Services.AddControllers();
-builder.Services.AddDbContext(builder.Configuration.GetConnectionString("DefaultConnection"));
+builder.Services.AddDbContext(connectionString);
+builder.Services.AddDbContextFactory(connectionString);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

@@ -28,7 +28,7 @@ public class ActionPlan : Entity<int>
   /// </summary>
   public bool isActive { get; set; }
   
-  public int ActionsCount { get; set; }
+  public byte ActionsCount { get; set; }
   public string Name { get; set; }
   public bool StopPlanOnInteraction { get; set; }
   /// <summary>

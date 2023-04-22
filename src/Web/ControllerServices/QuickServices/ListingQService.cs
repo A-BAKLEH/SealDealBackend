@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using Web.ApiModels.RequestDTOs;
 using Web.Constants;
+using Web.ControllerServices.StaticMethods;
 using Web.Outbox;
 using Web.Outbox.Config;
 
@@ -63,7 +64,7 @@ public class ListingQService
             .Select(l => new AgencyListingDTO
             {
                 ListingId = l.Id,
-                Address = new AddressDTO { StreetAddress = l.Address.StreetAddress, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
+                Address = new AddressDTO { StreetAddress = l.Address.StreetAddress,apt = l.Address.apt, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
                 DateOfListing = l.DateOfListing.UtcDateTime,
                 ListingURL = l.URL,
                 Price = l.Price,
@@ -85,7 +86,7 @@ public class ListingQService
             .Select(bla => new AgencyListingDTO
             {
                 ListingId = bla.ListingId,
-                Address = new AddressDTO { StreetAddress = bla.Listing.Address.StreetAddress, City = bla.Listing.Address.City, Country = bla.Listing.Address.Country, PostalCode = bla.Listing.Address.PostalCode, ProvinceState = bla.Listing.Address.ProvinceState },
+                Address = new AddressDTO { StreetAddress = bla.Listing.Address.StreetAddress,apt = bla.Listing.Address.apt ,City = bla.Listing.Address.City, Country = bla.Listing.Address.Country, PostalCode = bla.Listing.Address.PostalCode, ProvinceState = bla.Listing.Address.ProvinceState },
                 DateOfListing = bla.Listing.DateOfListing.UtcDateTime,
                 ListingURL = bla.Listing.URL,
                 Price = bla.Listing.Price,
@@ -109,28 +110,33 @@ public class ListingQService
         using var transaction = _appDbContext.Database.BeginTransaction();
         var timestamp = DateTime.UtcNow;
 
-        int brokersCount = 0;
+        byte brokersCount = 0;
         List<BrokerListingAssignment> brokersAssignments = new();
 
         if (dto.AssignedBrokersIds != null && dto.AssignedBrokersIds.Any())
         {
-            brokersCount += dto.AssignedBrokersIds.Count;
+            brokersCount += (byte) dto.AssignedBrokersIds.Count;
             foreach (var b in dto.AssignedBrokersIds)
             {
                 brokersAssignments.Add(new BrokerListingAssignment { assignmentDate = DateTime.UtcNow, BrokerId = b });
             }
         }
 
+        var streetAddress = dto.Address.StreetAddress.Replace("  ", " ").Trim();
+        var apt = dto.Address.apt.Replace(" ", "");
+        var formatted = streetAddress.FormatStreetAddress();
         var listing = new Listing
         {
             Address = new Address
             {
-                StreetAddress = dto.Address.StreetAddress,
+                StreetAddress = streetAddress,
+                apt = apt,
                 City = dto.Address.City,
                 Country = dto.Address.Country,
                 PostalCode = dto.Address.PostalCode,
                 ProvinceState = dto.Address.ProvinceState,
             },
+            FormattedStreetAddress = formatted,
             DateOfListing = dto.DateOfListing,
             AgencyId = AgencyId,
             Price = dto.Price,
@@ -141,7 +147,8 @@ public class ListingQService
             LeadsGeneratedCount = 0
         };
         _appDbContext.Listings.Add(listing);
-        await _appDbContext.SaveChangesAsync();
+
+         await _appDbContext.SaveChangesAsync();
 
         var notifs = new List<Notification>();
         if (brokersAssignments.Any())
@@ -186,7 +193,7 @@ public class ListingQService
         transaction.Commit();
         var listingDTO = new AgencyListingDTO
         {
-            Address = new AddressDTO { StreetAddress = listing.Address.StreetAddress, City = listing.Address.City, Country = listing.Address.Country, PostalCode = listing.Address.PostalCode, ProvinceState = listing.Address.ProvinceState },
+            Address = new AddressDTO { StreetAddress = listing.Address.StreetAddress,apt = listing.Address.apt, City = listing.Address.City, Country = listing.Address.Country, PostalCode = listing.Address.PostalCode, ProvinceState = listing.Address.ProvinceState },
             DateOfListing = listing.DateOfListing.UtcDateTime,
             GeneratedLeadsCount = 0,
             ListingURL = listing.URL,

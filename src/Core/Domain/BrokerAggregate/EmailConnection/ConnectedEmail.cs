@@ -8,7 +8,7 @@ public class ConnectedEmail : EntityBase
     /// <summary>
     /// in order of connection, 1 being the first
     /// </summary>
-    public int EmailNumber { get; set; }
+    public byte EmailNumber { get; set; }
     public bool hasAdminConsent { get; set; }
     public string tenantId { get; set; }
     public Broker Broker { get; set; }

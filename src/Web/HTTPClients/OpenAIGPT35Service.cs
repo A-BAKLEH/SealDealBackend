@@ -53,30 +53,43 @@ namespace Web.HTTPClients
                 "application/json");
 
                 HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
-                response.EnsureSuccessStatusCode();
-                var rawResponse = await response.Content.ReadFromJsonAsync<GPT35RawResponse>();
                 
-                //lol change
-                if (rawResponse.choices[0].message.content == "s")
+                //TODO handle API error 
+                response.EnsureSuccessStatusCode();
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
+                var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
+                var LeadParsed = JsonSerializer.Deserialize<LeadParsingContent>(GPTCompletionJSON);
+
+                res = new OpenAIResponse
                 {
-                    res = new OpenAIResponse();
-                    res.Success = true;
+                    Success = true,
+                    ProcessedMessage = message
+                };
+                //email doesnt contain lead
+                if (LeadParsed.NotFound == 1)
+                { 
                     res.HasLead = false;
-                    res.PromptTokensUsed = rawResponse.usage.prompt_tokens;
+                    res.EmailTokensUsed = rawResponse.usage.prompt_tokens - APIConstants.PromptTokensCount;
                 }
                 else
                 {
-                   // res = rawResponse.choices[0].message.content;
-                   res = new OpenAIResponse();
+                    res.HasLead = true;
+                    res.content = LeadParsed;
                 }
             }
             catch (Exception e)
             {
-                res = new OpenAIResponse();
-                res.ErrorMessage = e.Message;
+                res = new OpenAIResponse
+                {
+                    HasLead = false,
+                    ErrorMessage = e.Message,
+                    ErrorType = e.GetType(),
+                    ProcessedMessage = message
+                };
                 _logger.LogError("{Category} GPT 3.5 email parsing error for messageID {messageID} and error {Error}","OpenAI",message.Id,e.Message);
             }
-
             return res;
         }
     }  

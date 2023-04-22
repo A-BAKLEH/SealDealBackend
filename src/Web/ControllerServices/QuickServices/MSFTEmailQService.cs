@@ -22,7 +22,7 @@ public class MSFTEmailQService
         _emailProcessor = emailProcessor;
     }
 
-    public async Task<dynamic> DummyMethodHandleAdminConsentAsync(string email, string tenantId, Guid brokerId)
+    public async Task<dynamic> DummyMethodHandleAdminConsentAsync( string tenantId, Guid brokerId)
     {
         var broker = await _appDbContext.Brokers
           .Include(b => b.Agency)
@@ -80,7 +80,7 @@ public class MSFTEmailQService
         {
             BrokerId = broker.Id,
             Email = email,
-            EmailNumber = emailNumber,
+            EmailNumber = (byte) emailNumber,
             tenantId = TenantId,
             hasAdminConsent = broker.Agency.HasAdminEmailConsent,
             isMSFT = true,

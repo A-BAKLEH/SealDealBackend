@@ -1,4 +1,6 @@
-﻿namespace Web.HTTPClients
+﻿using Microsoft.Graph;
+
+namespace Web.HTTPClients
 {
     public class OpenAIResponse
     {
@@ -8,8 +10,10 @@
         public bool Success { get; set; } = false;
         public bool HasLead { get; set; }
         public string? ErrorMessage { get; set; }
-        public ResponseContent content { get; set; }
-        public int? PromptTokensUsed { get; set; }
+        public Type? ErrorType { get; set; }
+        public LeadParsingContent? content { get; set; }
+        public int EmailTokensUsed { get; set; }
+        public Message ProcessedMessage { get; set; }
     }
 
     public class GPTRequest
@@ -40,7 +44,7 @@
         }
     }
 
-    public class ResponseContent
+    public class LeadParsingContent
     {
         public byte NotFound { get; set; } = 0;
         public string? firstName { get; set; }
@@ -48,7 +52,8 @@
         public string? emailAddress { get; set; }
         public string? phoneNumber { get; set; }
         public string? PropertyAddress { get; set; }
-        public string? StreetNumber { get; set; }
+        public string? StreetAddress { get; set; }
+        public string? Apartment { get; set; }
         public string? Language { get; set; }
     }
 }

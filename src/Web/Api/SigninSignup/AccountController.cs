@@ -102,8 +102,8 @@ public class AccountController : BaseApiController
     }
 
 
-    [HttpGet("ConnectedEmail/MSFT/AdminConsent/{email}/{tenantId}")]
-    public async Task<IActionResult> VerifyAdminConsentedMSFTdummy(string email, string tenantId)
+    [HttpGet("ConnectedEmail/MSFT/AdminConsent/{tenantId}")]
+    public async Task<IActionResult> VerifyAdminConsentedMSFTdummy(string tenantId)
     {
         //TODO redo this method
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
@@ -113,7 +113,7 @@ public class AccountController : BaseApiController
             _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to handle admin consented", TagConstants.Inactive, id);
             return Forbid();
         }
-        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(email, tenantId,id);
+        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync( tenantId,id);
 
         return Ok(resTuple);
     }

@@ -94,7 +94,7 @@ public class TestEmailController : ControllerBase
         var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
 
         var cleanedGOAT = rawResponse.choices[0].message.content.Replace("\n", "");
-        var GOATpart = JsonSerializer.Deserialize<ResponseContent>(cleanedGOAT); ;
+        var GOATpart = JsonSerializer.Deserialize<LeadParsingContent>(cleanedGOAT); ;
         var resWithTime = new { jsonResponse, GOATpart };
 
 

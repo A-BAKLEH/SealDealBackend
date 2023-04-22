@@ -87,7 +87,7 @@ public class ActionPQService
             Triggers = trigger,
             TimeCreated = DateTime.UtcNow,
             isActive = dto.ActivateNow,
-            ActionsCount = dto.Actions.Count,
+            ActionsCount = (byte) dto.Actions.Count,
             Name = dto.Name,
             StopPlanOnInteraction = dto.StopPlanOnInteraction,
             FirstActionDelay = dto.FirstActionDelay,
