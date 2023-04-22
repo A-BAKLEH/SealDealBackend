@@ -224,6 +224,7 @@ public class EmailProcessor
                     foreach (var email in messageGrp)
                     {
                         //TODO deal with correspondences from knwon leads
+                        //will depend on notifs system
                     }
                 }
                 else // email is from unknown, send to chat gpt
@@ -241,6 +242,7 @@ public class EmailProcessor
             }
             catch { }
 
+            List<Task> ListingLeadFetchTasks  = new(LeadProviderTasks.Count);
             for (int i = 0; i < LeadProviderTasks.Count; i++)
             {
                 var leadTask = LeadProviderTasks[i];
@@ -265,13 +267,12 @@ public class EmailProcessor
                 else if (result.HasLead) //no error and lead parsed
                 {
                     //TODO
-                    //get listing
+                    //get listing and lead 
                     var parsedLead = result.content;
                     if (!string.IsNullOrEmpty(parsedLead.PropertyAddress) && !string.IsNullOrEmpty(parsedLead.StreetAddress))
                     {
-                        //localdbContext
+                        ListingLeadFetchTasks.Add(FetchListingandLeadAsync(parsedLead));
                     }
-                    //get lead
 
                     //context.Counties.Where(x => EF.Functions.Like(x.Name, $"%{keyword}%")).ToList();
                     if (SoloBroker || !isAdmin)// Always assign lead to broker
@@ -282,7 +283,6 @@ public class EmailProcessor
                     {
 
                     }
-
                 }
                 //else email didnt have a lead, discard it
             }
@@ -380,11 +380,11 @@ public class EmailProcessor
         }
     }
 
-    public async void FetchListingAsync(string GPTstreetAddress,string? GPTapt)
+    public async Task FetchListingandLeadAsync(LeadParsingContent parsedContent)
     {
         using (var context = _contextFactory.CreateDbContext())
         {
-            var formatted = GPTstreetAddress.FormatStreetAddress();
+            //var formatted = GPTstreetAddress.FormatStreetAddress();
 
         }
     }
