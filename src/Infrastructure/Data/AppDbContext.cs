@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<ToDoTask> ToDoTasks => Set<ToDoTask>();
 
     public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<LeadEmail> LeadEmails => Set<LeadEmail>();
     public DbSet<LeadInteraction> LeadInteractions => Set<LeadInteraction>();
     public DbSet<EmailInteraction> EmailInteractions => Set<EmailInteraction>();
     public DbSet<SmsInteraction> SmsInteractions => Set<SmsInteraction>();

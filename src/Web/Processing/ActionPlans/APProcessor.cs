@@ -33,6 +33,7 @@ public class APProcessor
     var ActionPlanAssociation = await _appDbContext.ActionPlanAssociations
       .Include(ass => ass.ActionTrackers.Where(a => a.TrackedActionId == ActionId))
       .Include(ass => ass.lead)
+      .ThenInclude(l => l.LeadEmails.Where(em => em.IsMain))
       .FirstAsync(ass => ass.LeadId == LeadId && ass.ActionPlanId == ActionPlanId);
 
     if (ActionPlanAssociation == null || !ActionPlanAssociation.ActionTrackers.Any() || ActionPlanAssociation.lead == null)

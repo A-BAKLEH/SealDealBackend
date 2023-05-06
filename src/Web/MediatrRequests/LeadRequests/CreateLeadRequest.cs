@@ -48,7 +48,6 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             AgencyId = request.BrokerWhoRequested.AgencyId,
             BrokerId = brokerToAssignToId,
             Budget = dto.Budget,
-            Email = dto.Email,
             LeadFirstName = dto.LeadFirstName ?? "-",
             LeadLastName = dto.LeadLastName,
             PhoneNumber = dto.PhoneNumber,
@@ -59,6 +58,20 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             LeadStatus = LeadStatus.New,
             ListingId = dto.ListingOfInterstId,
         };
+        if(dto.Emails != null && dto.Emails.Any())
+        {
+            lead.LeadEmails = new List<LeadEmail>(dto.Emails.Count);
+            foreach (var email in dto.Emails)
+            {
+                lead.LeadEmails.Add(new LeadEmail
+                {
+                    EmailAddress = email,
+                    IsMain = false
+                });
+            }
+            lead.LeadEmails[0].IsMain = true;
+        }
+        
         lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = request.BrokerWhoRequested.FirstName + " " + request.BrokerWhoRequested.LastName;
         lead.LeadHistoryEvents = new();
 
@@ -131,6 +144,8 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             listing.LeadsGeneratedCount++;
         }
         //concnurrency handling for listing LeadsGeneratedCount
+
+        //TECH
         bool saved = false;
         while (!saved)
         {
@@ -181,10 +196,11 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
                 OutboxMemCache.SchedulingErrorDict.Add(notifId, leadAssignedEvent);
             }
         }
+         
         var response = new LeadForListDTO
         {
             Budget = lead.Budget,
-            Email = lead.Email,
+            Emails = lead.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain}).ToList(),
             EntryDate = lead.EntryDate.UtcDateTime,
             LeadFirstName = lead.LeadFirstName,
             LeadId = lead.Id,

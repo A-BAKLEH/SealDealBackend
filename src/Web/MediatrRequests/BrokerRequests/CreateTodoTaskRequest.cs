@@ -41,7 +41,7 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
         var HangfireJobId1 = Hangfire.BackgroundJob.Schedule<HandleTodo>(h => h.Handle(todo.Id, 1), firstReminder);
         todo.HangfireReminderId = HangfireJobId1;
         await _appDbContext.SaveChangesAsync();
-        transaction.Commit();
+        await transaction.CommitAsync();
 
         var reponse = new ToDoTaskWithLeadName
         {

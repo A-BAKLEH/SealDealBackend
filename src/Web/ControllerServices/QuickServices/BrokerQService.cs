@@ -165,7 +165,7 @@ public class BrokerQService
         "with {NotifId} with error {Error}", StripeNotifId, ex.Message);
       OutboxMemCache.SchedulingErrorDict.Add(StripeNotifId, stripeSubsChange);
     }
-    transaction.Commit();
+    await transaction.CommitAsync();
 
   }
 }

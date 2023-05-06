@@ -7,6 +7,7 @@ using Web.Processing.EmailAutomation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 
 namespace Web.Api.EmailControllers;
 

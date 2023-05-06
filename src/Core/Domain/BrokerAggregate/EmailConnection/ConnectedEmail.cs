@@ -12,6 +12,11 @@ public class ConnectedEmail : EntityBase
     public bool hasAdminConsent { get; set; }
     public string tenantId { get; set; }
     public Broker Broker { get; set; }
+
+    /// <summary>
+    /// only relevant for admins, if false then leads won't be automatically assigned to brokers
+    /// </summary>
+    public bool AssignLeadsAuto { get; set; } = false;
     /// <summary>
     /// primary key
     /// </summary>

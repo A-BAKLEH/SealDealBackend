@@ -7,7 +7,7 @@ using Core.ExternalServiceInterfaces.ActionPlans;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using Web.Constants;
 
 namespace Web.Processing.ActionPlans;
@@ -133,11 +133,11 @@ public class ActionExecuter : IActionExecuter
               {
                 EmailAddress = new EmailAddress
                 {
-                  Address = lead.Email
+                  Address = lead.LeadEmails[0].EmailAddress
                 }
               }
             },
-            SingleValueExtendedProperties = new MessageSingleValueExtendedPropertiesCollectionPage()
+            SingleValueExtendedProperties = new()
             {
               new SingleValueLegacyExtendedProperty
               {
@@ -151,20 +151,12 @@ public class ActionExecuter : IActionExecuter
             }
         };
 
-        var savedMess = await _adGraphWrapper._graphClient.Users[connEmail.Email]
-            .Messages
-            .Request()
-            .AddAsync(message);
+        var requestBody = new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
+        { Message = message, SaveToSentItems = true };
 
         await _adGraphWrapper._graphClient.Users[connEmail.Email]
-            .Messages[savedMess.Id]
-            .Send()
-            .Request().PostAsync();
+            .SendMail.PostAsync(requestBody);
 
-        //await _adGraphWrapper._graphClient.Users[connEmail.Email]
-        //.SendMail(message, true)
-        //.Request()
-        //.PostAsync();
         template.TimesUsed++;
         var EmailSentNotif = new Notification
         {

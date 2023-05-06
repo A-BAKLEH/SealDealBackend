@@ -1,9 +1,9 @@
-﻿
-using Core.Constants;
+﻿using Core.Constants;
 using HtmlAgilityPack;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -36,22 +36,18 @@ public class TestEmailController : ControllerBase
 
         var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
 
-        //var option = new QueryOption("$filter", $"createdDateTime ge {SyncStartDate.ToString("o")}");
-        var option1 = new QueryOption("$orderby", "receivedDateTime desc");
-        var option = new HeaderOption("Prefer", "odata.maxpagesize=4");
         _adGraphWrapper.CreateClient(tenantId);
-
-        var options = new List<Option>();
-        options.Add(option);
-        options.Add(option1);
 
         var messages1 = await _adGraphWrapper._graphClient
           .Users["bashar.eskandar@sealdeal.ca"]
           .MailFolders["Inbox"]
           .Messages
-          .Request(options)
-          .GetAsync();
-        var messages = messages1.ToList();
+          .GetAsync(config =>
+          {
+              config.QueryParameters.Orderby = new string[] { "receivedDateTime desc" };
+              config.QueryParameters.Top = 4;
+          });
+        var messages = messages1.Value;
         var firstMessageContent = messages[index].Body.Content;
 
         HtmlDocument doc = new HtmlDocument();
@@ -123,7 +119,7 @@ public class TestEmailController : ControllerBase
         };
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
-        var CreatedSubsTask = await _adGraphWrapper._graphClient.Subscriptions[SubsId].Request().UpdateAsync(subs);
+        var CreatedSubsTask = await _adGraphWrapper._graphClient.Subscriptions[SubsId].PatchAsync(subs);
         _logger.LogWarning("IDDDDDDDD: {Id}", CreatedSubsTask.Id);
         return Ok();
     }
@@ -138,8 +134,9 @@ public class TestEmailController : ControllerBase
 
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
-        var Subs = await _adGraphWrapper._graphClient.Subscriptions.Request().GetAsync();
-        return Ok(Subs);
+        var Subs = await _adGraphWrapper._graphClient.Subscriptions.GetAsync();
+        var subs1 = Subs.Value;
+        return Ok(subs1);
     }
 
     [HttpGet("UpdateSubsURL/{SubsId}/{url}")]
@@ -156,7 +153,7 @@ public class TestEmailController : ControllerBase
         VariousCons.MainAPIURL = url;
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
-        var Subs = await _adGraphWrapper._graphClient.Subscriptions[SubsId].Request().UpdateAsync(Newsubs);
+        var Subs = await _adGraphWrapper._graphClient.Subscriptions[SubsId].PatchAsync(Newsubs);
         return Ok(Subs);
     }
 
@@ -179,7 +176,7 @@ public class TestEmailController : ControllerBase
 
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
-        await _adGraphWrapper._graphClient.Subscriptions[SubsId].Request().DeleteAsync();
+        await _adGraphWrapper._graphClient.Subscriptions[SubsId].DeleteAsync();
         return Ok();
     }
 
@@ -203,12 +200,12 @@ public class TestEmailController : ControllerBase
         _adGraphWrapper.CreateClient(tenantId);
         try
         {
-            var CreatedSubsTask = await _adGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
+            var CreatedSubsTask = await _adGraphWrapper._graphClient.Subscriptions.PostAsync(subs);
             _logger.LogWarning("Subscription IDDDDDDDD: {Id}", CreatedSubsTask.Id);
         }
         catch (ServiceException ex)
         {
-            if (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            if (ex.ResponseStatusCode == 403)
             {
                 _logger.LogWarning("gottem");
             }
@@ -216,41 +213,6 @@ public class TestEmailController : ControllerBase
 
 
         return Ok();
-    }
-
-
-    [HttpGet]
-    public async Task<IActionResult> TestResult()
-    {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-        var email = "bashar.eskandar@sealdeal.ca";
-
-        _adGraphWrapper.CreateClient(tenantId);
-        /*var folder = await _adGraphWrapper._graphClient
-          .Users["bashar.eskandar@sealdeal.ca"]
-          .MailFolders["inbox"]
-          .Request().GetAsync();*/
-        /*var messagesInbox = await _adGraphWrapper._graphClient
-          .Users["bashar.eskandar@sealdeal.ca"]
-          .MailFolders["inbox"]
-          .Messages
-          .Request().GetAsync();*/
-
-        var messagesSent = await _adGraphWrapper._graphClient
-          .Users["bashar.eskandar@sealdeal.ca"]
-          //.MailFolders["AAMkADJmNWUwNzZlLWMxNWQtNGNkMy1iNmY4LWJiOTBkYjk5YjVlYgAuAAAAAAC6hwbZVh5-T6nLJ1FvBfvIAQBZbQVR_TVZTLodSM-vZvBeAAAAAAEJAAA="]
-          .MailFolders["inbox"]
-          //.Messages
-          .Request().GetAsync();
-        /*foreach (var folder in folders)
-        {
-          Console.WriteLine("FOLDERRRR:" + "ID:"+ folder.Id + "\n" + "DisplayName:" +
-            folder.DisplayName + "\n" + "ParentFolderID" + folder.ParentFolderId);
-        }*/
-        //Console.WriteLine("FOLDERRRR:" + "ID:" + folder.Id + "\n" + "DisplayName:" +
-        //    folder.DisplayName + "\n" + "ParentFolderID" + folder.ParentFolderId);
-        //return Ok(folder);
-        return Ok(messagesSent);
     }
 
 
@@ -265,39 +227,39 @@ public class TestEmailController : ControllerBase
         string emailBash = "bashar.eskandar@sealDeal.ca";
         _adGraphWrapper.CreateClient(tenantId);
 
-        List<Option> options = EmailHelpers.GetDeltaQueryOptions(SyncStartDate);
-        options.AddDeltaHeaderOptions();
+        //List<Option> options = EmailHelpers.GetDeltaQueryOptions(SyncStartDate);
+        //options.AddDeltaHeaderOptions();
 
-        IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient
-          .Users["bashar.eskandar@sealdeal.ca"]
-          .MailFolders["Inbox"]
-          .Messages
-          .Delta()
-          .Request(options)
-          .GetAsync();
+        //IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient
+        //  .Users["bashar.eskandar@sealdeal.ca"]
+        //  .MailFolders["Inbox"]
+        //  .Messages
+        //  .Delta()
+        //  .Request(options)
+        //  .GetAsync();
 
-        EmailHelpers.ProcessMessages(messages, _logger);
+        //EmailHelpers.ProcessMessages(messages, _logger);
 
-        while (messages.NextPageRequest != null)
-        {
-            //verify that header max size exists
-            messages = messages.NextPageRequest
-              .Header("Prefer", "IdType=ImmutableId")
-              .Header("Prefer", "odata.maxpagesize=4")
-              .GetAsync().Result;
-            EmailHelpers.ProcessMessages(messages, _logger);
-        }
-        object? deltaLink;
-        if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-        {
-            //inboxSync1.DeltaToken = deltaLink.ToString();
-            _logger.LogWarning("Delta Link: {delaLink}", deltaLink.ToString());//SAVE ONLy after the "=" sign
-            this.deltaLinkString = deltaLink.ToString();
-        }
-        else
-        {
-            //TODO log error
-        }
+        //while (messages.NextPageRequest != null)
+        //{
+        //    //verify that header max size exists
+        //    messages = messages.NextPageRequest
+        //      .Header("Prefer", "IdType=ImmutableId")
+        //      .Header("Prefer", "odata.maxpagesize=4")
+        //      .GetAsync().Result;
+        //    EmailHelpers.ProcessMessages(messages, _logger);
+        //}
+        //object? deltaLink;
+        //if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
+        //{
+        //    //inboxSync1.DeltaToken = deltaLink.ToString();
+        //    _logger.LogWarning("Delta Link: {delaLink}", deltaLink.ToString());//SAVE ONLy after the "=" sign
+        //    this.deltaLinkString = deltaLink.ToString();
+        //}
+        //else
+        //{
+        //    //TODO log error
+        //}
         return Ok();
     }
 
@@ -305,51 +267,51 @@ public class TestEmailController : ControllerBase
     public async Task<IActionResult> USEToken()
     {
 
-        var deltaUri = new Uri("https://graph.microsoft.com/v1.0/users/bashar.eskandar@sealdeal.ca/mailFolders('Inbox')/messages/delta?$deltatoken=-eIqKiyh_pvakWLxQh8qlsGoqbkRQ3J34CjVYD35S2M348VQK6h5YBWc3kbYixyIXru9xGLmCjJ2zljnDaMY9dgx-3ZJVI5Cvu7jwWYY_MPWfpOD1pn1iR-XHq8Xe3OELMd8d3MjMXdM6Mut5k0N1Zs9cyNZvjbI1lgPgesTjQ8nv_DdLINcqHbpnnYT6vETU24pOVMyAflVBJ3M3BJX_LiqpLBHk0H-9RV9Rtda3lwXj29lbpm4Ydn4bHNv_wshyCk267XZMGywys4fWrmQ2g.YBEsspT_LkBsWFxSsjfnIWR3sLrKQtuvACN-FvysZ9M");
-        var deltaToken = deltaUri.Query.Split("=")[1];//get the second part of the query that its the deltaToken
-        var queryOptions = new List<Option>()
-    {
-        new QueryOption("$deltatoken", deltaToken),
-        new HeaderOption("Prefer", "IdType=ImmutableId"),
-        new HeaderOption("Prefer", "odata.maxpagesize=4")
-    };
+    //    var deltaUri = new Uri("https://graph.microsoft.com/v1.0/users/bashar.eskandar@sealdeal.ca/mailFolders('Inbox')/messages/delta?$deltatoken=-eIqKiyh_pvakWLxQh8qlsGoqbkRQ3J34CjVYD35S2M348VQK6h5YBWc3kbYixyIXru9xGLmCjJ2zljnDaMY9dgx-3ZJVI5Cvu7jwWYY_MPWfpOD1pn1iR-XHq8Xe3OELMd8d3MjMXdM6Mut5k0N1Zs9cyNZvjbI1lgPgesTjQ8nv_DdLINcqHbpnnYT6vETU24pOVMyAflVBJ3M3BJX_LiqpLBHk0H-9RV9Rtda3lwXj29lbpm4Ydn4bHNv_wshyCk267XZMGywys4fWrmQ2g.YBEsspT_LkBsWFxSsjfnIWR3sLrKQtuvACN-FvysZ9M");
+    //    var deltaToken = deltaUri.Query.Split("=")[1];//get the second part of the query that its the deltaToken
+    //    var queryOptions = new List<Option>()
+    //{
+    //    new QueryOption("$deltatoken", deltaToken),
+    //    new HeaderOption("Prefer", "IdType=ImmutableId"),
+    //    new HeaderOption("Prefer", "odata.maxpagesize=4")
+    //};
 
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-        DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
-        string emailBash = "bashar.eskandar@sealDeal.ca";
-        _adGraphWrapper.CreateClient(tenantId);
+    //    var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+    //    DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
+    //    string emailBash = "bashar.eskandar@sealDeal.ca";
+    //    _adGraphWrapper.CreateClient(tenantId);
 
-        IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient
-          .Users["bashar.eskandar@sealdeal.ca"]
-          .MailFolders["Inbox"]
-          .Messages
-          .Delta()
-          .Request(queryOptions)
-          .GetAsync();
+    //    IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient
+    //      .Users["bashar.eskandar@sealdeal.ca"]
+    //      .MailFolders["Inbox"]
+    //      .Messages
+    //      .Delta()
+    //      .Request(queryOptions)
+    //      .GetAsync();
 
-        EmailHelpers.ProcessMessages(messages, _logger);
+    //    EmailHelpers.ProcessMessages(messages, _logger);
 
 
-        while (messages.NextPageRequest != null)
-        {
-            //verify that header max size exists
-            messages = messages.NextPageRequest
-              .Header("Prefer", "IdType=ImmutableId")
-              .Header("Prefer", "odata.maxpagesize=4")
-              .GetAsync().Result;
-            EmailHelpers.ProcessMessages(messages, _logger);
-        }
-        object? deltaLink;
-        if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-        {
-            //inboxSync1.DeltaToken = deltaLink.ToString();
-            _logger.LogWarning("Delta Link: {delaLink}", deltaLink.ToString());
-            this.deltaLinkString = deltaLink.ToString();
-        }
-        else
-        {
-            //TODO log error
-        }
+    //    while (messages.NextPageRequest != null)
+    //    {
+    //        //verify that header max size exists
+    //        messages = messages.NextPageRequest
+    //          .Header("Prefer", "IdType=ImmutableId")
+    //          .Header("Prefer", "odata.maxpagesize=4")
+    //          .GetAsync().Result;
+    //        EmailHelpers.ProcessMessages(messages, _logger);
+    //    }
+    //    object? deltaLink;
+    //    if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
+    //    {
+    //        //inboxSync1.DeltaToken = deltaLink.ToString();
+    //        _logger.LogWarning("Delta Link: {delaLink}", deltaLink.ToString());
+    //        this.deltaLinkString = deltaLink.ToString();
+    //    }
+    //    else
+    //    {
+    //        //TODO log error
+    //    }
         return Ok();
     }
 

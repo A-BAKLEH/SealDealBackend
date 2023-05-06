@@ -22,12 +22,13 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
     public async Task<AllahLeadDTO> Handle(GetAllahLeadRequest request, CancellationToken cancellationToken)
     {
         var lead = await _appDbContext.Leads
-          .Where(l => l.Id == request.leadId && l.BrokerId == request.BrokerId)
+          //.Where(l => l.Id == request.leadId && l.BrokerId == request.BrokerId)
           .Select(l => new AllahLeadDTO
           {
-              //AreasOfInterest = l.AreasOfInterest.Select(a => new AreaDTO { id = a.Id, name = a.Name}),
+              LeadId = l.Id,
+              brokerId = l.BrokerId,
               Budget = l.Budget,
-              Email = l.Email,
+              Emails = l.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain}),
               EntryDate = l.EntryDate.UtcDateTime,
               LeadFirstName = l.LeadFirstName,
               LeadLastName = l.LeadLastName,
@@ -45,14 +46,8 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
                   APStatus = ass.ThisActionPlanStatus,
                   APName = ass.ActionPlan.Name
               }),
-              //ThisAgencyListingsOfInterest = l.ListingsOfInterest.Select(listing => new LeadListingDTO
-              //{
-              //  Address = listing.Listing.Address,
-              //  Price = listing.Listing.Price,
-              //  ClientComments = listing.ClientComments,
-              //  ListingId = listing.ListingId
-              //})
-          }).FirstOrDefaultAsync(cancellationToken);
+          }).FirstOrDefaultAsync(l => l.LeadId == request.leadId && l.brokerId == request.BrokerId);
+
         if (lead == null) return null;
 
         if (request.includeNotifs)

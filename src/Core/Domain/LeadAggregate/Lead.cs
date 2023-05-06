@@ -25,7 +25,7 @@ public class Lead : Entity<int>
     public string LeadFirstName { get; set; }
     public string? LeadLastName { get; set; }
     public string? PhoneNumber { get; set; }
-    public string? Email { get; set; }
+    //public string? Email { get; set; } moved to leadEmails
     public int? Budget { get; set; }
     public Languge Languge { get; set; } = Languge.English;
     /// <summary>
@@ -56,6 +56,7 @@ public class Lead : Entity<int>
     public int? ListingId { get; set; }
     public Listing? Listing { get; set; }
     public Note? Note { get; set; }
+    public List<LeadEmail>? LeadEmails { get; set; }
     public List<Tag>? Tags { get; set; }
     public List<ToDoTask> ToDoTasks { get; set; }
     public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }

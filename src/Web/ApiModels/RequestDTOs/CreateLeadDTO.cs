@@ -21,8 +21,7 @@ public class CreateLeadDTO
   public string LeadLastName { get; set; }
   [Phone]
   public string? PhoneNumber { get; set; }
-  [EmailAddress]
-  public string? Email { get; set; }
+  public List<string> Emails { get; set; }
   public int? Budget { get; set; }
 
   /// <summary>

@@ -190,7 +190,7 @@ public class ListingQService
             }
         }
 
-        transaction.Commit();
+        await transaction.CommitAsync();
         var listingDTO = new AgencyListingDTO
         {
             Address = new AddressDTO { StreetAddress = listing.Address.StreetAddress,apt = listing.Address.apt, City = listing.Address.City, Country = listing.Address.Country, PostalCode = listing.Address.PostalCode, ProvinceState = listing.Address.ProvinceState },
@@ -379,6 +379,6 @@ public class ListingQService
         var listingDelete = new Listing { Id = listingId, AgencyId = Agencyid };
         _appDbContext.Remove(listing);
         await _appDbContext.SaveChangesAsync();
-        trans.Commit();
+        await trans.CommitAsync();
     }
 }

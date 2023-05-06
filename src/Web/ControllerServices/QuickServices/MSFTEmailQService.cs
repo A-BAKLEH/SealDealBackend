@@ -101,7 +101,7 @@ public class MSFTEmailQService
             }
             catch (ServiceException ex)
             {
-                if (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                if (ex.ResponseStatusCode == 403)
                 {
                     _logger.LogError("Connect Email: agency hadAdminConsent true so tried to create subsription but forbidden");
                     broker.Agency.HasAdminEmailConsent = false;
@@ -226,7 +226,7 @@ public class MSFTEmailQService
         }
         catch (ServiceException ex)
         {
-            if (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            if (ex.ResponseStatusCode == 403)
             {
                 if (broker.Agency.HasAdminEmailConsent)
                 {

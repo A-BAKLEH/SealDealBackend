@@ -1,12 +1,16 @@
 ﻿using Core.Constants;
+using Core.Domain.AgencyAggregate;
+using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
+using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
@@ -21,6 +25,7 @@ public class EmailProcessor
     private readonly IConfigurationSection _configurationSection;
     private readonly OpenAIGPT35Service _GPT35Service;
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private List<Message> ReprocessMessages;
     public EmailProcessor(AppDbContext appDbContext, IConfiguration config,
         ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
     {
@@ -42,7 +47,7 @@ public class EmailProcessor
     /// <param name="brokerId"></param>
     /// <param name="EmailNumber"></param>
     /// <param name="tenantId"></param>
-    public void RenewSubscription(string email)
+    public async void RenewSubscriptionAsync(string email)
     {
         var connEmail = _appDbContext.ConnectedEmails.FirstOrDefault(x => x.Email == email);
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
@@ -53,15 +58,14 @@ public class EmailProcessor
         };
 
         _aDGraphWrapper.CreateClient(connEmail.tenantId);
-        var UpdatedSubs = _aDGraphWrapper._graphClient
+
+        var UpdatedSubs = await _aDGraphWrapper._graphClient
           .Subscriptions[connEmail.GraphSubscriptionId.ToString()]
-          .Request()
-          .UpdateAsync(subs)
-          .Result;
+          .PatchAsync(subs);
 
         connEmail.SubsExpiryDate = SubsEnds;
         var nextRenewalDate = SubsEnds - TimeSpan.FromMinutes(60);
-        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscription(connEmail.Email), nextRenewalDate);
+        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connEmail.Email), nextRenewalDate);
         connEmail.SubsRenewalJobId = RenewalJobId;
         _appDbContext.SaveChanges();
     }
@@ -69,8 +73,9 @@ public class EmailProcessor
     public async Task CreateOutlookEmailCategoriesAsync(ConnectedEmail connectedEmail)
     {
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
-        var categories = await _aDGraphWrapper._graphClient.Users[connectedEmail.Email].Outlook.MasterCategories.Request().GetAsync();
-        var cats = new List<string>() { APIConstants.LeadCreated, APIConstants.SeenOnSealDeal, APIConstants.SentBySealDeal };
+        var categs = await _aDGraphWrapper._graphClient.Users[connectedEmail.Email].Outlook.MasterCategories.GetAsync();
+        List<OutlookCategory> categories = categs.Value;
+        var cats = new List<string>() { APIConstants.NewLeadCreated, APIConstants.SeenOnSealDeal, APIConstants.SentBySealDeal };
         foreach (var cat in cats)
         {
             if (!categories.Any(x => x.DisplayName == cat))
@@ -79,7 +84,7 @@ public class EmailProcessor
                 {
                     DisplayName = cat,
                 };
-                if (cat == APIConstants.LeadCreated)
+                if (cat == APIConstants.NewLeadCreated)
                 {
                     newCat.Color = CategoryColor.Preset0;
                 }
@@ -91,7 +96,7 @@ public class EmailProcessor
                 {
                     newCat.Color = CategoryColor.Preset7;
                 }
-                await _aDGraphWrapper._graphClient.Users[connectedEmail.Email].Outlook.MasterCategories.Request().AddAsync(newCat);
+                await _aDGraphWrapper._graphClient.Users[connectedEmail.Email].Outlook.MasterCategories.PostAsync(newCat);
             }
         }
     }
@@ -112,7 +117,7 @@ public class EmailProcessor
 
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         //will validate through the webhook before returning the subscription here
-        var CreatedSubs = await _aDGraphWrapper._graphClient.Subscriptions.Request().AddAsync(subs);
+        var CreatedSubs = await _aDGraphWrapper._graphClient.Subscriptions.PostAsync(subs);
 
         //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work
         //will have to consider current leads in the system, current listings assigned, websites from which
@@ -125,7 +130,7 @@ public class EmailProcessor
 
         //renew 60 minutes before subs Ends
         var renewalTime = SubsEnds - TimeSpan.FromMinutes(60);
-        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscription(connectedEmail.Email), renewalTime);
+        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connectedEmail.Email), renewalTime);
         connectedEmail.SubsRenewalJobId = RenewalJobId;
 
         if (save) await _appDbContext.SaveChangesAsync();
@@ -137,7 +142,7 @@ public class EmailProcessor
         var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
         if (!connEmail.SyncScheduled)
         {
-            var jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email), TimeSpan.FromSeconds(15));
+            var jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email), TimeSpan.FromSeconds(6));
             connEmail.SyncScheduled = true;
             connEmail.SyncJobId = jobId;
         }
@@ -151,273 +156,524 @@ public class EmailProcessor
     public async void SyncEmailAsync(string email)
     {
         //TODO Cache
-        var connEmail = _appDbContext.ConnectedEmails
-          .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.Broker.isAdmin, e.Broker.isSolo, e.BrokerId })
-          .First(x => x.Email == email);
+        var connEmail = await _appDbContext.ConnectedEmails
+          .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Languge, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
+          .FirstAsync(x => x.Email == email);
         _aDGraphWrapper.CreateClient(connEmail.tenantId);
+
+        var brokerDTO = new BrokerEmailProcessingDTO
+        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Languge, AssignLeadsAuto = connEmail.AssignLeadsAuto };
 
         DateTimeOffset lastSync;
         if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow;
         else lastSync = (DateTimeOffset)connEmail.LastSync;
 
-        List<Option> options = new List<Option>();
-        var date = lastSync.ToString("o");
-        options.Add(new QueryOption("$select", "id,sender,subject,isRead,conversationId,conversationIndex,receivedDateTime,body"));
-        options.Add(new QueryOption("$filter", $"receivedDateTime gt {date}"));
-        options.Add(new QueryOption("$orderby", "receivedDateTime"));
-        options.Add(new HeaderOption("Prefer", "IdType=ImmutableId"));
-        options.Add(new HeaderOption("Prefer", "odata.maxpagesize=15"));
-
         //TODO fetch failed messages with extension property "reprocess", these were failed from previous runs
-
+        var date = lastSync.ToString("o");
+        int totaltokens = 0;
         var messages = await _aDGraphWrapper._graphClient
           .Users[connEmail.Email]
           .MailFolders["Inbox"]
           .Messages
-          .Request(options)
-          .GetAsync();
+          .GetAsync(config =>
+              {
+                  config.QueryParameters.Top = 15;
+                  config.QueryParameters.Select = new string[] { "id", "sender", "subject", "isRead", "conversationId", "conversationIndex", "receivedDateTime", "body" };
+                  config.QueryParameters.Filter = $"receivedDateTime gt {date}";
+                  config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+                  config.Headers.Add("Prefer", new string[] { "IdType=ImmutableId" });
+              }
+          );
+        int count = 0;
+        int pauseAfter = 15;
+        List<Message> messagesList = new(15);
 
-        await ProcessMessagesAsync(messages, connEmail.isAdmin, connEmail.BrokerId, connEmail.isSolo, email);
+        var pageIterator = PageIterator<Message, MessageCollectionResponse>
+            .CreatePageIterator(
+            _aDGraphWrapper._graphClient,
+            messages,
+                (m) =>
+                {
+                    messagesList.Add(m);
+                    count++;
+                    // If we've iterated over the limit,
+                    // stop the iteration by returning false
+                    return count < pauseAfter;
+                }
+            );
+        await pageIterator.IterateAsync();
 
-        while (messages.NextPageRequest != null)
+        while (pageIterator.State != PagingState.Complete)
         {
-            messages = messages.NextPageRequest
-              .Header("Prefer", "IdType=ImmutableId")
-              .GetAsync().Result;
-            await ProcessMessagesAsync(messages, connEmail.isAdmin, connEmail.BrokerId, connEmail.isSolo, email);
+            //process the messages
+            var toks = await ProcessMessagesAsync(messagesList, brokerDTO);
+            totaltokens += toks;
+            // Reset count and list
+            count = 0;
+            messagesList = new(15);
+            await pageIterator.ResumeAsync();
         }
+
+        var connectedEmail = new ConnectedEmail { Email = connEmail.Email, OpenAITokensUsed = connEmail.OpenAITokensUsed + totaltokens };
+        _appDbContext.ConnectedEmails.Attach(connectedEmail);
+
+        await saveWConcurrencyHandling(totaltokens);
     }
 
 
-    public async Task ProcessMessagesAsync(IMailFolderMessagesCollectionPage messages, bool isAdmin, Guid brokerId, bool SoloBroker, string brokerEmail)
+    /// <summary>
+    /// </summary>
+    /// <param name="messages"></param>
+    /// <param name="isAdmin"></param>
+    /// <param name="brokerId"></param>
+    /// <param name="SoloBroker"></param>
+    /// <param name="brokerEmail"></param>
+    /// <returns>number of tokens used</returns>
+    public async Task<int> ProcessMessagesAsync(List<Message> messages, BrokerEmailProcessingDTO brokerDTO)
     {
-        using (var localdbContext = _contextFactory.CreateDbContext())
+        using var localdbContext = _contextFactory.CreateDbContext();
+        int tokens = 0;
+
+        var groupedMessagesBySender = messages.GroupBy(m => m.Sender.EmailAddress.Address);
+        ReprocessMessages = new List<Message>();
+
+        var GroupedleadProviderEmails = groupedMessagesBySender.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
+        List<Task<OpenAIResponse?>> LeadProviderTasks = new();
+        List<Message> LeadProviderTaskMessages = new();
+        foreach (var emailsGrouping in GroupedleadProviderEmails)
         {
-            var groupedMessagesBySender = messages.GroupBy(m => m.Sender.EmailAddress.Address);
-            var ReprocessMessages = new List<Message>();
-
-            var GroupedleadProviderEmails = groupedMessagesBySender.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
-            List<Task<OpenAIResponse?>> LeadProviderTasks = new();
-            List<Message> LeadProviderTaskMessages = new();
-            foreach (var emailsGrouping in GroupedleadProviderEmails)
+            string fromEmailAddress = emailsGrouping.Key;
+            foreach (var email in emailsGrouping)
             {
-                string fromEmailAddress = emailsGrouping.Key;
-                foreach (var email in emailsGrouping)
+                LeadProviderTasks.Add(_GPT35Service.ParseEmailAsync(email, true));
+                LeadProviderTaskMessages.Add(email);
+            }
+        }
+
+        List<Task<OpenAIResponse?>> UnknownSenderTasks = new();
+        List<Message> UnknownSenderTaskMessages = new();
+        foreach (var messageGrp in groupedMessagesBySender)
+        {
+            string fromEmailAddress = messageGrp.Key;
+            if (GlobalControl.LeadProviderEmails.Contains(fromEmailAddress)) continue;
+
+            //TODO cache this
+            var lead = await localdbContext.LeadEmails
+                .AsNoTracking()
+                .FirstOrDefaultAsync(em => em.EmailAddress == fromEmailAddress && em.Lead.BrokerId == brokerDTO.Id);
+
+            if (lead != null)
+            {
+                foreach (var email in messageGrp)
                 {
-                    LeadProviderTasks.Add(_GPT35Service.ParseEmailAsync(email, true));
-                    LeadProviderTaskMessages.Add(email);
+                    //TODO deal with correspondences from known leads
+                    //deal with it here since u dont need to wait on any external calls
+                    //will depend on notifs system
+                    //TODO remember that all these messages are from the same known lead
                 }
             }
-
-            List<Task<OpenAIResponse?>> UnknownSenderTasks = new();
-            List<Message> UnknownSenderTaskMessages = new();
-            foreach (var messageGrp in groupedMessagesBySender)
+            else // email is from unknown, send to chat gpt
             {
-                string fromEmailAddress = messageGrp.Key;
-                if (GlobalControl.LeadProviderEmails.Contains(fromEmailAddress)) continue;
-
-                var lead = localdbContext.Leads
-                    .Select(l => new { l.Id, l.Email, l.BrokerId })
-                    .FirstOrDefaultAsync(l => l.Email == fromEmailAddress && l.BrokerId == brokerId);
-                if (lead != null)
+                foreach (var email in messageGrp)
                 {
-                    foreach (var email in messageGrp)
-                    {
-                        //TODO deal with correspondences from knwon leads
-                        //will depend on notifs system
-                    }
-                }
-                else // email is from unknown, send to chat gpt
-                {
-                    foreach (var email in messageGrp)
-                    {
-                        UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, false));
-                        UnknownSenderTaskMessages.Add(email);
-                    }
+                    //TODO take into consideration that this unknown sender might send multiple messages
+                    UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, false));
+                    UnknownSenderTaskMessages.Add(email);
                 }
             }
+        }
+        //--------- start chatGPT tasks
+        try
+        {
+            await Task.WhenAll(LeadProviderTasks);
+        }
+        catch { }
+
+        List<Tuple<Task<Lead>, Message>> LeadProviderDBRecordsTasks = new(LeadProviderTasks.Count);
+        for (int i = 0; i < LeadProviderTasks.Count; i++)
+        {
+            var leadTask = LeadProviderTasks[i];
+            var message = LeadProviderTaskMessages[i];
+            tokens += HandleTaskResult(leadTask, message, LeadProviderDBRecordsTasks, true, brokerDTO);
+        }
+        try
+        {
+            await Task.WhenAll(UnknownSenderTasks);
+        }
+        catch { }
+
+        List<Tuple<Task<Lead>, Message>> UnknownDBRecordsTasks = new(UnknownSenderTasks.Count);
+        for (int i = 0; i < UnknownSenderTasks.Count; i++)
+        {
+            var leadTask = UnknownSenderTasks[i];
+            var message = UnknownSenderTaskMessages[i];
+            tokens += HandleTaskResult(leadTask, message, UnknownDBRecordsTasks, false, brokerDTO);
+        }
+        //--------------------
+
+        //analyzing chatGPT results
+        List<Tuple<Lead, Message>> leadsAdded = new(LeadProviderDBRecordsTasks.Count + UnknownDBRecordsTasks.Count);
+        try
+        {
+            await Task.WhenAll(LeadProviderDBRecordsTasks.ConvertAll(x => x.Item1));
+        }
+        catch { }
+
+        foreach (var LeadProviderDBRecordsTask in LeadProviderDBRecordsTasks)
+        {
+            if (LeadProviderDBRecordsTask.Item1.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
+            {
+                //TODO check error type to discard email if needed
+                ReprocessMessages.Add(LeadProviderDBRecordsTask.Item2);
+                //TODO change error message if email discarded
+                _logger.LogError("{Category} dbRecordsCreation and error {Error}", "FetchListingAndCreateDBRecordsAsync", LeadProviderDBRecordsTask.Item1.Exception.Message);
+            }
+            else
+            {
+                localdbContext.Leads.Add(LeadProviderDBRecordsTask.Item1.Result);
+                leadsAdded.Add(new Tuple<Lead, Message>(LeadProviderDBRecordsTask.Item1.Result, LeadProviderDBRecordsTask.Item2));
+            }
+        }
+
+        try
+        {
+            await Task.WhenAll(UnknownDBRecordsTasks.ConvertAll(x => x.Item1));
+        }
+        catch { }
+
+        foreach (var UnknownDBRecordsTask in UnknownDBRecordsTasks)
+        {
+            if (UnknownDBRecordsTask.Item1.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
+            {
+                //TODO check error type to discard email if needed
+                ReprocessMessages.Add(UnknownDBRecordsTask.Item2);
+                //TODO change error message if email discarded
+                _logger.LogError("{Category} dbRecordsCreation and error {Error}", "FetchListingAndCreateDBRecordsAsync", UnknownDBRecordsTask.Item1.Exception.Message);
+            }
+            else
+            {
+                localdbContext.Leads.Add(UnknownDBRecordsTask.Item1.Result);
+                leadsAdded.Add(new Tuple<Lead, Message>(UnknownDBRecordsTask.Item1.Result, UnknownDBRecordsTask.Item2));
+            }
+        }
+
+        //transaction-------------------------------
+        using var transaction = await localdbContext.Database.BeginTransactionAsync();
+
+        Dictionary<int, int> listingIdToNewLeadCount = new();
+        leadsAdded.Where(l => l.Item1.ListingId != null).GroupBy(l => l.Item1.ListingId).ToList().ForEach(g => listingIdToNewLeadCount.Add((int)g.Key, g.Count()));
+
+        //increment LeadsGeneratedCount
+        await Task.WhenAll(listingIdToNewLeadCount.Select(async (kv) =>
+        {
+            byte counter = 4;
+            while (counter >= 0)
+            {
+                try
+                {
+                    await localdbContext.Listings.Where(l => l.Id == kv.Key).ExecuteUpdateAsync(
+                                           li => li.SetProperty(l => l.LeadsGeneratedCount, l => l.LeadsGeneratedCount + kv.Value));
+                    break;
+                }
+                catch { counter--; await Task.Delay((4 - counter + 1) * 200); }
+            }
+        }));
+
+        await localdbContext.SaveChangesAsync();
+
+        //TODO process all notifs created in this webhook en masse, maybe by using WaitingInBatch processing status
+        //and scheduling a task that will process all those notifs with that processing status for this
+        //particular broker
+        //notifs : lead created, lead created | assigned, lead assigned, notifs for leads already known
+
+
+        //mark the messages that had a lead with "LeadExtracted"
+        await Task.WhenAll(leadsAdded.Select(async (tup) =>
+        {
             try
             {
-                await Task.WhenAll(LeadProviderTasks);
+                tup.Item2.Categories.Add(APIConstants.NewLeadCreated);
+                await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[tup.Item2.Id]
+                .PatchAsync(tup.Item2);
             }
-            catch { }
-
-            List<Task> ListingLeadFetchTasks  = new(LeadProviderTasks.Count);
-            for (int i = 0; i < LeadProviderTasks.Count; i++)
+            catch (Exception ex)
             {
-                var leadTask = LeadProviderTasks[i];
-                var message = LeadProviderTaskMessages[i];
-                if (leadTask.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
-                {
-                    //TODO check error type to discard email if needed
-                    ReprocessMessages.Add(message);
-                    //TODO change error message if email discarded
-                    _logger.LogError("{Category} GPT 3.5 email parsing and error {Error}", "OpenAI", leadTask.Exception.Message);
-                    continue;
-                }
-
-                var result = leadTask.Result;
-                if (!result.Success)
-                {
-                    //TODO check error type to discard email if needed
-                    ReprocessMessages.Add(message);
-                    //TODO change error message if email discarded
-                    _logger.LogError("{Category} GPT 3.5 email parsing and error {Error}", "OpenAI", result.ErrorType.ToString() + ": " + result.ErrorMessage);
-                }
-                else if (result.HasLead) //no error and lead parsed
-                {
-                    //TODO
-                    //get listing and lead 
-                    var parsedLead = result.content;
-                    if (!string.IsNullOrEmpty(parsedLead.PropertyAddress) && !string.IsNullOrEmpty(parsedLead.StreetAddress))
-                    {
-                        ListingLeadFetchTasks.Add(FetchListingandLeadAsync(parsedLead));
-                    }
-
-                    //context.Counties.Where(x => EF.Functions.Like(x.Name, $"%{keyword}%")).ToList();
-                    if (SoloBroker || !isAdmin)// Always assign lead to broker
-                    {
-
-                    }
-                    else if (isAdmin) //assign lead to broker only if 1 broker is assigned to that listing only
-                    {
-
-                    }
-                }
-                //else email didnt have a lead, discard it
+                _logger.LogError("{Category} patching email category after processing error: {Error}", "GraphSDK", ex.Message);
             }
+        }));
 
-            try
-            {
-                await Task.WhenAll(UnknownSenderTasks);
-            }
-            catch { }
-
-            //TODO
-            //tag the messsages in ReprocessMessages with "reprocess" property and no category
-            //mark the messages that had a lead with "LeadExtracted"
-            //
-
-            //increment broker tokens usage
-
-            //do stuff with lead providers
-            //foreach (var messageGrp in groupedMessages)
-            //{
-            //    string fromEmailAddress = messageGrp.Key;
-
-            //    //TODO implement list of known lead providers whose emails can be parsed
-            //    //TODO index on listing street address maybe separate the fields of address
-            //    bool processed = false;
-            //    if (GlobalControl.LeadProviderEmails.Contains(fromEmailAddress))
-            //    {
-            //        //parse leads and addresses from all emails in messGrp
-
-            //        //_GPT35Service.ParseEmailAsync();
-
-            //        if(SoloBroker)
-            //        {
-            //        }
-            //        foreach (var mess in messageGrp)
-            //        {
-            //            _logger.LogWarning($"admin: LeadParsing message content:\n{mess.Body.Content} \n");
-            //            //determine preliminarly if actual new lead email by subject or style or whatever
-            //            //if YES send to ChatGPT to extract fields including for listing address and lead info,
-            //            //if NO log warning or error with
-            //            //the email content so that it can be manually parsed and added to the system, skip this message
-
-            //            //if lead extracted create lead, If NOT log parsed info and email text as error to manually review and
-            //            //skip this message
-
-            //            //search for listing record by street address AND agencyId of this broker
-            //            //if found:
-            //            //increment listing leads count
-            //            //set lead listing to this listing
-            //            //if soloBroker OR listing has only 1 assigned broker assign lead to this broker and create proper notifs
-            //            //else lead is unassigned and create notifs for admin (same as the one created when creating lead manually
-            //            //without assigning it
-
-
-            //            //else lead does not have a listing
-
-            //            //admin's notif for lead creation has emailId in props
-
-            //            //var lead = CreateLead();
-
-            //        }
-            //        processed = true;
-            //    }
-            //    else//email sender is a known lead
-            //    {
-            //        //TODO cache
-            //        var lead = await _appDbContext.Leads
-            //          .Select(l => new { l.Id, l.Email, l.BrokerId })
-            //          .FirstAsync(l => l.Email == fromEmailAddress && l.BrokerId == brokerId);
-            //        if (lead != null)
-            //        {
-            //            foreach (var mess in messageGrp)
-            //            {
-            //                _logger.LogWarning($"Lead Interaction message content:\n{mess.Body.Content} \n");
-            //                //TODO add email to notifs
-            //            }
-            //        }
-            //        processed = true;
-            //    }
-            //    if (!processed)
-            //    {
-            //        //ask chat GPT if this email is from a potential client who is inquiring about something. and if yes
-            //        //extract as much info as possible from email, create lead if possible. add notif with email ID and
-            //        //new notif type "potential lead" or something
-            //    }
-
-            //    //TODO process all notifs created in this webhook en masse, maybe by using WaitingInBath processing status
-            //    //and scheduling a task that will process all those notifs with that processing status for this
-            //    //particular broker
-
-            //    //TODO maybe mark as processed with extention property?
-
-            //    
-            //}
-        }
-    }
-
-    public async Task FetchListingandLeadAsync(LeadParsingContent parsedContent)
-    {
-        using (var context = _contextFactory.CreateDbContext())
+        await Task.WhenAll(ReprocessMessages.Select(async (message) =>
         {
-            //var formatted = GPTstreetAddress.FormatStreetAddress();
+            try { 
+                message.SingleValueExtendedProperties = new()
+                {
+                  new SingleValueLegacyExtendedProperty
+                  {
+                    Id = APIConstants.ReprocessMessExtendedPropId,
+                    Value = "1"
+                  }
+                };
+                await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[message.Id]
+                .PatchAsync(message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("{Category} assigning reprocess prop on emails after processing error: {Error}", "GraphSDK", ex.Message);
+            }
+        }));
 
-        }
+        await transaction.CommitAsync();
+        //transaction-------------------------------
+        return tokens;
     }
 
-    public Lead CreateLead(string email, int agencyId, string emailId, Guid brokerId, LeadType leadType, string? firstName, string? lastName, string? phoneNumber, int? listingId)
+    /// <summary>
+    /// called on gpt result of lead providers and unknown leads
+    /// tries to fetch db listing, then creates new lead and notifs
+    /// if new lead has listingId, then that was the unique listing found
+    /// </summary>
+    /// <param name="parsedContent"></param>
+    /// <returns></returns>
+    public async Task<Lead> FetchListingAndCreateDBRecordsAsync(LeadParsingContent parsedContent, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO, Message message)
     {
+        using var context = _contextFactory.CreateDbContext();
+
+        //TODO lead assignment rules need to be revised, with probably a setting on connectedEmails that tells if this email's leads
+        //should be automatically assigned
+
+        bool listingFound = false;
+        bool multipleListingsMatch = false;
+        (int ListingId, Address? address, string? gptAddress, List<BrokerListingAssignment>? brokersAssigned) MatchingListingTuple = (0, null, null, null);
+        if (!string.IsNullOrEmpty(parsedContent.PropertyAddress) && !string.IsNullOrEmpty(parsedContent.StreetAddress))
+        {
+            //get listing
+            var streetAddressFormatted = parsedContent.StreetAddress.FormatStreetAddress();
+            var listings = await context.Listings
+                .Where(x => x.AgencyId == brokerDTO.AgencyId && EF.Functions.Like(x.FormattedStreetAddress, $"{streetAddressFormatted}%"))
+                .Select(x => new { x.Id, x.FormattedStreetAddress, x.Address, x.BrokersAssigned })
+                .ToListAsync();
+            //TODO if doesnt work try searching only with building number and then asking gpt like exlpained in 'complicated way'
+            //in the text file, for now this is the simple way
+
+            if (listings != null && listings.Count == 1) //1 listing matches, bingo!
+            {
+                MatchingListingTuple.ListingId = listings[0].Id;
+                MatchingListingTuple.address = listings[0].Address;
+                MatchingListingTuple.brokersAssigned = listings[0].BrokersAssigned;
+                listingFound = true;
+            }
+            else if (listings.Count > 1) //more than 1 match
+            {
+                if (!string.IsNullOrEmpty(parsedContent.Apartment))
+                {
+                    var lis = listings.FirstOrDefault(a => a.Address.apt == parsedContent.Apartment);
+                    if (lis != null)
+                    {
+                        MatchingListingTuple.ListingId = lis.Id;
+                        MatchingListingTuple.address = lis.Address;
+                        MatchingListingTuple.brokersAssigned = lis.BrokersAssigned;
+                        listingFound = true;
+                    }
+                }
+                if (!listingFound) multipleListingsMatch = true;
+            }
+        }
+        //this is only for admin-tier accounts(including later secretaries,assistants,etc): when true, create lead
+        //but ONLY assign to broker if he is the only one assigned to that listing AND in
+        //connectedEmail/adminSettings automatic lead assignment is turned on
+        //if false, create lead and never assign to anyone
+        //TODO later determine if the original email should be forwarded to the broker or not based on sensitive info
+        //also good to have a manual setting that admins can set
+
+        Languge lang = Languge.English;
+        Enum.TryParse(parsedContent.Language, true, out lang);
         var lead = new Lead
         {
-            AgencyId = agencyId,
-            BrokerId = null,
-            Email = email,
-            LeadFirstName = firstName ?? "-",
-            LeadLastName = lastName,
-            PhoneNumber = phoneNumber,
+            AgencyId = brokerDTO.AgencyId,
+            LeadFirstName = parsedContent.firstName ?? "-",
+            LeadLastName = parsedContent.lastName ?? "-",
+            PhoneNumber = parsedContent.phoneNumber,
             EntryDate = DateTime.UtcNow,
-            leadType = leadType,
+            leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.New,
-            ListingId = listingId,
+            LeadEmails = new() { new LeadEmail { EmailAddress = message.Sender.EmailAddress.Address } },
+            Languge = lang,
         };
-        lead.SourceDetails[NotificationJSONKeys.EmailId] = emailId;
+        lead.SourceDetails[NotificationJSONKeys.EmailId] = message.Id;
 
-        Notification notifCreation = new Notification
+        Notification LeadCreationNotif = new()
         {
             EventTimeStamp = DateTime.UtcNow,
             DeleteAfterProcessing = false,
             ProcessingStatus = ProcessingStatus.WaitingInBatch,
             NotifyBroker = true,
             ReadByBroker = false,
-            BrokerId = brokerId,
+            BrokerId = brokerDTO.Id,
             NotifType = NotifType.LeadCreated,
         };
-        lead.LeadHistoryEvents = new() { notifCreation };
+        lead.LeadHistoryEvents = new() { LeadCreationNotif };
+        if (brokerDTO.isSolo || !brokerDTO.isAdmin) //solo broker or non admin
+        {
+            //always assign lead to self, if no listing found THAT IS ASSIGNED
+            //TO SELF for non-admin non-solo broker then no listing linked, if listing found for soloBroker always link
+            LeadCreationNotif.NotifType = NotifType.LeadCreated | NotifType.LeadAssigned;
+            lead.BrokerId = brokerDTO.Id;
+            if (listingFound)
+            {
+                if (brokerDTO.isSolo || (!brokerDTO.isAdmin && MatchingListingTuple.brokersAssigned.Any(x => x.BrokerId == brokerDTO.Id)))
+                { lead.ListingId = MatchingListingTuple.ListingId; }
+                else
+                {
+                    //non-solo non-admin broker, listing found but not assigned to him
+                }
+            }
+            //not useful now
+            else if (multipleListingsMatch)
+            {
+                // lead.SourceDetails[NotificationJSONKeys.MultipleMatchingListings] = "true";
+            }
+            else
+            {
+                //lead.SourceDetails[NotificationJSONKeys.NoMatchingListings] = "true";
+            }
+        }
+        else//admin
+        {
+            //admin of an agency OR, admin in a small team where everyone is admin
+            if (listingFound)
+            {
+                //assign to broker if 1 broker linked with listing AND autoAssign on OR self, else dont assign.
+                lead.ListingId = MatchingListingTuple.ListingId;
+                if (MatchingListingTuple.brokersAssigned != null && MatchingListingTuple.brokersAssigned.Count == 1)
+                {
+                    var brokerToAssignToId = MatchingListingTuple.brokersAssigned[0].BrokerId;
+                    string brokerToAssignToFullName = "";
+                    if (brokerToAssignToId != brokerDTO.Id)
+                    {
+                        var brokertoAssignTo = await context.Brokers.Select(b => new { b.Id, b.FirstName, b.LastName }).FirstOrDefaultAsync(b => b.Id == brokerToAssignToId);
+                        brokerToAssignToFullName = $"{brokertoAssignTo.FirstName} {brokertoAssignTo.LastName}";
+                    }
+
+                    //if self, no extra notif needed
+                    if (brokerToAssignToId == brokerDTO.Id)//if assigned to self
+                    {
+                        lead.BrokerId = brokerDTO.Id;
+                        LeadCreationNotif.NotifType = NotifType.LeadCreated | NotifType.LeadAssigned;
+                    }
+                    //if admin email's auto lead assignment is turned on, assign to broker
+                    else if (brokerDTO.AssignLeadsAuto)
+                    {
+                        lead.BrokerId = brokerToAssignToId;
+
+                        LeadCreationNotif.NotifProps[NotificationJSONKeys.AssignedToId] = brokerToAssignToId.ToString();
+                        LeadCreationNotif.NotifProps[NotificationJSONKeys.AssignedToFullName] = brokerToAssignToFullName;
+
+                        Notification LeadAssignedNotif = new()
+                        {
+                            EventTimeStamp = DateTime.UtcNow,
+                            DeleteAfterProcessing = false,
+                            ProcessingStatus = ProcessingStatus.WaitingInBatch,
+                            NotifyBroker = true,
+                            ReadByBroker = false,
+                            BrokerId = brokerToAssignToId,
+                            NotifType = NotifType.LeadAssigned
+                        };
+                        LeadAssignedNotif.NotifProps[NotificationJSONKeys.AssignedById] = brokerDTO.Id.ToString();
+                        LeadAssignedNotif.NotifProps[NotificationJSONKeys.AssignedByFullName] = $"{brokerDTO.brokerFirstName} {brokerDTO.brokerLastName}";
+
+                        lead.LeadHistoryEvents.Add(LeadAssignedNotif);
+                    }
+                    //else LeadCreationNotif will notify admin that unassigned lead is created
+                    else
+                    {
+                        LeadCreationNotif.NotifProps[NotificationJSONKeys.SuggestedAssignToId] = brokerToAssignToId.ToString();
+                        LeadCreationNotif.NotifProps[NotificationJSONKeys.suggestedAssignToFullName] = brokerToAssignToFullName;
+                    }
+                }
+                else //0 or multiple brokers assigned to listing, dont assign lead to self (admin) or any other broker
+                { }
+            }
+            else // admin => no listing found
+            {
+            }
+        }
+        //TODO if listing found always increase count of leads brought by this listing
+
         return lead;
+    }
+    /// <summary>
+    /// if task successful, runs task that will fetch listing and create db records to be inserted
+    /// </summary>
+    /// <param name="leadTask"></param>
+    /// <param name="message"></param>
+    /// <param name="DBRecordsTasks"></param>
+    /// <param name="FromLeadProvider"></param>
+    /// <param name="SoloBroker"></param>
+    /// <param name="isAdmin"></param>
+    /// <param name="brokerId"></param>
+    /// <returns></returns>
+    public int HandleTaskResult(Task<OpenAIResponse?> leadTask, Message message, List<Tuple<Task<Lead>, Message>> DBRecordsTasks, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO)
+    {
+        if (leadTask.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
+        {
+            //TODO check error type to discard email if needed
+            ReprocessMessages.Add(message);
+            //TODO change error message if email discarded
+            _logger.LogError("{Category} GPT 3.5 email parsing and error {Error}", "OpenAI", leadTask.Exception.Message);
+            return 0;
+        }
+
+        var result = leadTask.Result;
+        if (!result.Success)
+        {
+            //TODO check error type to discard email if needed
+            ReprocessMessages.Add(message);
+            //TODO change error message if email discarded
+            _logger.LogError("{Category} GPT 3.5 email parsing and error {Error}", "OpenAI", result.ErrorType.ToString() + ": " + result.ErrorMessage);
+        }
+        else if (result.HasLead) //no error and has lead
+        {
+            DBRecordsTasks.Add(new Tuple<Task<Lead>, Message>(FetchListingAndCreateDBRecordsAsync(result.content, FromLeadProvider, brokerDTO, message), message));
+        }
+        else
+        {
+            //discard email, no lead found
+        }
+        return result.EmailTokensUsed;
+    }
+
+    private async Task saveWConcurrencyHandling(int newTokens)
+    {
+        bool saved = false;
+        while (!saved)
+        {
+            try
+            {
+                await _appDbContext.SaveChangesAsync();
+                saved = true;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                foreach (var entry in ex.Entries)
+                {
+                    if (entry.Entity is ConnectedEmail)
+                    {
+                        var proposedValues = entry.CurrentValues;
+                        var databaseValues = entry.GetDatabaseValues();
+
+                        databaseValues.TryGetValue("OpenAITokensUsed", out int dbcount);
+                        dbcount += newTokens;
+                        ConnectedEmail connEmail = (ConnectedEmail)entry.Entity;
+                        connEmail.OpenAITokensUsed = dbcount;
+                        entry.OriginalValues.SetValues(databaseValues);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
+        }
     }
 }

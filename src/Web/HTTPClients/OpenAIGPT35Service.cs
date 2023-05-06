@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;

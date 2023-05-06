@@ -4,6 +4,7 @@ using Core.Domain.BrokerAggregate;
 using Core.ExternalServiceInterfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
 
 namespace Infrastructure.ExternalServices;
 public class B2CGraphService : IB2CGraphService
@@ -35,12 +36,12 @@ public class B2CGraphService : IB2CGraphService
     {
         try
         {
-            await _graphClient.Users[$"{brokerId}"].Request().DeleteAsync();
+            await _graphClient.Users[$"{brokerId}"].DeleteAsync();
         }
         catch (Exception ex)
         {
             await Task.Delay(1000);
-            await _graphClient.Users[$"{brokerId}"].Request().DeleteAsync();
+            await _graphClient.Users[$"{brokerId}"].DeleteAsync();
         }
     }
     public async Task<Tuple<string, string>> createB2CUser(Broker broker)
@@ -69,7 +70,7 @@ public class B2CGraphService : IB2CGraphService
             PasswordPolicies = "DisablePasswordExpiration",
         };
 
-        var created = await _graphClient.Users.Request().AddAsync(user);
+        var created = await _graphClient.Users.PostAsync(user);
         return Tuple.Create(created.Id, password);
     }
 
@@ -85,9 +86,6 @@ public class B2CGraphService : IB2CGraphService
 
         var client = new GraphServiceClient(clientSecretCredential, scopes);
 
-        var clients = await client.Users.Request().GetAsync();
-
-        var count = clients.Count;
-
+        var clients = await client.Users.GetAsync();
     }
 }

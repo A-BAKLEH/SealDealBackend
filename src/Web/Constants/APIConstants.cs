@@ -9,10 +9,10 @@ public class APIConstants
 
     //sent email extended property id
     public const string APSentEmailExtendedPropId = "String {46920687-7fb5-49f0-963b-be637eec7ec0} Name SentTagId";
-
+    public const string ReprocessMessExtendedPropId = "String {40d29561-1bb1-4ca6-b6a5-6dc57b888ac9} Name ReprocessMessId";
     //email categories
-    public const string LeadCreated = "LeadCreated";
-    public const string SentBySealDeal = "SentBySealDeal";
+    public const string NewLeadCreated = "SD:LeadAdded";
+    public const string SentBySealDeal = "SD:SentByAutoFlow";
     public const string SeenOnSealDeal = "SeenOnSealDeal";
 
     //gpt prompts

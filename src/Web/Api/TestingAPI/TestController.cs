@@ -538,7 +538,7 @@ public class TestController : ControllerBase
         {
             AgencyId = 3,
             Budget = 1000,
-            Email = "lol@hotmail123.com",
+            //Email = "lol@hotmail123.com",
             EntryDate = DateTime.Now,
             LeadFirstName = "abdul",
             LeadLastName = "john",
@@ -549,7 +549,7 @@ public class TestController : ControllerBase
         {
             AgencyId = 3,
             Budget = 10003,
-            Email = "lol@hotmai32l.com",
+            //Email = "lol@hotmai32l.com",
             EntryDate = DateTime.Now,
             LeadFirstName = "sadfasdf",
             LeadLastName = "wal",

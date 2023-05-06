@@ -54,6 +54,7 @@ public class ActionPQService
 
         foreach (var item in actionPlans)
         {
+            //TECH
             item.Triggers = item.FlagTrigger.GetIndividualFlags().Select(f => f.ToString()).ToList();
         }
         return actionPlans;

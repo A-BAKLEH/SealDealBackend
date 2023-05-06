@@ -5,7 +5,7 @@ public class LeadForListDTO
   public string LeadFirstName { get; set; }
   public string? LeadLastName { get; set; }
   public string? PhoneNumber { get; set; }
-  public string? Email { get; set; }
+  public List<LeadEmailDTO> Emails { get; set; }
   public int? Budget { get; set; }
   public DateTime EntryDate { get; set; }
   public string source { get; set; }
@@ -17,6 +17,11 @@ public class LeadForListDTO
 
 }
 
+public class LeadEmailDTO
+{
+    public string email { get; set; }
+    public bool isMain { get; set; } = false;
+}
 public class NoteDTO
 {
   public int id { get; set; }
