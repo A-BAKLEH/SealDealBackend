@@ -8,9 +8,11 @@ using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
+using Infrastructure.Migrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using System;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
@@ -214,10 +216,14 @@ public class EmailProcessor
             await pageIterator.ResumeAsync();
         }
 
-        var connectedEmail = new ConnectedEmail { Email = connEmail.Email, OpenAITokensUsed = connEmail.OpenAITokensUsed + totaltokens };
-        _appDbContext.ConnectedEmails.Attach(connectedEmail);
-
-        await saveWConcurrencyHandling(totaltokens);
+        try {
+            await _appDbContext.Database.ExecuteSqlRawAsync($"UPDATE [dbo].[ConnectedEmails] SET OpenAITokensUsed = OpenAITokensUsed + {totaltokens}" +
+            $" WHERE Email = '{connEmail.Email}' AND BrokerId = '{brokerDTO.Id}';");
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "Error updating OpenAITokensUsed");
+        }
     }
 
 
@@ -363,21 +369,21 @@ public class EmailProcessor
         Dictionary<int, int> listingIdToNewLeadCount = new();
         leadsAdded.Where(l => l.Item1.ListingId != null).GroupBy(l => l.Item1.ListingId).ToList().ForEach(g => listingIdToNewLeadCount.Add((int)g.Key, g.Count()));
 
-        //increment LeadsGeneratedCount
-        await Task.WhenAll(listingIdToNewLeadCount.Select(async (kv) =>
-        {
-            byte counter = 4;
-            while (counter >= 0)
-            {
-                try
-                {
-                    await localdbContext.Listings.Where(l => l.Id == kv.Key).ExecuteUpdateAsync(
-                                           li => li.SetProperty(l => l.LeadsGeneratedCount, l => l.LeadsGeneratedCount + kv.Value));
-                    break;
-                }
-                catch { counter--; await Task.Delay((4 - counter + 1) * 200); }
-            }
-        }));
+        // TODO later increment LeadsGeneratedCount maybe periodically in a task at the end of the day
+       //await Task.WhenAll(listingIdToNewLeadCount.Select(async (kv) =>
+       // {
+       //     byte counter = 4;
+       //     while (counter >= 0)
+       //     {
+       //         try
+       //         {
+       //             await localdbContext.Listings.Where(l => l.Id == kv.Key).ExecuteUpdateAsync(
+       //                                    li => li.SetProperty(l => l.LeadsGeneratedCount, l => l.LeadsGeneratedCount + kv.Value));
+       //             break;
+       //         }
+       //         catch { counter--; await Task.Delay((4 - counter + 1) * 200); }
+       //     }
+       // }));
 
         await localdbContext.SaveChangesAsync();
 

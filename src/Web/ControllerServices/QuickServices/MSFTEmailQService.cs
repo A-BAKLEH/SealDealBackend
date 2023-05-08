@@ -6,6 +6,7 @@ using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using SharedKernel.Exceptions;
+using System;
 using Web.Processing.EmailAutomation;
 
 namespace Web.ControllerServices.QuickServices;
@@ -42,18 +43,26 @@ public class MSFTEmailQService
     public async Task<dynamic> GetConnectedEmails(Guid brokerId)
     {
         var connectedEmails = await _appDbContext.ConnectedEmails
-          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email })
+          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email,e.AssignLeadsAuto })
           .Where(c => c.BrokerId == brokerId)
           .ToListAsync();
         return (dynamic)connectedEmails;
     }
+
+    public async Task SetConnectedEmailAutoAssign(Guid brokerId, string Email, bool AutoAssign)
+    {
+        byte autoAssign = AutoAssign ? (byte)1 : (byte)0;
+        await _appDbContext.Database.ExecuteSqlRawAsync($"UPDATE [dbo].[ConnectedEmails] SET AssignLeadsAuto = {autoAssign}" +
+            $" WHERE Email = '{Email}' AND BrokerId = '{brokerId}';");
+    }
+
     /// <summary>
     /// Test if has access to tenant with this email and if yes subscribe to mailbox notifs
     /// AND checks and creates categories for emails
     /// Will thorw error if email already connected OR if no admin consent present
     /// ONLY MICROSOFT SUPPORTED FOR NOW
     /// </summary>
-    public async Task<dynamic> ConnectEmail(Guid brokerId, string email, string TenantId)
+    public async Task<dynamic> ConnectEmail(Guid brokerId, string email, string TenantId, bool AssignAdminLeadsAuto)
     {
 
         var broker = _appDbContext.Brokers
@@ -84,6 +93,7 @@ public class MSFTEmailQService
             tenantId = TenantId,
             hasAdminConsent = broker.Agency.HasAdminEmailConsent,
             isMSFT = true,
+            AssignLeadsAuto = AssignAdminLeadsAuto
         };
 
         if (broker.ConnectedEmails == null) broker.ConnectedEmails = new();
@@ -111,7 +121,7 @@ public class MSFTEmailQService
                 }
             }
         }
-        return new { connectedEmail.Email, connectedEmail.hasAdminConsent };
+        return new { connectedEmail.Email, connectedEmail.hasAdminConsent,connectedEmail.AssignLeadsAuto };
     }
     /// <summary>
     /// To be primarily called by hangfire after a notif comes in

@@ -1,6 +1,7 @@
 ﻿
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
+using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
@@ -83,11 +84,13 @@ public class TestController : ControllerBase
     [HttpGet("test-params")]
     public async Task<IActionResult> test_params()
     {
-        var broker = _appDbContext.Brokers.Include(b => b.Notifs).Single();
-        ///OuterMethod(broker);
-        //await broker._IActionExecuter.ExecuteSendEmail();
-
+        //var notif = new ConnectedEmail {Email = "bashar.eskandar@sealdeal.ca",BrokerId = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA"), AssignLeadsAuto = true};
+        //_appDbContext.ConnectedEmails.Update(notif);
         //_appDbContext.SaveChanges();
+        var Email = "bashar.eskandar@sealdeal.ca";
+        var guidd = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA").ToString();
+        _appDbContext.Database.ExecuteSqlRaw($"UPDATE [dbo].[ConnectedEmails] SET OpenAITokensUsed = OpenAITokensUsed + 1" +
+            $" WHERE Email = '{Email}' AND BrokerId = '{guidd}';");
         return Ok();
     }
 

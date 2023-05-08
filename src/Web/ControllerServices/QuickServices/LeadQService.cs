@@ -7,6 +7,7 @@ using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
+using System;
 using Web.ApiModels;
 
 namespace Web.ControllerServices.QuickServices;
@@ -46,7 +47,12 @@ public class LeadQService
         }
         if (dto.RemoveEmails != null && dto.RemoveEmails.Any())
         {
-            _appDbContext.RemoveRange(lead.LeadEmails.Where(e => dto.RemoveEmails.Contains(e.EmailAddress)));
+            var toRemove = lead.LeadEmails.Where(e => dto.RemoveEmails.Contains(e.EmailAddress));
+            if(toRemove.Any(e => e.IsMain) && toRemove.Count() < lead.LeadEmails.Count)
+            {
+                lead.LeadEmails.Where(e => !dto.RemoveEmails.Contains(e.EmailAddress)).First().IsMain = true;
+            }
+            _appDbContext.RemoveRange(toRemove);
         }
 
         if (dto.PhoneNumber != null) lead.PhoneNumber = dto.PhoneNumber;
@@ -179,5 +185,10 @@ public class LeadQService
           .ToListAsync();
 
         return leads;
+    }
+    public async Task makeLeadEmailMain(int leadId, string Email)
+    {
+        await _appDbContext.Database.ExecuteSqlRawAsync($"UPDATE [dbo].[LeadEmails] SET IsMain = 1" +
+            $" WHERE EmailAddress = '{Email}' AND LeadId = '{leadId}';");
     }
 }

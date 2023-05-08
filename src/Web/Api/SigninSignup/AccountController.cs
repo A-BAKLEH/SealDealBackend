@@ -68,9 +68,29 @@ public class AccountController : BaseApiController
         }
         if (dto.EmailProvider == "m")
         {
-            var res = await _MSFTEmailQService.ConnectEmail(id, dto.Email, dto.TenantId);
+            var res = await _MSFTEmailQService.ConnectEmail(id, dto.Email, dto.TenantId, dto.AssignLeadsAuto);
             return Ok(res);
         }
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// set autoassignleads for admin
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPatch("ConnectedEmail/AutoAssignLeads")]
+    public async Task<IActionResult> PatchConnectedEmail([FromBody] ConnectedEmailAutoAssign dto)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        await _MSFTEmailQService.SetConnectedEmailAutoAssign(id, dto.email, dto.autoAssign);
 
         return Ok();
     }
@@ -113,7 +133,7 @@ public class AccountController : BaseApiController
             _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to handle admin consented", TagConstants.Inactive, id);
             return Forbid();
         }
-        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync( tenantId,id);
+        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id);
 
         return Ok(resTuple);
     }
