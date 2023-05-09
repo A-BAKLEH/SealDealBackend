@@ -58,6 +58,7 @@ public class AuthorizationService
         response.PhoneNumber = broker.PhoneNumber;
         response.markEmailsRead = broker.MarkEmailsRead;
         response.SoloBroker = broker.isSolo;
+        response.BrokerLanguage = broker.Language.ToString();
 
         if (TimeZoneId != null && broker.TimeZoneId != TimeZoneId)
         {

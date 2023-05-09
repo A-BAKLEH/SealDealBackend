@@ -16,4 +16,5 @@ public class SignedInBrokerDTO
     public bool markEmailsRead { get; set; }
     public DateTimeOffset Created { get; set; }
     public bool SoloBroker { get; set;}
+    public string BrokerLanguage { get; set; }
 }

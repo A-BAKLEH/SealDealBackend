@@ -6,7 +6,7 @@ namespace Core.DTOs.ProcessingDTOs
     {
         public int AgencyId { get; set; }
         public Guid Id { get; set; }
-        public Languge BrokerLanguge { get; set; }
+        public Language BrokerLanguge { get; set; }
         public string brokerFirstName { get; set; }
         public string brokerLastName { get; set; }
         public string BrokerEmail { get; set; }

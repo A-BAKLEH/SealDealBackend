@@ -147,7 +147,7 @@ public class ActionPQService
         //if action plan has an automatic trigger, add it to broker's NotifsForActionPlans
         if (actionPlan.Triggers != NotifType.None)
         {
-            var broker = _appDbContext.Brokers.First(b => b.Id == brokerId);
+            var broker = await _appDbContext.Brokers.FirstAsync(b => b.Id == brokerId);
             if (!broker.NotifsForActionPlans.HasFlag(actionPlan.Triggers))
             {
                 broker.NotifsForActionPlans |= actionPlan.Triggers;

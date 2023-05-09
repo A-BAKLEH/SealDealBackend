@@ -35,6 +35,24 @@ public class AccountController : BaseApiController
         return Ok(dto);
     }
 
+    /// <summary>
+    /// inputs: english, french
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("Lang/{SetLanguage}")]
+    public async Task<IActionResult> changeAccountlanguage(string SetLanguage)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to set TimeZone ", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        await _brokerQService.SetaccountLanguage(id,SetLanguage);
+        return Ok();
+    }
+
     [HttpPost("SetTimeZone")]
     public async Task<IActionResult> SetTimeZone([FromBody] SigninDTO dto)
     {
@@ -71,7 +89,6 @@ public class AccountController : BaseApiController
             var res = await _MSFTEmailQService.ConnectEmail(id, dto.Email, dto.TenantId, dto.AssignLeadsAuto);
             return Ok(res);
         }
-
         return Ok();
     }
 

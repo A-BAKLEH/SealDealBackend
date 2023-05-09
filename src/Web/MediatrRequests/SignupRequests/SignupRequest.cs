@@ -1,5 +1,6 @@
 ﻿using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
+using Core.Domain.LeadAggregate;
 using Core.DTOs;
 using Infrastructure.Data;
 using MediatR;
@@ -58,7 +59,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             isAdmin = true,
             AccountActive = false,
             TimeZoneId = request.TimeZoneId,
-            isSolo = true
+            isSolo = true,
+            Language = Language.English
         };
         var agency = new Agency()
         {
@@ -89,6 +91,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             subscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription.ToString(),
             internalMessage = "justSignedUp"
         };
+        response.BrokerLanguage = broker.Language.ToString();
         return response;
     }
 }

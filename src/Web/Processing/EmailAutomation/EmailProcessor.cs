@@ -8,11 +8,9 @@ using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
-using Infrastructure.Migrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
-using System;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
@@ -159,12 +157,12 @@ public class EmailProcessor
     {
         //TODO Cache
         var connEmail = await _appDbContext.ConnectedEmails
-          .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Languge, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
+          .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Language, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
           .FirstAsync(x => x.Email == email);
         _aDGraphWrapper.CreateClient(connEmail.tenantId);
 
         var brokerDTO = new BrokerEmailProcessingDTO
-        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Languge, AssignLeadsAuto = connEmail.AssignLeadsAuto };
+        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
 
         DateTimeOffset lastSync;
         if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow;
@@ -491,8 +489,8 @@ public class EmailProcessor
         //TODO later determine if the original email should be forwarded to the broker or not based on sensitive info
         //also good to have a manual setting that admins can set
 
-        Languge lang = Languge.English;
-        Enum.TryParse(parsedContent.Language, true, out lang);
+        Language lang = brokerDTO.BrokerLanguge;
+        if(parsedContent.Language != null) Enum.TryParse(parsedContent.Language, true, out lang);
         var lead = new Lead
         {
             AgencyId = brokerDTO.AgencyId,

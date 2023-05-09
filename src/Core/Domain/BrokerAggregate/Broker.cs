@@ -15,7 +15,7 @@ public class Broker : Entity<Guid>
     public Agency Agency { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
-    public Languge Languge { get; set; } = Languge.English;
+    public Language Language { get; set; } = Language.English;
 
     ///<summary>
     /// in Windows Registry formt like: Eastern Standard Time

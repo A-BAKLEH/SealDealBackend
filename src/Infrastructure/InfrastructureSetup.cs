@@ -26,16 +26,17 @@ public static class InfrastructureSetup
     public static void AddHangfire(this IServiceCollection services, string connectionString)
     {
         services.AddHangfire(configuration => configuration
-        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
         .UseSimpleAssemblyNameTypeSerializer()
         .UseRecommendedSerializerSettings()
         .UseSqlServerStorage(connectionString, new SqlServerStorageOptions
         {
-            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-            QueuePollInterval = TimeSpan.Zero, //just for fire and forget jobs
-            UseRecommendedIsolationLevel = true,
-            DisableGlobalLocks = true
+            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5), //default
+            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5), //default
+            QueuePollInterval = TimeSpan.Zero, //just for fire and forget jobs - default
+            UseRecommendedIsolationLevel = true, //default
+            DisableGlobalLocks = true, //not default
+            EnableHeavyMigrations = false //not default, put to true when you need to migrate
         }));
 
         services.AddHangfireServer();
