@@ -58,6 +58,10 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             LeadStatus = LeadStatus.New,
             ListingId = dto.ListingOfInterstId,
         };
+        if(request.createLeadDTO.language != null && Enum.TryParse<Language>(request.createLeadDTO.language, true, out var language))
+        {
+            lead.Language = language;
+        }
         if(dto.Emails != null && dto.Emails.Any())
         {
             lead.LeadEmails = new List<LeadEmail>(dto.Emails.Count);
@@ -211,7 +215,8 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             PhoneNumber = lead.PhoneNumber,
             Note = lead.Note == null ? null : new NoteDTO { id = lead.Note.Id, NoteText = lead.Note.NotesText },
             Tags = lead.Tags == null ? null : lead.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName }),
-            leadSourceDetails = lead.SourceDetails
+            leadSourceDetails = lead.SourceDetails,
+            language = lead.Language.ToString(),
         };
         return response;
     }

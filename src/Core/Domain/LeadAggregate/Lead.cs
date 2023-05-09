@@ -27,7 +27,7 @@ public class Lead : Entity<int>
     public string? PhoneNumber { get; set; }
     //public string? Email { get; set; } moved to leadEmails
     public int? Budget { get; set; }
-    public Language Languge { get; set; } = Language.English;
+    public Language Language { get; set; } = Language.English;
     /// <summary>
     /// notifs that action plans running on this lead should handle because they can
     /// affect 

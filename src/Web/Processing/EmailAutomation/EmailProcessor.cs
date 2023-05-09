@@ -502,7 +502,7 @@ public class EmailProcessor
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.New,
             LeadEmails = new() { new LeadEmail { EmailAddress = message.Sender.EmailAddress.Address } },
-            Languge = lang,
+            Language = lang,
         };
         lead.SourceDetails[NotificationJSONKeys.EmailId] = message.Id;
 

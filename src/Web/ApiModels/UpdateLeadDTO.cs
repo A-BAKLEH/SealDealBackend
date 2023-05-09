@@ -16,4 +16,5 @@ public class UpdateLeadDTO
     public string? LeadStatus { get; set; }
     public string? Areas { get; set; }
     public string? leadNote { get; set; }
+    public string? language { get; set; }
 }

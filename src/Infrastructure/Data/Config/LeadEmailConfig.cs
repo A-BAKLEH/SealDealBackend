@@ -9,7 +9,7 @@ namespace Infrastructure.Data.Config
         public void Configure(EntityTypeBuilder<LeadEmail> builder)
         {
             builder.Property(b => b.EmailAddress).HasMaxLength(60);
-            builder.HasKey(b => new { b.LeadId, b.EmailAddress});
+            builder.HasKey(b => new {b.EmailAddress,b.LeadId});
         }
     }
 }

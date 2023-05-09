@@ -65,6 +65,8 @@ public class LeadQService
         {
             lead.Note.NotesText = dto.leadNote;
         }
+
+        if(dto.language != null && Enum.TryParse<Language>(dto.language, true, out var lang)) { lead.Language = lang; }
         await _appDbContext.SaveChangesAsync();
 
         var response = new LeadForListDTO
@@ -81,7 +83,8 @@ public class LeadQService
             PhoneNumber = lead.PhoneNumber,
             Note = lead.Note == null ? null : new NoteDTO { id = lead.Note.Id, NoteText = lead.Note.NotesText },
             Tags = lead.Tags == null ? null : lead.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName }),
-            leadSourceDetails = lead.SourceDetails
+            leadSourceDetails = lead.SourceDetails,
+            language = lead.Language.ToString(),
         };
 
         return response;
@@ -155,6 +158,7 @@ public class LeadQService
               leadType = l.leadType.ToString(),
               PhoneNumber = l.PhoneNumber,
               source = l.source.ToString(),
+              language = l.Language.ToString(),
               Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName })
           })
           .OrderByDescending(l => l.LeadId)
@@ -179,7 +183,8 @@ public class LeadQService
               leadType = l.leadType.ToString(),
               PhoneNumber = l.PhoneNumber,
               source = l.source.ToString(),
-              Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName })
+              Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName }),
+              language = l.Language.ToString(),
           })
           .OrderByDescending(l => l.LeadId)
           .ToListAsync();

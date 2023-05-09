@@ -32,6 +32,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
               EntryDate = l.EntryDate.UtcDateTime,
               LeadFirstName = l.LeadFirstName,
               LeadLastName = l.LeadLastName,
+              language = l.Language.ToString(),
               leadSource = l.source,
               leadSourceDetails = l.SourceDetails,
               LeadStatus = l.LeadStatus.ToString(),

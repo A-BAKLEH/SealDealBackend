@@ -7,6 +7,7 @@ public class AllahLeadDTO
     public Guid? brokerId { get; set; }
     public string LeadFirstName { get; set; }
     public string? LeadLastName { get; set; }
+    public string language { get; set; }
     public string? PhoneNumber { get; set; }
     public IEnumerable<LeadEmailDTO> Emails { get; set; }
     public int? Budget { get; set; }
