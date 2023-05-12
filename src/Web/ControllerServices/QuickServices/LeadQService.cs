@@ -39,12 +39,17 @@ public class LeadQService
 
         if(dto.Emails != null && dto.Emails.Any())
         {
+            List<LeadEmail> toRemove = new();
             foreach(var email in lead.LeadEmails)
             {
                 //email stays
                 if (dto.Emails.Any(e => e == email.EmailAddress)) continue;
                 //email removed
-                else { lead.LeadEmails.Remove(email); } 
+                else { toRemove.Add(email); } 
+            }
+            foreach (var remove in toRemove)
+            {
+                lead.LeadEmails.Remove(remove);
             }
             foreach(var dtoEmail in dto.Emails)
             {
