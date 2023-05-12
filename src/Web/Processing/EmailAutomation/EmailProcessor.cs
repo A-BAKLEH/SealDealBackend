@@ -139,12 +139,15 @@ public class EmailProcessor
     public async Task CheckEmailSyncAsync(Guid SubsId, string tenantId)
     {
         //ADDCACHE
+        //TODO make sure the email is not already being synced. the problem is if 
+        // Syncscheduled is false. For now u can solve it with ConcurrentDictionary
         var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
         if (!connEmail.SyncScheduled)
         {
             var jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email), TimeSpan.FromSeconds(6));
             connEmail.SyncScheduled = true;
             connEmail.SyncJobId = jobId;
+            await _appDbContext.SaveChangesAsync();
         }
     }
 
@@ -214,11 +217,13 @@ public class EmailProcessor
             await pageIterator.ResumeAsync();
         }
 
-        try {
+        try
+        {
             await _appDbContext.Database.ExecuteSqlRawAsync($"UPDATE [dbo].[ConnectedEmails] SET OpenAITokensUsed = OpenAITokensUsed + {totaltokens}" +
             $" WHERE Email = '{connEmail.Email}' AND BrokerId = '{brokerDTO.Id}';");
+            //TODO update connectedEmail lastSync date and set sync scheduled off
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating OpenAITokensUsed");
         }
@@ -368,20 +373,20 @@ public class EmailProcessor
         leadsAdded.Where(l => l.Item1.ListingId != null).GroupBy(l => l.Item1.ListingId).ToList().ForEach(g => listingIdToNewLeadCount.Add((int)g.Key, g.Count()));
 
         // TODO later increment LeadsGeneratedCount maybe periodically in a task at the end of the day
-       //await Task.WhenAll(listingIdToNewLeadCount.Select(async (kv) =>
-       // {
-       //     byte counter = 4;
-       //     while (counter >= 0)
-       //     {
-       //         try
-       //         {
-       //             await localdbContext.Listings.Where(l => l.Id == kv.Key).ExecuteUpdateAsync(
-       //                                    li => li.SetProperty(l => l.LeadsGeneratedCount, l => l.LeadsGeneratedCount + kv.Value));
-       //             break;
-       //         }
-       //         catch { counter--; await Task.Delay((4 - counter + 1) * 200); }
-       //     }
-       // }));
+        //await Task.WhenAll(listingIdToNewLeadCount.Select(async (kv) =>
+        // {
+        //     byte counter = 4;
+        //     while (counter >= 0)
+        //     {
+        //         try
+        //         {
+        //             await localdbContext.Listings.Where(l => l.Id == kv.Key).ExecuteUpdateAsync(
+        //                                    li => li.SetProperty(l => l.LeadsGeneratedCount, l => l.LeadsGeneratedCount + kv.Value));
+        //             break;
+        //         }
+        //         catch { counter--; await Task.Delay((4 - counter + 1) * 200); }
+        //     }
+        // }));
 
         await localdbContext.SaveChangesAsync();
 
@@ -408,7 +413,8 @@ public class EmailProcessor
 
         await Task.WhenAll(ReprocessMessages.Select(async (message) =>
         {
-            try { 
+            try
+            {
                 message.SingleValueExtendedProperties = new()
                 {
                   new SingleValueLegacyExtendedProperty
@@ -490,7 +496,7 @@ public class EmailProcessor
         //also good to have a manual setting that admins can set
 
         Language lang = brokerDTO.BrokerLanguge;
-        if(parsedContent.Language != null) Enum.TryParse(parsedContent.Language, true, out lang);
+        if (parsedContent.Language != null) Enum.TryParse(parsedContent.Language, true, out lang);
         var lead = new Lead
         {
             AgencyId = brokerDTO.AgencyId,

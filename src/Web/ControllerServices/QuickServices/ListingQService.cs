@@ -123,7 +123,11 @@ public class ListingQService
         }
 
         var streetAddress = dto.Address.StreetAddress.Replace("  ", " ").Trim();
-        var apt = dto.Address.apt.Replace(" ", "");
+        string apt = "";
+        if(!string.IsNullOrWhiteSpace(dto.Address.apt))
+        {
+            apt = dto.Address.apt.Replace(" ", "");
+        }
         var formatted = streetAddress.FormatStreetAddress();
         var listing = new Listing
         {

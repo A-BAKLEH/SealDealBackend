@@ -19,20 +19,14 @@ public abstract class LeadInteraction : Entity<int>
   /// true if lead initiated interaction
   /// </summary>
   public bool isReceived { get; set; }
-
-  
-
   /// <summary>
   /// Read for email, read for sms, went through (picked up) for call
   /// </summary>
   public bool isRead { set; get; }
-
   /// <summary>
   /// sms text for sms,
   /// "call duration,broker comment" for call =
   /// email id for email
   /// </summary>
-  public string? data { get; set; }  
-
-
+  public string? data { get; set; }
 }
