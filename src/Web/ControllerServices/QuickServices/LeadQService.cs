@@ -37,22 +37,27 @@ public class LeadQService
         }
         if (dto.Budget != null) lead.Budget = dto.Budget;
 
-        if (dto.AddEmails != null && dto.AddEmails.Any())
+        if(dto.Emails != null && dto.Emails.Any())
         {
-            foreach (var email in dto.AddEmails)
+            foreach(var email in lead.LeadEmails)
             {
-                if (lead.LeadEmails.Any(e => e.EmailAddress == email)) continue;
-                lead.LeadEmails.Add(new LeadEmail { EmailAddress = email, IsMain = false });
+                //email stays
+                if (dto.Emails.Any(e => e == email.EmailAddress)) continue;
+                //email removed
+                else { lead.LeadEmails.Remove(email); } 
             }
-        }
-        if (dto.RemoveEmails != null && dto.RemoveEmails.Any())
-        {
-            var toRemove = lead.LeadEmails.Where(e => dto.RemoveEmails.Contains(e.EmailAddress));
-            if(toRemove.Any(e => e.IsMain) && toRemove.Count() < lead.LeadEmails.Count)
+            foreach(var dtoEmail in dto.Emails)
             {
-                lead.LeadEmails.Where(e => !dto.RemoveEmails.Contains(e.EmailAddress)).First().IsMain = true;
+                if(!lead.LeadEmails.Any(e => e.EmailAddress == dtoEmail))
+                {
+                    lead.LeadEmails.Add( new LeadEmail { EmailAddress = dtoEmail});
+                }
             }
-            _appDbContext.RemoveRange(toRemove);
+            foreach(var email in lead.LeadEmails)
+            {
+                if (email.EmailAddress == dto.Emails[0]) email.IsMain = true;
+                else email.IsMain = false;
+            }
         }
 
         if (dto.PhoneNumber != null) lead.PhoneNumber = dto.PhoneNumber;
