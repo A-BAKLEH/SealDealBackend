@@ -1,4 +1,5 @@
 ﻿
+using Azure;
 using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.LeadAggregate;
@@ -96,7 +97,9 @@ public class LeadQService
             leadSourceDetails = lead.SourceDetails,
             language = lead.Language.ToString(),
         };
-
+        var first = response.Emails.First(e => e.isMain);
+        response.Emails.Remove(first);
+        response.Emails.Insert(0, first);
         return response;
     }
 
@@ -173,7 +176,12 @@ public class LeadQService
           })
           .OrderByDescending(l => l.LeadId)
           .ToListAsync();
-
+        foreach (var item in leads)
+        {
+            var first = item.Emails.First(e => e.isMain);
+            item.Emails.Remove(first);
+            item.Emails.Insert(0, first);
+        }
         return leads;
     }
 
@@ -199,11 +207,13 @@ public class LeadQService
           .OrderByDescending(l => l.LeadId)
           .ToListAsync();
 
+        foreach (var item in leads)
+        {
+            var first = item.Emails.First(e => e.isMain);
+            item.Emails.Remove(first);
+            item.Emails.Insert(0, first);
+        }
+
         return leads;
-    }
-    public async Task makeLeadEmailMain(int leadId, string Email)
-    {
-        await _appDbContext.Database.ExecuteSqlRawAsync($"UPDATE [dbo].[LeadEmails] SET IsMain = 1" +
-            $" WHERE EmailAddress = '{Email}' AND LeadId = '{leadId}';");
     }
 }

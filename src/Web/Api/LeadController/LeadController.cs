@@ -73,22 +73,6 @@ public class LeadController : BaseApiController
         lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
         return Ok(lead);
     }
-
-    [HttpPatch("LeadEmail/MakeMain/{Email}/{LeadId}")]
-    public async Task<IActionResult> makeleadEmailMain(string Email, int LeadId)
-    {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-        if (!brokerTuple.Item2)
-        {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to update Lead", TagConstants.Unauthorized, id);
-            return Forbid();
-        }
-       await _leadQService.makeLeadEmailMain(LeadId, Email);
-       return Ok();
-    }
-
-
     //only for leads that are assigned to a broker/admin
     //admin can also delete lead that is not assigned to anybody
     [HttpDelete("{LeadId}")]
@@ -104,8 +88,6 @@ public class LeadController : BaseApiController
         await _leadQService.DeleteLeadAsync(LeadId, id, brokerTuple.Item1.isAdmin);
         return Ok();
     }
-
-
     /// <summary>
     /// for Allah Lead, gets all lead's info, no paging for now
     /// </summary>
