@@ -28,7 +28,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
               LeadId = l.Id,
               brokerId = l.BrokerId,
               Budget = l.Budget,
-              Emails = l.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain}),
+              Emails = l.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain}).ToList(),
               EntryDate = l.EntryDate.UtcDateTime,
               LeadFirstName = l.LeadFirstName,
               LeadLastName = l.LeadLastName,
@@ -69,7 +69,9 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
             }
             ).ToListAsync(cancellationToken);
         }
-
+        var first = lead.Emails.First(e => e.isMain);
+        lead.Emails.Remove(first);
+        lead.Emails.Insert(0, first);
         return lead;
 
     }

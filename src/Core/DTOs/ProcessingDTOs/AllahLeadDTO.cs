@@ -9,7 +9,7 @@ public class AllahLeadDTO
     public string? LeadLastName { get; set; }
     public string language { get; set; }
     public string? PhoneNumber { get; set; }
-    public IEnumerable<LeadEmailDTO> Emails { get; set; }
+    public List<LeadEmailDTO> Emails { get; set; }
     public int? Budget { get; set; }
     public DateTime EntryDate { get; set; }
     public LeadSource leadSource { get; set; }
