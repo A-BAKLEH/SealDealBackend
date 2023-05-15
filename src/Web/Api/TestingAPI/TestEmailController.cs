@@ -28,6 +28,36 @@ public class TestEmailController : ControllerBase
         _adGraphWrapper = aDGraphWrapper;
     }
 
+    [HttpGet("GraphFilterTest")]
+    public async Task<IActionResult> GraphReplyTesting()
+    {
+        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+
+        _adGraphWrapper.CreateClient(tenantId);
+        var messages = await _adGraphWrapper._graphClient
+          .Users["bashar.eskandar@sealdeal.ca"]
+          .MailFolders["Inbox"]
+          .Messages
+          .GetAsync(config =>
+          {
+              config.QueryParameters.Orderby = new string[] { "receivedDateTime desc" };
+              config.QueryParameters.Top = 5;
+          });
+        var messages1 = messages.Value;
+
+        var replies= await _adGraphWrapper._graphClient
+          .Users["bashar.eskandar@sealdeal.ca"]
+          .MailFolders["SentItems"]
+          .Messages
+          .GetAsync(config =>
+          {
+              config.QueryParameters.Filter = $"singleValueExtendedProperties/Any(ep: ep/id eq 'String 0x1042' and ep/value eq '{messages1[4].InternetMessageId}')";
+              //config.QueryParameters.Orderby = new string[] { "receivedDateTime desc" };
+              config.QueryParameters.Top = 5;
+          });
+        var replies1 = replies.Value;
+        return Ok(replies1);
+    }
 
     [HttpGet("GetMessages/{index}/{isNo}")]
     public async Task<IActionResult> GetMessages(int index, bool isNo)
