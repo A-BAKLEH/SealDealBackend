@@ -1,5 +1,4 @@
-﻿using Core.Domain.ActionPlanAggregate.Actions;
-using SharedKernel;
+﻿using SharedKernel;
 
 namespace Core.Domain.ActionPlanAggregate;
 /// <summary>
@@ -8,7 +7,7 @@ namespace Core.Domain.ActionPlanAggregate;
 public class ActionTracker : EntityBase
 {
     public int TrackedActionId { get; set; }
-    public ActionBase TrackedAction { get; set; }
+    public ActionPlanAction TrackedAction { get; set; }
     public int ActionPlanAssociationId { get; set; }
     public ActionPlanAssociation ActionPlanAssociation { get; set; }
     public ActionStatus ActionStatus { get; set; }

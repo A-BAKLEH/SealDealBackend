@@ -1,5 +1,4 @@
-﻿using Core.Domain.ActionPlanAggregate.Actions;
-using Core.Domain.BrokerAggregate;
+﻿using Core.Domain.BrokerAggregate;
 using Core.Domain.NotificationAggregate;
 using SharedKernel;
 
@@ -40,7 +39,7 @@ public class ActionPlan : Entity<int>
     /// can be overriden for a spceific lead with APAssociation's Custom Delay
     /// </summary>
     public string? FirstActionDelay { get; set; }
-    public List<ActionBase> Actions { get; set; }
+    public List<ActionPlanAction> Actions { get; set; }
     public List<ActionPlanAssociation> ActionPlanAssociations { get; set; }
 
 }

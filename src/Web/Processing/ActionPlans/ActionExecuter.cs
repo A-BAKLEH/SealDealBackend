@@ -1,9 +1,8 @@
 ﻿using Core.Domain.ActionPlanAggregate;
-using Core.Domain.ActionPlanAggregate.Actions;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
-using Core.ExternalServiceInterfaces.ActionPlans;
+using Core.DTOs.ProcessingDTOs;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +11,7 @@ using Web.Constants;
 
 namespace Web.Processing.ActionPlans;
 
-public class ActionExecuter : IActionExecuter
+public class ActionExecuter
 {
     private readonly AppDbContext _appDbContext;
     private readonly ADGraphWrapper _adGraphWrapper;
@@ -26,83 +25,57 @@ public class ActionExecuter : IActionExecuter
     }
 
     /// <summary>
-    /// Returns true if continue processing, false stop right away dont need to
-    /// 
-    /// 0) ActionPlanAssociation - ActionPlanAssociation
-    /// 1) List<ActionBase> - actions
-    /// 2) Guid - brokerId
-    /// 3) DateTime - timeNow
-    /// </summary>
+    /// Returns true if continue processing, false stop right away dont need to.
+    /// // needs  signalR and push Notif after
     /// <param name="pars"></param>
     /// <returns></returns>
-    public async Task<bool> ExecuteChangeLeadStatus(params Object[] pars)
+    public bool ExecuteChangeLeadStatus(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
     {
-        var ActionPlanAssociation = (ActionPlanAssociation)pars[0];
-        var actions = (List<ActionBase>)pars[1];
-        var brokerId = (Guid)pars[2];
-        var timeNow = (DateTime)pars[3];
-
         var lead = ActionPlanAssociation.lead;
-        var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
-        var CurrentAction = actions[0];
-        var currentActionLevel = CurrentAction.ActionLevel;
-
-        string NewStatusString = CurrentAction.ActionProperties[ChangeLeadStatus.NewLeadStatus];
+        string NewStatusString = currentActionDTO.ActionProperties[ActionPlanAction.NewLeadStatus];
 
         Enum.TryParse<LeadStatus>(NewStatusString, true, out var NewLeadStatus);
         if (lead.LeadStatus == NewLeadStatus) return false;
         var oldStatus = lead.LeadStatus;
         lead.LeadStatus = NewLeadStatus;
 
-        var StatusChangeNotif = new Notification
+        var StatusChangeEvent = new AppEvent
         {
             LeadId = lead.Id,
             BrokerId = brokerId,
             EventTimeStamp = timeNow,
-            NotifType = NotifType.LeadStatusChange,
+            EventType = Core.Domain.NotificationAggregate.EventType.LeadStatusChange,
             ReadByBroker = false,
             NotifyBroker = true,
             IsActionPlanResult = true,
-            //ProcessingStatus NO NEED for now, if later needs to be handled by outbox then assign
+            ProcessingStatus = ProcessingStatus.NoNeed,
         };
-        StatusChangeNotif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
-        StatusChangeNotif.NotifProps[NotificationJSONKeys.ActionId] = CurrentAction.Id.ToString();
-        StatusChangeNotif.NotifProps[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
+        StatusChangeEvent.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
+        StatusChangeEvent.Props[NotificationJSONKeys.ActionId] = currentActionDTO.Id.ToString();
+        StatusChangeEvent.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
 
-        StatusChangeNotif.NotifProps[NotificationJSONKeys.OldLeadStatus] = oldStatus.ToString();
-        StatusChangeNotif.NotifProps[NotificationJSONKeys.NewLeadStatus] = lead.LeadStatus.ToString();
-        _appDbContext.Notifications.Add(StatusChangeNotif);
-
-        // TODO------------- signalR and push Notif
-
+        StatusChangeEvent.Props[NotificationJSONKeys.OldLeadStatus] = oldStatus.ToString();
+        StatusChangeEvent.Props[NotificationJSONKeys.NewLeadStatus] = lead.LeadStatus.ToString();
+        _appDbContext.AppEvents.Add(StatusChangeEvent);
         return true;
     }
 
     /// <summary>
     /// Returns true if continue processing, false stop right away dont need to
-    /// 
-    /// 0) ActionPlanAssociation - ActionPlanAssociation
-    /// 1) List<ActionBase> - actions
-    /// 2) Guid - brokerId
-    /// 3) DateTime - timeNow
-    /// 
+    /// might need signalR and push Notif after
     /// </summary>
     /// <param name="pars"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<bool> ExecuteSendEmail(params Object[] pars)
+    public async Task<bool> ExecuteSendEmail(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
     {
-        var ActionPlanAssociation = (ActionPlanAssociation)pars[0];
-        var actions = (List<ActionBase>)pars[1];
-        var brokerId = (Guid)pars[2];
-        var timeNow = (DateTime)pars[3];
 
         var lead = ActionPlanAssociation.lead;
         var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
-        var CurrentAction = actions[0];
-        var currentActionLevel = CurrentAction.ActionLevel;
+        //var CurrentAction = actions[0];
+        //var currentActionLevel = CurrentAction.ActionLevel;
 
-        var TemplateId = CurrentAction.DataId;
+        var TemplateId = currentActionDTO.dataTemplateId;
         var broker = await _appDbContext.Brokers
           .Select(b => new { b.Id, b.ConnectedEmails, Templates = b.Templates.Where(t => t.Id == TemplateId) })
           .FirstAsync(b => b.Id == brokerId);
@@ -110,14 +83,9 @@ public class ActionExecuter : IActionExecuter
         var connEmail = broker.ConnectedEmails[0];
         var template = (EmailTemplate)broker.Templates.First();
 
-
-        //TODO determine if already sent
-        bool alreadySent = false;
-        if (alreadySent) return false;
         _adGraphWrapper.CreateClient(connEmail.tenantId);
 
         //TODO replace variables in template text
-
         var tag = ActionPlanAssociation.Id.ToString() + "x" + template.Id;
         var message = new Message
         {
@@ -158,25 +126,21 @@ public class ActionExecuter : IActionExecuter
             .SendMail.PostAsync(requestBody);
 
         template.TimesUsed++;
-        var EmailSentNotif = new Notification
+        var EmailSentNotif = new AppEvent
         {
             LeadId = lead.Id,
             BrokerId = brokerId,
             EventTimeStamp = timeNow,
-            NotifType = NotifType.EmailEvent,
+            EventType = Core.Domain.NotificationAggregate.EventType.ActionPlanEmailSent,
             ReadByBroker = false,
             NotifyBroker = true,
             IsActionPlanResult = true,
-            IsRecevied = false,
             ProcessingStatus = ProcessingStatus.NoNeed
-            //ProcessingStatus NO NEED for now, if later needs to be handled by outbox then assign
         };
-        EmailSentNotif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
-        EmailSentNotif.NotifProps[NotificationJSONKeys.ActionId] = CurrentAction.Id.ToString();
-        EmailSentNotif.NotifProps[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
-        _appDbContext.Notifications.Add(EmailSentNotif);
-        // TODO------------- signalR and push Notif
-
+        EmailSentNotif.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
+        EmailSentNotif.Props[NotificationJSONKeys.ActionId] = currentActionDTO.Id.ToString();
+        EmailSentNotif.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
+        _appDbContext.AppEvents.Add(EmailSentNotif);
         return true;
     }
     /// <summary>
@@ -185,48 +149,34 @@ public class ActionExecuter : IActionExecuter
     /// <param name="pars"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<bool> ExecuteSendSms(params Object[] pars)
+    public async Task<bool> ExecuteSendSms(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
     {
-        var ActionPlanAssociation = (ActionPlanAssociation)pars[0];
-        var actions = (List<ActionBase>)pars[1];
-        var brokerId = (Guid)pars[2];
-        var timeNow = (DateTime)pars[3];
-
         var lead = ActionPlanAssociation.lead;
-        var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
-        var CurrentAction = actions[0];
-        var currentActionLevel = CurrentAction.ActionLevel;
 
-        var TemplateId = CurrentAction.DataId;
+        var TemplateId = currentActionDTO.dataTemplateId;
         var broker = await _appDbContext.Brokers
           .Select(b => new { b.Id, Templates = b.Templates.Where(t => t.Id == TemplateId) })
           .FirstAsync(b => b.Id == brokerId);
 
         var template = (SmsTemplate)broker.Templates.First();
 
-        //TODO determine if already sent
-        bool alreadySent = false;
-        if (alreadySent) return false;
-
-        _logger.LogWarning("SendSMS: Sending SMS with template {}", template.Title);
-
+        // todo SEND
         template.TimesUsed++;
-        var SmsSentNotif = new Notification
+        var SmsSentNotif = new AppEvent
         {
             LeadId = lead.Id,
             BrokerId = brokerId,
             EventTimeStamp = timeNow,
-            NotifType = NotifType.SmsEvent,
+           //EventType = Core.Domain.NotificationAggregate.EventType.SmsEvent,
             ReadByBroker = false,
             NotifyBroker = true,
             IsActionPlanResult = true,
-            IsRecevied = false,
-            //ProcessingStatus NO NEED for now, if later needs to be handled by outbox then assign
+            ProcessingStatus = ProcessingStatus.NoNeed
         };
-        SmsSentNotif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
-        SmsSentNotif.NotifProps[NotificationJSONKeys.ActionId] = CurrentAction.Id.ToString();
-        SmsSentNotif.NotifProps[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
-        _appDbContext.Notifications.Add(SmsSentNotif);
+        SmsSentNotif.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
+        SmsSentNotif.Props[NotificationJSONKeys.ActionId] = currentActionDTO.Id.ToString();
+        SmsSentNotif.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
+        _appDbContext.AppEvents.Add(SmsSentNotif);
         return true;
     }
 }

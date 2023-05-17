@@ -1,5 +1,4 @@
-﻿using Core.ExternalServiceInterfaces.ActionPlans;
-using SharedKernel;
+﻿using SharedKernel;
 using Web.Config;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
@@ -15,7 +14,7 @@ namespace Web
     {
         public static void AddWebServices(this IServiceCollection services)
         {
-            services.AddScoped<IActionExecuter, ActionExecuter>();
+            services.AddScoped<ActionExecuter>();
 
             services.AddScoped<AuthorizationService>();
             services.AddScoped<BrokerQService>();

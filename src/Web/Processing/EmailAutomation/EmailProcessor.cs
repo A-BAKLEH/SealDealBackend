@@ -14,6 +14,7 @@ using Microsoft.Graph.Models;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
+using EventType = Core.Domain.NotificationAggregate.EventType;
 
 namespace Web.Processing.EmailAutomation;
 
@@ -183,6 +184,8 @@ public class EmailProcessor
           .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Language, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
           .FirstAsync(x => x.Email == email);
         _aDGraphWrapper.CreateClient(connEmail.tenantId);
+        //make sure subsID is in the dictionary and sync in databse is scheduled, else return
+        //StaticEmailConcurrencyHandler.EmailParsingdict;
 
         var brokerDTO = new BrokerEmailProcessingDTO
         { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
@@ -242,6 +245,9 @@ public class EmailProcessor
             await _appDbContext.Database.ExecuteSqlRawAsync($"UPDATE [dbo].[ConnectedEmails] SET OpenAITokensUsed = OpenAITokensUsed + {totaltokens}" +
             $" WHERE Email = '{connEmail.Email}' AND BrokerId = '{brokerDTO.Id}';");
             //TODO update connectedEmail lastSync date and set sync scheduled off
+            //and remove key from dictionary
+            //StaticEmailConcurrencyHandler.EmailParsingdict;
+            //TODO make sure this whole Hangfire job never fails
         }
         catch (Exception ex)
         {
@@ -537,19 +543,19 @@ public class EmailProcessor
         {
             EventTimeStamp = DateTime.UtcNow,
             DeleteAfterProcessing = false,
-            ProcessingStatus = ProcessingStatus.WaitingInBatch,
+            ProcessingStatus = ProcessingStatus.NoNeed,
             NotifyBroker = true,
             ReadByBroker = false,
             BrokerId = brokerDTO.Id,
-            EventType = Core.Domain.NotificationAggregate.EventType.LeadCreated,
+            EventType = EventType.LeadCreated,
         };
         LeadCreationNotif.Props[NotificationJSONKeys.EmailId] = message.Id;
-        lead.LeadHistoryEvents = new() { LeadCreationNotif };
+        lead.AppEvents = new() { LeadCreationNotif };
         if (brokerDTO.isSolo || !brokerDTO.isAdmin) //solo broker or non admin
         {
             //always assign lead to self, if no listing found THAT IS ASSIGNED
             //TO SELF for non-admin non-solo broker then no listing linked, if listing found for soloBroker always link
-            LeadCreationNotif.NotifType = NotifType.LeadCreated | NotifType.LeadAssigned;
+            LeadCreationNotif.EventType = EventType.LeadCreated | EventType.LeadAssigned;
             lead.BrokerId = brokerDTO.Id;
             if (listingFound)
             {
@@ -591,36 +597,36 @@ public class EmailProcessor
                     if (brokerToAssignToId == brokerDTO.Id)//if assigned to self
                     {
                         lead.BrokerId = brokerDTO.Id;
-                        LeadCreationNotif.NotifType = NotifType.LeadCreated | NotifType.LeadAssigned;
+                        LeadCreationNotif.EventType = EventType.LeadCreated | EventType.LeadAssigned;
                     }
                     //if admin email's auto lead assignment is turned on, assign to broker
                     else if (brokerDTO.AssignLeadsAuto)
                     {
                         lead.BrokerId = brokerToAssignToId;
 
-                        LeadCreationNotif.NotifProps[NotificationJSONKeys.AssignedToId] = brokerToAssignToId.ToString();
-                        LeadCreationNotif.NotifProps[NotificationJSONKeys.AssignedToFullName] = brokerToAssignToFullName;
+                        LeadCreationNotif.Props[NotificationJSONKeys.AssignedToId] = brokerToAssignToId.ToString();
+                        LeadCreationNotif.Props[NotificationJSONKeys.AssignedToFullName] = brokerToAssignToFullName;
 
-                        Notification LeadAssignedNotif = new()
+                        AppEvent LeadAssignedNotif = new()
                         {
                             EventTimeStamp = DateTime.UtcNow,
                             DeleteAfterProcessing = false,
-                            ProcessingStatus = ProcessingStatus.WaitingInBatch,
+                            ProcessingStatus = ProcessingStatus.NoNeed,
                             NotifyBroker = true,
                             ReadByBroker = false,
                             BrokerId = brokerToAssignToId,
-                            NotifType = NotifType.LeadAssigned
+                            EventType = EventType.LeadAssigned
                         };
-                        LeadAssignedNotif.NotifProps[NotificationJSONKeys.AssignedById] = brokerDTO.Id.ToString();
-                        LeadAssignedNotif.NotifProps[NotificationJSONKeys.AssignedByFullName] = $"{brokerDTO.brokerFirstName} {brokerDTO.brokerLastName}";
+                        LeadAssignedNotif.Props[NotificationJSONKeys.AssignedById] = brokerDTO.Id.ToString();
+                        LeadAssignedNotif.Props[NotificationJSONKeys.AssignedByFullName] = $"{brokerDTO.brokerFirstName} {brokerDTO.brokerLastName}";
 
-                        lead.LeadHistoryEvents.Add(LeadAssignedNotif);
+                        lead.AppEvents.Add(LeadAssignedNotif);
                     }
                     //else LeadCreationNotif will notify admin that unassigned lead is created
                     else
                     {
-                        LeadCreationNotif.NotifProps[NotificationJSONKeys.SuggestedAssignToId] = brokerToAssignToId.ToString();
-                        LeadCreationNotif.NotifProps[NotificationJSONKeys.suggestedAssignToFullName] = brokerToAssignToFullName;
+                        LeadCreationNotif.Props[NotificationJSONKeys.SuggestedAssignToId] = brokerToAssignToId.ToString();
+                        LeadCreationNotif.Props[NotificationJSONKeys.suggestedAssignToFullName] = brokerToAssignToFullName;
                     }
                 }
                 else //0 or multiple brokers assigned to listing, dont assign lead to self (admin) or any other broker

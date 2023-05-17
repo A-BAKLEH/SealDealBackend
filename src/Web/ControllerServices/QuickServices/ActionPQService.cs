@@ -1,6 +1,5 @@
 ﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
-using Core.Domain.ActionPlanAggregate.Actions;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
@@ -39,13 +38,14 @@ public class ActionPQService
               ActionsCount = a.ActionsCount,
               StopPlanOnInteraction = a.StopPlanOnInteraction,
               TimeCreated = a.TimeCreated.UtcDateTime,
-              FlagTrigger = a.Triggers,
+              FlagTriggers = a.Triggers,
               Actions = a.Actions.OrderBy(a => a.ActionLevel).Select(aa => new ActionDTO
               {
+                  actionType = aa.ActionType.ToString(),
                   ActionLevel = aa.ActionLevel,
                   ActionProperties = aa.ActionProperties,
                   NextActionDelay = aa.NextActionDelay,
-                  TemplateId = aa.DataId
+                  TemplateId = aa.DataTemplateId
               }),
               ActiveOnXLeads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Count(),
               leads = a.ActionPlanAssociations.Select(apa => new LeadNameIdDTO { LeadId = apa.LeadId, firstName = apa.lead.LeadFirstName, lastName = apa.lead.LeadLastName })
@@ -56,7 +56,7 @@ public class ActionPQService
         foreach (var item in actionPlans)
         {
             //TECH
-            item.Triggers = item.FlagTrigger.GetIndividualFlags().Select(f => f.ToString()).ToList();
+            item.Triggers = item.FlagTriggers.GetIndividualFlags().Select(f => f.ToString()).ToList();
         }
         return actionPlans;
     }
@@ -96,35 +96,32 @@ public class ActionPQService
             Actions = new()
         };
 
-        //for now EventsToListenTo is None cuz StopPlanOnInteraction covers the interactions
-
         foreach (var actionDTO in dto.Actions)
         {
-            var type = actionDTO.ActionType;
-            ActionBase actionBase;
-            switch (type)
+            if (!Enum.TryParse<ActionType>(actionDTO.ActionType, true, out var actionType))
+                throw new CustomBadRequestException($"Invalid action {actionDTO.ActionType}", ProblemDetailsTitles.InvalidInput);
+            ActionPlanAction action = new()
             {
-                case "SendEmail":
+                ActionType = actionType,
+
+            };
+            switch (actionType)
+            {
+                case ActionType.SendEmail:
                     if (actionDTO.TemplateId == null) throw new CustomBadRequestException("TemplateId empty", ProblemDetailsTitles.InvalidInput);
-                    actionBase = new SendEmail
-                    {
-                        DataId = actionDTO.TemplateId
-                    };
+                    action.DataTemplateId = actionDTO.TemplateId;
                     break;
-                case "ChangeLeadStatus":
-                    actionBase = new ChangeLeadStatus();
-                    var InputStatus = actionDTO.Properties[ChangeLeadStatus.NewLeadStatus];
-                    var StatusExists = Enum.TryParse<LeadStatus>(InputStatus, true, out var NewLeadStatus);
-                    if (!StatusExists) throw new CustomBadRequestException($"invalid Lead Status '{InputStatus}'", ProblemDetailsTitles.InvalidInput);
-                    actionBase.ActionProperties[ChangeLeadStatus.NewLeadStatus] = NewLeadStatus.ToString();
+                case ActionType.ChangeLeadStatus:
+                    var InputStatus = actionDTO.Properties[ActionPlanAction.NewLeadStatus];
+                    if (!Enum.TryParse<LeadStatus>(InputStatus, true, out var NewLeadStatus))
+                        throw new CustomBadRequestException($"invalid Lead Status '{InputStatus}'", ProblemDetailsTitles.InvalidInput);
+                    action.ActionProperties[ActionPlanAction.NewLeadStatus] = NewLeadStatus.ToString();
                     break;
-                case "SendSms":
-                    if (actionDTO.TemplateId == null) throw new CustomBadRequestException("TemplateId empty", ProblemDetailsTitles.InvalidInput);
-                    actionBase = new SendSms
-                    {
-                        DataId = actionDTO.TemplateId
-                    };
-                    break;
+                case ActionType.SendSms:
+                    throw new CustomBadRequestException($"Invalid action {actionDTO.ActionType}", ProblemDetailsTitles.InvalidInput);
+                    //if (actionDTO.TemplateId == null) throw new CustomBadRequestException("TemplateId empty", ProblemDetailsTitles.InvalidInput);
+                    //action.DataTemplateId = actionDTO.TemplateId;
+                    //break;
                 default:
                     throw new CustomBadRequestException($"Invalid action {actionDTO.ActionType}", ProblemDetailsTitles.InvalidInput);
             }
@@ -136,9 +133,9 @@ public class ActionPQService
                 throw new CustomBadRequestException($"input {dto.FirstActionDelay}", ProblemDetailsTitles.InvalidInput);
             }
 
-            actionBase.ActionLevel = (byte)actionDTO.ActionLevel;
-            actionBase.NextActionDelay = actionDTO.NextActionDelay;
-            actionPlan.Actions.Add(actionBase);
+            action.ActionLevel = (byte)actionDTO.ActionLevel;
+            action.NextActionDelay = actionDTO.NextActionDelay;
+            actionPlan.Actions.Add(action);
         }
 
         //if action plan has an automatic trigger, add it to broker's NotifsForActionPlans
@@ -173,7 +170,7 @@ public class ActionPQService
                 ActionLevel = action.ActionLevel,
                 ActionProperties = action.ActionProperties,
                 NextActionDelay = action.NextActionDelay,
-                TemplateId = action.DataId
+                TemplateId = action.DataTemplateId
             };
             result.Actions.Add(dtoo);
         }
@@ -271,10 +268,10 @@ public class ActionPQService
                     HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID));
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
-                 " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor",dto.ActionPlanID,lead.Id, ex.Message);
+                 " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor", dto.ActionPlanID, lead.Id, ex.Message);
                 lead.ActionPlanAssociations.Remove(apAssociation);
                 lead.AppEvents.Remove(APStartedEvent);
                 lead.HasActionPlanToStop = OldHasActionPlanToStop;
@@ -286,7 +283,7 @@ public class ActionPQService
         //at beginning.
         //But if Hangfire scheduling fails there needs to be a way other than removing everything
         await _appDbContext.SaveChangesAsync();
-        return new ActionPlanStartDTO { AlreadyRunningIDs = AlreadyRunningIDs, errorIDs = failedIDs};
+        return new ActionPlanStartDTO { AlreadyRunningIDs = AlreadyRunningIDs, errorIDs = failedIDs };
     }
 
 
@@ -323,6 +320,5 @@ public class ActionPQService
         //this will delete action trackers  and Actions also
         await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM ActionPlanAssociations WHERE ActionPlanId = {ActionPlanId};"
           + $"DELETE FROM ActionPlans WHERE Id = {ActionPlanId};");
-
     }
 }

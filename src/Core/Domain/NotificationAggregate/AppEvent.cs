@@ -86,6 +86,8 @@ public enum EventType
     /// </summary>
     ActionPlanFinished = 1 << 7,
 
+    ActionPlanEmailSent = 1 << 8,
+
     /// <summary>
     /// data: UserId who createed it ,TempPassword, EmailSent?
     /// </summary>

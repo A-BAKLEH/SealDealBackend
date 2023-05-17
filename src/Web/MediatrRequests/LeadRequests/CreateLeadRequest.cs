@@ -20,7 +20,6 @@ namespace Web.MediatrRequests.LeadRequests;
 /// </summary>
 public class CreateLeadRequest : IRequest<LeadForListDTO>
 {
-
     public Broker BrokerWhoRequested { get; set; }
     public CreateLeadDTO createLeadDTO { get; set; }
 }

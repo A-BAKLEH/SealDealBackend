@@ -20,7 +20,7 @@ public class TemplatesQService
     public async Task<List<string>> DeleteTemplateAsync(int templateId, string tempType, Guid brokerId)
     {
         var actionPlans = await _appDbContext.ActionPlans.Where(ap => ap.BrokerId == brokerId)
-          .Select(ap => new { ap.Name, actions = ap.Actions.Where(a => a.DataId == templateId) })
+          .Select(ap => new { ap.Name, actions = ap.Actions.Where(a => a.DataTemplateId == templateId) })
           .ToListAsync();
         var apNames = new List<string>();
         foreach (var item in actionPlans)
