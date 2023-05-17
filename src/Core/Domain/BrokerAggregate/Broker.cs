@@ -30,11 +30,12 @@ public class Broker : Entity<Guid>
     public string LoginEmail { get; set; }
     public DateTimeOffset Created { get; set; } = DateTimeOffset.Now;
     /// <summary>
-    /// Notif types that can act as triggers to Broker's active Action Plans OR for action plans
+    /// AppEvent triggers to Broker's active Action Plans OR for action plans
     /// that listen to notifs that ARE NOT RELATED DIRECTLY TO LEADS
-    /// For lead-related notifs, there is a NotifType field in the lead entity
+    /// For lead-related notifs, there is a EventType field in the lead entity and
+    /// HasActionPlanToStop
     /// </summary>
-    public NotifType NotifsForActionPlans { get; set; } = NotifType.None;
+    public EventType ListenForActionPlans { get; set; } = EventType.None;
 
     /// <summary>
     /// mark emails as read after they are clicked in frontend
@@ -48,5 +49,7 @@ public class Broker : Entity<Guid>
     public List<Tag>? BrokerTags { get; set; }
     public List<ActionPlan>? ActionPlans { get; set; }
     public List<RecurrentTaskBase>? RecurrentTasks { get; set; }
-    public List<Notification>? Notifs { get; set; }
+    public List<AppEvent>? AppEvents { get; set; }
+    public List<Notif>? Notifs { get; set; }
+    public List<EmailEvent>? EmailEvents { get; set; }
 }

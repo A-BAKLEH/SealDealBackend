@@ -140,7 +140,7 @@ public class ListingController : BaseApiController
             _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to edit Listings", TagConstants.Inactive, id);
             return Forbid();
         }
-        await _listingQService.EditListingAsync(listingid, dto);
+        await _listingQService.EditListingAsync(brokerTuple.Item1.AgencyId,listingid, dto);
         return Ok();
     }
 
@@ -156,7 +156,7 @@ public class ListingController : BaseApiController
             return Forbid();
         }
 
-        await _listingQService.AssignListingToBroker(listingid, brokerId, id);
+        await _listingQService.AssignListingToBroker(brokerTuple.Item1.AgencyId,listingid, brokerId, id);
         return Ok();
     }
 

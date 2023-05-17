@@ -86,11 +86,12 @@ public class BrokerQService
     {
         //TODO create a deletion tracking object in a NoSql data store and update it after completion of each step here
         //try to retrieve it beginning of delete operation
-        using var transaction = _appDbContext.Database.BeginTransaction();
+        using var transaction = await _appDbContext.Database.BeginTransactionAsync();
 
         //check broker exists, belongs to this agency, is not an admin
         var agency = await _appDbContext.Agencies
           .Include(a => a.AgencyBrokers.Where(b => b.Id == brokerDeleteId && b.isAdmin == false))
+          .ThenInclude(b => b.RecurrentTasks.Where(t => t.taskStatus == Core.Domain.TasksAggregate.HangfireTaskStatus.Scheduled))
           .FirstAsync(a => a.Id == AgencyId);
         if (agency == null || agency.AgencyBrokers.First(b => b.Id == brokerDeleteId) == null
           || agency.AgencyBrokers.First(b => b.Id == brokerDeleteId).isAdmin) throw new CustomBadRequestException("invalid", ProblemDetailsTitles.InvalidInput);
@@ -107,18 +108,18 @@ public class BrokerQService
         agency.NumberOfBrokersInDatabase--;
 
         //send notif to admin about stripe quantity change
-        var StripeNotif = new Notification
+        var StripeNotif = new AppEvent
         {
             BrokerId = userId,
             EventTimeStamp = DateTimeOffset.UtcNow,
-            NotifType = NotifType.StripeSubsChanged,
-            NotifyBroker = false,
-            ProcessingStatus = ProcessingStatus.Scheduled,
+            EventType = EventType.StripeSubsChanged,
+            NotifyBroker = true,
+            ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = true,
         };
-        StripeNotif.NotifProps.Add(NotificationJSONKeys.EmailSent, "0");
-        _appDbContext.Notifications.Add(StripeNotif);
-        //delete broker tadmir
+        _appDbContext.AppEvents.Add(StripeNotif);
+        
+
         var todoTasks = await _appDbContext.ToDoTasks.Where(t => t.BrokerId == brokerDeleteId && t.IsDone == false)
           .Select(t => t.HangfireReminderId)
           .ToListAsync();
@@ -131,46 +132,30 @@ public class BrokerQService
                 }
                 catch (Exception) { }
         }
-
-        //TODO delete or by eventual consistency () make sure that hangfire jobs dont execute for
-        // action plans, recurrentTasks, outbox events
+        if(agency.AgencyBrokers[0].RecurrentTasks != null && agency.AgencyBrokers[0].RecurrentTasks.Any())
+        {
+            foreach (var task in agency.AgencyBrokers[0].RecurrentTasks)
+            {
+                try
+                {
+                    BackgroundJob.Delete(task.HangfireTaskId);
+                }
+                catch (Exception) { }
+            }
+        }
         await _appDbContext.Database.ExecuteSqlRawAsync
           ($"DELETE FROM [dbo].[ToDoTasks] WHERE BrokerId = '{brokerDeleteId}';" +
-          $"DELETE FROM [dbo].[Notifications] WHERE BrokerId = '{brokerDeleteId}';" +
+          $"DELETE FROM [dbo].[Notifs] WHERE BrokerId = '{brokerDeleteId}';" +
+          $"DELETE FROM [dbo].[AppEvents] WHERE BrokerId = '{brokerDeleteId}';" +
+          $"DELETE FROM [dbo].[EmailEvents] WHERE BrokerId = '{brokerDeleteId}';" +
           $"DELETE FROM [dbo].[Leads] WHERE BrokerId = '{brokerDeleteId}';" +
           $"DELETE FROM [dbo].[BrokerListingAssignments] WHERE BrokerId = '{brokerDeleteId}';" +
           $"DELETE FROM [dbo].[Brokers] WHERE Id = '{brokerDeleteId}';");
 
-
-        //delete Leads -> delete notifs and todoTasks
-        //deleting TodoTasks from broker will involve also related leads
-        //deleting Notifs from broker will delete those related to leads ? but make sure they are always linked
-        //delete lead will delete lead and action plan associations and action trackers by cascade
-
-        //delete broker listing assignments
         //delete template should be by cascade
         //delete tags dont know
-        //delete recurrent taskBase
 
-        //delete action plans and their actions
-
-
-        //Send email to admin to confirm Subscription Change
         await _appDbContext.SaveChangesAsync();
-        var StripeNotifId = StripeNotif.Id;
-        var stripeSubsChange = new StripeSubsChange { NotifId = StripeNotifId };
-        try
-        {
-            var HangfireJobId = BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(stripeSubsChange));
-            OutboxMemCache.ScheduledDict.Add(StripeNotifId, HangfireJobId);
-        }
-        catch (Exception ex)
-        {
-            //TODO refactor log message
-            _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for BrokerCreated Event for notif" +
-              "with {NotifId} with error {Error}", StripeNotifId, ex.Message);
-            OutboxMemCache.SchedulingErrorDict.Add(StripeNotifId, stripeSubsChange);
-        }
         await transaction.CommitAsync();
 
     }

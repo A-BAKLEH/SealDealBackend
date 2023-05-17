@@ -21,6 +21,7 @@ public static class NotificationJSONKeys
     public const string AssignedToFullName = "AssignedToFullName";
 
     public const string CreatedByFullName = "CreatedByFullName";
+    public const string CreatedById = "CreatedById ";
     /// <summary>
     /// id of email from which a lead was parsed
     /// </summary>

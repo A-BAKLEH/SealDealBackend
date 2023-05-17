@@ -1,6 +1,4 @@
-﻿
-using Azure;
-using Core.Constants.ProblemDetailsTitles;
+﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.LeadAggregate;
 using Core.DTOs.ProcessingDTOs;
@@ -8,7 +6,6 @@ using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
-using System;
 using Web.ApiModels;
 
 namespace Web.ControllerServices.QuickServices;
@@ -38,28 +35,28 @@ public class LeadQService
         }
         if (dto.Budget != null) lead.Budget = dto.Budget;
 
-        if(dto.Emails != null && dto.Emails.Any())
+        if (dto.Emails != null && dto.Emails.Any())
         {
             List<LeadEmail> toRemove = new();
-            foreach(var email in lead.LeadEmails)
+            foreach (var email in lead.LeadEmails)
             {
                 //email stays
                 if (dto.Emails.Any(e => e == email.EmailAddress)) continue;
                 //email removed
-                else { toRemove.Add(email); } 
+                else { toRemove.Add(email); }
             }
             foreach (var remove in toRemove)
             {
                 lead.LeadEmails.Remove(remove);
             }
-            foreach(var dtoEmail in dto.Emails)
+            foreach (var dtoEmail in dto.Emails)
             {
-                if(!lead.LeadEmails.Any(e => e.EmailAddress == dtoEmail))
+                if (!lead.LeadEmails.Any(e => e.EmailAddress == dtoEmail))
                 {
-                    lead.LeadEmails.Add( new LeadEmail { EmailAddress = dtoEmail});
+                    lead.LeadEmails.Add(new LeadEmail { EmailAddress = dtoEmail });
                 }
             }
-            foreach(var email in lead.LeadEmails)
+            foreach (var email in lead.LeadEmails)
             {
                 if (email.EmailAddress == dto.Emails[0]) email.IsMain = true;
                 else email.IsMain = false;
@@ -77,13 +74,13 @@ public class LeadQService
             lead.Note.NotesText = dto.leadNote;
         }
 
-        if(dto.language != null && Enum.TryParse<Language>(dto.language, true, out var lang)) { lead.Language = lang; }
+        if (dto.language != null && Enum.TryParse<Language>(dto.language, true, out var lang)) { lead.Language = lang; }
         await _appDbContext.SaveChangesAsync();
 
         var response = new LeadForListDTO
         {
             Budget = lead.Budget,
-            Emails = lead.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain}).ToList(),
+            Emails = lead.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain }).ToList(),
             EntryDate = lead.EntryDate.UtcDateTime,
             LeadFirstName = lead.LeadFirstName,
             LeadId = lead.Id,
@@ -105,6 +102,7 @@ public class LeadQService
 
     public async Task DeleteLeadAsync(int leadId, Guid brokerId, bool isAdmin)
     {
+        using var trans = await _appDbContext.Database.BeginTransactionAsync();
         var lead = await _appDbContext.Leads.Include(l => l.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running))
           .ThenInclude(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
           .Include(l => l.ToDoTasks.Where(t => t.IsDone == false))
@@ -150,10 +148,14 @@ public class LeadQService
         //the outbox handlers u dont have to do anything for now they are enqued on short term failure will be rare
         await _appDbContext.Database.ExecuteSqlRawAsync
           ($"DELETE FROM [dbo].[ToDoTasks] WHERE LeadId = {leadId};" +
-          $"DELETE FROM [dbo].[Notifications] WHERE LeadId = {leadId};");
+          $"DELETE FROM [dbo].[Notifs] WHERE LeadId = {leadId};" +
+          $"DELETE FROM [dbo].[AppEvents] WHERE LeadId = {leadId};" +
+          $"DELETE FROM [dbo].[EmailEvents] WHERE LeadId = {leadId};");
+
         var leadToDelete = new Lead { Id = leadId };
         _appDbContext.Remove(leadToDelete);
         await _appDbContext.SaveChangesAsync();
+        await trans.CommitAsync();
     }
     public async Task<List<LeadForListDTO>> GetLeadsAsync(Guid brokerId)
     {
@@ -187,7 +189,7 @@ public class LeadQService
 
     public async Task<List<LeadForListDTO>> GetUnAssignedLeadsAsync(Guid brokerId, int AgencyId)
     {
-        var leads = await _appDbContext.Leads.Include(l =>l.LeadEmails).Where(l => l.AgencyId == AgencyId && l.BrokerId == null)
+        var leads = await _appDbContext.Leads.Include(l => l.LeadEmails).Where(l => l.AgencyId == AgencyId && l.BrokerId == null)
           .Select(l => new LeadForListDTO
           {
               Budget = l.Budget,

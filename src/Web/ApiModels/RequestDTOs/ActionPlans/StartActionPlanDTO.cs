@@ -3,7 +3,7 @@
 public class StartActionPlanDTO
 {
   public int ActionPlanID { get; set; }
-  public int LeadId { get; set; }
+  public List<int> LeadIds { get; set; }
   /// <summary>
   /// leave null if you want the action plan's default delay
   /// format: 00:00:00 days hours seconds

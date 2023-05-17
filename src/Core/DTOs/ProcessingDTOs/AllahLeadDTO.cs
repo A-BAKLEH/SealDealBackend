@@ -12,6 +12,7 @@ public class AllahLeadDTO
     public List<LeadEmailDTO> Emails { get; set; }
     public int? Budget { get; set; }
     public DateTime EntryDate { get; set; }
+    public DateTime LastNotifsViewedAt { get; set; }
     public LeadSource leadSource { get; set; }
     public string leadType { get; set; }
     public Dictionary<string, string> leadSourceDetails { get; set; }

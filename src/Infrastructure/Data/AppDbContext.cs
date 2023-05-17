@@ -5,7 +5,6 @@ using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
-using Core.Domain.LeadAggregate.Interactions;
 using Core.Domain.NotificationAggregate;
 using Core.Domain.TasksAggregate;
 using Core.Domain.TestAggregate;
@@ -41,12 +40,6 @@ public class AppDbContext : DbContext
 
     public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<LeadEmail> LeadEmails => Set<LeadEmail>();
-    public DbSet<LeadInteraction> LeadInteractions => Set<LeadInteraction>();
-    public DbSet<EmailInteraction> EmailInteractions => Set<EmailInteraction>();
-    public DbSet<SmsInteraction> SmsInteractions => Set<SmsInteraction>();
-    public DbSet<CallInteraction> CallInteractions => Set<CallInteraction>();
-
-
     public DbSet<Note> Notes => Set<Note>();
 
     //Action Plans  + Notifications---------------
@@ -56,12 +49,16 @@ public class AppDbContext : DbContext
 
     public DbSet<RecurrentTaskBase> RecurrentTasks => Set<RecurrentTaskBase>();
     public DbSet<OutboxDictsTask> OutboxDictsTasks => Set<OutboxDictsTask>();
-
+    public DbSet<BrokerNotifAnalyzerTask> BrokerNotifAnalyzerTasks => Set<BrokerNotifAnalyzerTask>();
+    public DbSet<BrokerCleanupTask> BrokerCleanupTasks => Set<BrokerCleanupTask>();
     public DbSet<ActionPlan> ActionPlans => Set<ActionPlan>();
     public DbSet<ActionPlanAssociation> ActionPlanAssociations => Set<ActionPlanAssociation>();
 
     public DbSet<ActionTracker> ActionTrackers => Set<ActionTracker>();
-    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Notif> Notifs => Set<Notif>();
+    public DbSet<AppEvent> AppEvents => Set<AppEvent>();
+    public DbSet<EmailEvent> EmailEvents => Set<EmailEvent>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

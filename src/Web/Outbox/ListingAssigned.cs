@@ -4,39 +4,41 @@ using Web.Outbox.Config;
 
 namespace Web.Outbox;
 
+/// <summary>
+/// SignalR to Broker's Browser and Push Notif to Phone
+/// </summary>
 public class ListingAssigned : EventBase
 {
 }
 
-/// <summary>
-/// SignalR to Broker's Browser and Push Notif to Phone
-/// </summary>
+
 public class ListingAssignedHandler : EventHandlerBase<ListingAssigned>
 {
   public ListingAssignedHandler(AppDbContext appDbContext, ILogger<ListingAssignedHandler> logger) : base(appDbContext, logger)
   {
   }
 
-  public override async Task Handle(ListingAssigned listingAssigned, CancellationToken cancellationToken)
+  public override async Task Handle(ListingAssigned listingAssignedEvent, CancellationToken cancellationToken)
   {
-    Notification? notif = null;
-    try
-    {
-      //process
-      notif = _context.Notifications.FirstOrDefault(x => x.Id == listingAssigned.NotifId);
-      if (notif == null) { _logger.LogError("No Notif with NotifId {NotifId}", listingAssigned.NotifId); return; }
+        AppEvent? appEvent = null;
+        try
+        {
+            //process
+            appEvent = _context.AppEvents.FirstOrDefault(x => x.Id == listingAssignedEvent.AppEventId);
+            if (appEvent == null) { _logger.LogError("No appEvent with NotifId {NotifId}", listingAssignedEvent.AppEventId); return; }
 
-      Console.WriteLine("from handler:" + listingAssigned.NotifId);
-      //TODO SignalR and PushNotif
-
-      await this.FinishProcessing(notif);
+            if (appEvent.ProcessingStatus != ProcessingStatus.Done)
+            {
+                //TODO notify broker now if he's online and send PushNotif
+            }
+            await this.FinishProcessing(appEvent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Handling ListingAssigned Failed for appEvent with appEventId {AppEventId} with error {error}", listingAssignedEvent.AppEventId, ex.Message);
+            appEvent.ProcessingStatus = ProcessingStatus.Failed;
+            await _context.SaveChangesAsync();
+            throw;
+        }
     }
-    catch (Exception ex)
-    {
-      _logger.LogError("Handling ListingAssigned Failed for notif with notifId {notifId} with error {error}", listingAssigned.NotifId, ex.Message);
-      notif.ProcessingStatus = ProcessingStatus.Failed;
-      await _context.SaveChangesAsync();
-      throw;
-    }
-  }
 }

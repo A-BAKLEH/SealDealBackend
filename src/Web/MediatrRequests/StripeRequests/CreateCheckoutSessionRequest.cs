@@ -1,5 +1,4 @@
-﻿
-using Core.Domain.AgencyAggregate;
+﻿using Core.Domain.AgencyAggregate;
 using Core.DTOs;
 using Core.ExternalServiceInterfaces.StripeInterfaces;
 using Infrastructure.Data;

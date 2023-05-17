@@ -22,17 +22,17 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
     public async Task<AllahLeadDTO> Handle(GetAllahLeadRequest request, CancellationToken cancellationToken)
     {
         var lead = await _appDbContext.Leads
-          //.Where(l => l.Id == request.leadId && l.BrokerId == request.BrokerId)
           .Select(l => new AllahLeadDTO
           {
               LeadId = l.Id,
               brokerId = l.BrokerId,
               Budget = l.Budget,
-              Emails = l.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain}).ToList(),
+              Emails = l.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain }).ToList(),
               EntryDate = l.EntryDate.UtcDateTime,
               LeadFirstName = l.LeadFirstName,
               LeadLastName = l.LeadLastName,
               language = l.Language.ToString(),
+              LastNotifsViewedAt = l.LastNotifsViewedAt,
               leadSource = l.source,
               leadSourceDetails = l.SourceDetails,
               LeadStatus = l.LeadStatus.ToString(),
@@ -53,16 +53,14 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
 
         if (request.includeNotifs)
         {
-            lead.LeadHistoryEvents = await _appDbContext.Notifications
+            lead.LeadHistoryEvents = await _appDbContext.AppEvents
             .OrderByDescending(n => n.EventTimeStamp)
             .Where(n => n.LeadId == request.leadId)
             .Select(n => new NotifExpandedDTO
             {
-                //BrokerComment = n.BrokerComment,
                 id = n.Id,
-                //NotifData = n.NotifData,
-                NotifProps = n.NotifProps,
-                NotifType = n.NotifType.ToString(),
+                NotifProps = n.Props,
+                NotifType = n.EventType.ToString(),
                 NotifyBroker = n.NotifyBroker,
                 ReadByBroker = n.ReadByBroker,
                 UnderlyingEventTimeStamp = n.EventTimeStamp

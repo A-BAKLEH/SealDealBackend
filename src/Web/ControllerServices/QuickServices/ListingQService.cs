@@ -107,7 +107,7 @@ public class ListingQService
 
     public async Task<AgencyListingDTO> CreateListing(int AgencyId, CreateListingRequestDTO dto, Guid UserId)
     {
-        using var transaction = _appDbContext.Database.BeginTransaction();
+        using var transaction = await _appDbContext.Database.BeginTransactionAsync();
         var timestamp = DateTime.UtcNow;
 
         byte brokersCount = 0;
@@ -118,7 +118,7 @@ public class ListingQService
             brokersCount += (byte) dto.AssignedBrokersIds.Count;
             foreach (var b in dto.AssignedBrokersIds)
             {
-                brokersAssignments.Add(new BrokerListingAssignment { assignmentDate = DateTime.UtcNow, BrokerId = b });
+                brokersAssignments.Add(new BrokerListingAssignment { assignmentDate = DateTime.UtcNow, BrokerId = b, isSeen = false });
             }
         }
 
@@ -152,47 +152,45 @@ public class ListingQService
         };
         _appDbContext.Listings.Add(listing);
 
-         await _appDbContext.SaveChangesAsync();
-
-        var notifs = new List<Notification>();
+        var AppEvents = new List<AppEvent>();
         if (brokersAssignments.Any())
         {
             foreach (var ass in brokersAssignments)
             {
-                var notif = new Notification
+                var AppEvent = new AppEvent
                 {
                     DeleteAfterProcessing = false,
                     BrokerId = ass.BrokerId,
                     EventTimeStamp = timestamp,
-                    NotifType = NotifType.ListingAssigned,
+                    EventType = EventType.ListingAssigned,
                     ProcessingStatus = ProcessingStatus.Scheduled,
                     NotifyBroker = true,
                     ReadByBroker = false
                 };
-                notif.NotifProps[NotificationJSONKeys.ListingId] = listing.Id.ToString();
-                notif.NotifProps[NotificationJSONKeys.UserId] = UserId.ToString();
-                notifs.Add(notif);
+                AppEvent.Props[NotificationJSONKeys.ListingId] = listing.Id.ToString();
+                AppEvent.Props[NotificationJSONKeys.UserId] = UserId.ToString();
+                AppEvents.Add(AppEvent);
             }
-            _appDbContext.Notifications.AddRange(notifs);
+            _appDbContext.AppEvents.AddRange(AppEvents);
             await _appDbContext.SaveChangesAsync();
-            foreach (var notif in notifs)
+            foreach (var appEvent in AppEvents)
             {
-                var notifId = notif.Id;
-                var ListingAssigned = new ListingAssigned { NotifId = notifId };
+                var eventId = appEvent.Id;
+                var ListingAssigned = new ListingAssigned {  AppEventId = eventId };
                 try
                 {
                     var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned));
-                    OutboxMemCache.ScheduledDict.Add(notifId, HangfireJobId);
                 }
                 catch (Exception ex)
                 {
                     //TODO refactor log message
-                    _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingAssigned Event for notif" +
-                      "with {NotifId} with error {Error}", notifId, ex.Message);
-                    OutboxMemCache.SchedulingErrorDict.Add(notifId, ListingAssigned);
+                    _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingAssigned Event for event" +
+                      "with {eventId} with error {Error}", eventId, ex.Message);
+                    OutboxMemCache.SchedulingErrorDict.TryAdd(eventId, ListingAssigned);
                 }
             }
         }
+        else await _appDbContext.SaveChangesAsync();
 
         await transaction.CommitAsync();
         var listingDTO = new AgencyListingDTO
@@ -211,14 +209,9 @@ public class ListingQService
         return listingDTO;
     }
 
-    public async Task EditListingAsync(int listingId, EditListingDTO dto)
+    public async Task EditListingAsync(int AgencyId,int listingId, EditListingDTO dto)
     {
-        //TODO verify access to this listing
-        var listing = await _appDbContext.Listings.FirstAsync(l => l.Id == listingId);
-        //var listing = new Listing
-        //{
-        //    Id = listingId,
-        //};
+        var listing = await _appDbContext.Listings.FirstAsync(l => l.Id == listingId && l.AgencyId == AgencyId);
 
         bool change = false;
         if (dto.Status != null && Enum.TryParse<ListingStatus>(dto.Status, true, out var lisStatus))
@@ -238,12 +231,11 @@ public class ListingQService
             _appDbContext.Listings.Update(listing);
             await _appDbContext.SaveChangesAsync();
         }
-
     }
-    public async Task AssignListingToBroker(int listingId, Guid brokerId, Guid userId)
+    public async Task AssignListingToBroker(int AgencyId, int listingId, Guid brokerId, Guid userId)
     {
 
-        var listing = _appDbContext.Listings.Where(l => l.Id == listingId)
+        var listing = _appDbContext.Listings.Where(l => l.Id == listingId && l.AgencyId == AgencyId)
           .Include(l => l.BrokersAssigned)
           .FirstOrDefault();
         if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound, 404);
@@ -254,40 +246,39 @@ public class ListingQService
 
         else
         {
-            BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow, BrokerId = brokerId };
+            BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow, BrokerId = brokerId , isSeen = false};
 
             if (listing.BrokersAssigned != null) listing.BrokersAssigned.Add(brokerlisting);
             else listing.BrokersAssigned = new List<BrokerListingAssignment> { brokerlisting };
 
             listing.AssignedBrokersCount++;
-            var notif = new Notification
+            var appEvent = new AppEvent
             {
                 DeleteAfterProcessing = false,
                 BrokerId = brokerId,
                 EventTimeStamp = DateTime.UtcNow,
-                NotifType = NotifType.ListingAssigned,
+                EventType = EventType.ListingAssigned,
                 ProcessingStatus = ProcessingStatus.Scheduled,
                 NotifyBroker = true,
                 ReadByBroker = false
             };
-            notif.NotifProps[NotificationJSONKeys.ListingId] = listingId.ToString();
-            notif.NotifProps[NotificationJSONKeys.UserId] = userId.ToString();
-            _appDbContext.Notifications.Add(notif);
+            appEvent.Props[NotificationJSONKeys.ListingId] = listingId.ToString();
+            appEvent.Props[NotificationJSONKeys.UserId] = userId.ToString();
+            _appDbContext.AppEvents.Add(appEvent);
             await _appDbContext.SaveChangesAsync();
 
-            var notifId = notif.Id;
-            var ListingAssigned = new ListingAssigned { NotifId = notifId };
+            var eventId = appEvent.Id;
+            var ListingAssigned = new ListingAssigned {  AppEventId = eventId };
             try
             {
                 var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned));
-                OutboxMemCache.ScheduledDict.Add(notifId, HangfireJobId);
             }
             catch (Exception ex)
             {
                 //TODO refactor log message
-                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingAssigned Event for notif" +
-                  "with {NotifId} with error {Error}", notifId, ex.Message);
-                OutboxMemCache.SchedulingErrorDict.Add(notifId, ListingAssigned);
+                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingAssigned Event for event" +
+                      "with {eventId} with error {Error}", eventId, ex.Message);
+                OutboxMemCache.SchedulingErrorDict.TryAdd(eventId, ListingAssigned);
             }
         }
     }
@@ -304,85 +295,47 @@ public class ListingQService
             listing.BrokersAssigned.RemoveAll(b => b.BrokerId == brokerId);
             listing.AssignedBrokersCount--;
 
-            var notif = new Notification
+            var appEvent = new AppEvent
             {
                 DeleteAfterProcessing = false,
                 BrokerId = brokerId,
                 EventTimeStamp = DateTime.UtcNow,
-                NotifType = NotifType.ListingUnAssigned,
-                ProcessingStatus = ProcessingStatus.Scheduled,
+                EventType = EventType.ListingUnAssigned,
+                ProcessingStatus = ProcessingStatus.NoNeed,
                 NotifyBroker = true,
                 ReadByBroker = false
             };
-            notif.NotifProps[NotificationJSONKeys.ListingId] = listingId.ToString();
-            notif.NotifProps[NotificationJSONKeys.UserId] = userId.ToString();
-            _appDbContext.Notifications.Add(notif);
+            appEvent.Props[NotificationJSONKeys.ListingId] = listingId.ToString();
+            appEvent.Props[NotificationJSONKeys.UserId] = userId.ToString();
+            _appDbContext.AppEvents.Add(appEvent);
 
             await _appDbContext.SaveChangesAsync();
-
-            var notifId = notif.Id;
-            var ListingUnAssigned = new ListingUnAssigned { NotifId = notifId };
-            try
-            {
-                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingUnAssigned));
-                OutboxMemCache.ScheduledDict.Add(notifId, HangfireJobId);
-            }
-            catch (Exception ex)
-            {
-                //TODO refactor log message
-                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingUnAssigned Event for notif" +
-                  "with {NotifId} with error {Error}", notifId, ex.Message);
-                OutboxMemCache.SchedulingErrorDict.Add(notifId, ListingUnAssigned);
-            }
         }
     }
     public async Task DeleteAgencyListingAsync(int listingId, int Agencyid, Guid userId)
     {
-        using var trans = _appDbContext.Database.BeginTransaction();
-
         var listing = await _appDbContext.Listings
           .Include(l => l.BrokersAssigned).FirstOrDefaultAsync(l => l.Id == listingId);
         if (listing == null) throw new CustomBadRequestException("not found", ProblemDetailsTitles.ListingNotFound, 404);
 
-        List<Notification> notifs = new();
         foreach (var brokerAssignments in listing.BrokersAssigned)
         {
-            var notif = new Notification
+            var appEvent = new AppEvent
             {
                 DeleteAfterProcessing = false,
                 BrokerId = brokerAssignments.BrokerId,
                 EventTimeStamp = DateTime.UtcNow,
-                NotifType = NotifType.ListingUnAssigned,
-                ProcessingStatus = ProcessingStatus.Scheduled,
+                EventType = EventType.ListingUnAssigned,
+                ProcessingStatus = ProcessingStatus.NoNeed,
                 NotifyBroker = true,
                 ReadByBroker = false
             };
-            notif.NotifProps[NotificationJSONKeys.UserId] = userId.ToString();
-            notifs.Add(notif);
+            appEvent.Props[NotificationJSONKeys.UserId] = userId.ToString();
+            _appDbContext.AppEvents.Add(appEvent);
         }
-        _appDbContext.Notifications.AddRange(notifs);
-        await _appDbContext.SaveChangesAsync();
 
-        foreach (var notif in notifs)
-        {
-            var notifId = notif.Id;
-            var ListingUnAssigned = new ListingUnAssigned { NotifId = notifId };
-            try
-            {
-                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingUnAssigned));
-                OutboxMemCache.ScheduledDict.Add(notifId, HangfireJobId);
-            }
-            catch (Exception ex)
-            {
-                //TODO refactor log message
-                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingUnAssigned Event for notif" +
-                  "with {NotifId} with error {Error}", notifId, ex.Message);
-                OutboxMemCache.SchedulingErrorDict.Add(notifId, ListingUnAssigned);
-            }
-        }
         var listingDelete = new Listing { Id = listingId, AgencyId = Agencyid };
         _appDbContext.Remove(listing);
         await _appDbContext.SaveChangesAsync();
-        await trans.CommitAsync();
     }
 }

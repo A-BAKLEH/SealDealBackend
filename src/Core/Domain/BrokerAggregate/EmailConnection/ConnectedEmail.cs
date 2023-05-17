@@ -16,7 +16,7 @@ public class ConnectedEmail : EntityBase
     /// <summary>
     /// only relevant for admins, if false then leads won't be automatically assigned to brokers
     /// </summary>
-    public bool AssignLeadsAuto { get; set; } = false;
+    public bool AssignLeadsAuto { get; set; } = true;
     /// <summary>
     /// primary key
     /// </summary>

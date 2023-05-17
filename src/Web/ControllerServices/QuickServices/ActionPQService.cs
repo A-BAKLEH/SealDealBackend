@@ -3,6 +3,7 @@ using Core.Domain.ActionPlanAggregate;
 using Core.Domain.ActionPlanAggregate.Actions;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
+using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -61,14 +62,14 @@ public class ActionPQService
     }
     public async Task<ActionPlan1DTO> CreateActionPlanAsync(CreateActionPlanDTO dto, Guid brokerId)
     {
-        NotifType trigger;
+        EventType trigger;
         switch (dto.Trigger)
         {
             case "LeadAssigned":
-                trigger = NotifType.LeadAssigned;
+                trigger = EventType.LeadAssigned;
                 break;
             case "Manual":
-                trigger = NotifType.None;
+                trigger = EventType.None;
                 break;
             default:
                 throw new CustomBadRequestException("invalid trigger", ProblemDetailsTitles.InvalidInput);
@@ -88,18 +89,14 @@ public class ActionPQService
             Triggers = trigger,
             TimeCreated = DateTime.UtcNow,
             isActive = dto.ActivateNow,
-            ActionsCount = (byte) dto.Actions.Count,
+            ActionsCount = (byte)dto.Actions.Count,
             Name = dto.Name,
             StopPlanOnInteraction = dto.StopPlanOnInteraction,
             FirstActionDelay = dto.FirstActionDelay,
             Actions = new()
         };
 
-        if (dto.StopPlanOnInteraction)
-        {
-            //TODO re check these notifs especially EmailEvent
-            actionPlan.NotifsToListenTo = NotifType.EmailEvent | NotifType.SmsEvent | NotifType.CallMissed | NotifType.CallEvent;
-        }
+        //for now EventsToListenTo is None cuz StopPlanOnInteraction covers the interactions
 
         foreach (var actionDTO in dto.Actions)
         {
@@ -145,12 +142,12 @@ public class ActionPQService
         }
 
         //if action plan has an automatic trigger, add it to broker's NotifsForActionPlans
-        if (actionPlan.Triggers != NotifType.None)
+        if (actionPlan.Triggers != EventType.None)
         {
             var broker = await _appDbContext.Brokers.FirstAsync(b => b.Id == brokerId);
-            if (!broker.NotifsForActionPlans.HasFlag(actionPlan.Triggers))
+            if (!broker.ListenForActionPlans.HasFlag(actionPlan.Triggers))
             {
-                broker.NotifsForActionPlans |= actionPlan.Triggers;
+                broker.ListenForActionPlans |= actionPlan.Triggers;
             }
         }
 
@@ -182,16 +179,25 @@ public class ActionPQService
         }
         return result;
     }
-    public async Task StartLeadActionPlanManually(Guid brokerId, int LeadId, int ActionPlanId, string? customDelay = null)
+    public async Task<ActionPlanStartDTO> StartLeadActionPlanManually(Guid brokerId, StartActionPlanDTO dto)
     {
         //check lead is not already associated to this actionPlan
-        var APAssExists = await _appDbContext.ActionPlanAssociations
-          .AnyAsync(apass => apass.ActionPlanId == ActionPlanId && apass.LeadId == LeadId);
-        if (APAssExists)
-        {
-            throw new CustomBadRequestException("Action Plan Already Associated", ProblemDetailsTitles.AlreadyAssociatedToLead);
-        }
+        var leads = await _appDbContext.Leads
+            .Include(l => l.ActionPlanAssociations.Where(ap => ap.ActionPlanId == dto.ActionPlanID))
+            .Where(l => l.BrokerId == brokerId && dto.LeadIds.Contains(l.Id))
+            .ToListAsync();
 
+        List<int> failedIDs = new();
+        List<int> AlreadyRunningIDs = new();
+        foreach (var lead in leads)
+        {
+            if (lead.ActionPlanAssociations != null && lead.ActionPlanAssociations.Any()) AlreadyRunningIDs.Add(lead.Id);
+        }
+        if (AlreadyRunningIDs.Count == leads.Count)
+        {
+            throw new CustomBadRequestException("Action Plan Already Associated with provided leads", ProblemDetailsTitles.AlreadyAssociatedToLead);
+        }
+        leads.RemoveAll(l => AlreadyRunningIDs.Contains(l.Id));
         var timeNow = DateTime.UtcNow;
         var apProjection = await _appDbContext.ActionPlans.
           Select(ap => new
@@ -199,15 +205,13 @@ public class ActionPQService
               ap.Id,
               ap.StopPlanOnInteraction,
               ap.FirstActionDelay,
-              ap.NotifsToListenTo,
+              ap.EventsToListenTo,
               firstAction = ap.Actions.Select(fa => new { fa.ActionLevel, fa.Id }).First(a => a.ActionLevel == 1)
           })
-          .FirstAsync(app => app.Id == ActionPlanId);
+          .FirstAsync(app => app.Id == dto.ActionPlanID);
 
-        var FirstActionDelay = customDelay ?? apProjection.FirstActionDelay;
+        var FirstActionDelay = dto.customDelay ?? apProjection.FirstActionDelay;
         var delays = FirstActionDelay?.Split(':');
-        string HangfireJobId = "";
-
         TimeSpan timespan = TimeSpan.Zero;
         if (delays != null)
         {
@@ -216,66 +220,73 @@ public class ActionPQService
             if (int.TryParse(delays[2], out var minutes)) timespan += TimeSpan.FromMinutes(minutes);
         }
 
-        var actionTracker = new ActionTracker
+        foreach (var lead in leads)
         {
-            TrackedActionId = apProjection.firstAction.Id,
-            ActionStatus = ActionStatus.ScheduledToStart,
-            HangfireScheduledStartTime = timeNow + timespan,
-        };
-        var apAssociation = new ActionPlanAssociation
-        {
-            CustomDelay = customDelay,
-            ActionPlanId = ActionPlanId,
-            TriggerNotificationId = null, //cuz triggered manually
-            LeadId = LeadId,
-            ActionPlanTriggeredAt = timeNow,
-            ThisActionPlanStatus = ActionPlanStatus.Running,
-            ActionTrackers = new() { actionTracker },
-            currentTrackedActionId = apProjection.firstAction.Id,
-        };
-
-        //assign Lead's NotifsToListenTo if StopPlanOnInteraction is True
-        if (apProjection.StopPlanOnInteraction)
-        {
-            var lead = await _appDbContext.Leads.FirstAsync(l => l.Id == LeadId);
-            var StopNotifs = NotifType.EmailEvent | NotifType.SmsEvent | NotifType.CallMissed | NotifType.CallEvent;
-            if (!lead.NotifsForActionPlans.HasFlag(StopNotifs))
+            var actionTracker = new ActionTracker
             {
-                lead.NotifsForActionPlans |= StopNotifs;
+                TrackedActionId = apProjection.firstAction.Id,
+                ActionStatus = ActionStatus.ScheduledToStart,
+                HangfireScheduledStartTime = timeNow + timespan,
+            };
+            var apAssociation = new ActionPlanAssociation
+            {
+                CustomDelay = dto.customDelay,
+                ActionPlanId = dto.ActionPlanID,
+                TriggerNotificationId = null, //cuz triggered manually
+                ActionPlanTriggeredAt = timeNow,
+                ThisActionPlanStatus = ActionPlanStatus.Running,
+                ActionTrackers = new() { actionTracker },
+                currentTrackedActionId = apProjection.firstAction.Id,
+            };
+            lead.ActionPlanAssociations.Add(apAssociation);
+
+            bool OldHasActionPlanToStop = lead.HasActionPlanToStop;
+            if (apProjection.StopPlanOnInteraction) lead.HasActionPlanToStop = true;
+            if (apProjection.EventsToListenTo != EventType.None)
+            {
+                lead.EventsForActionPlans |= apProjection.EventsToListenTo;
             }
+            var APStartedEvent = new AppEvent
+            {
+                BrokerId = brokerId,
+                EventTimeStamp = timeNow,
+                EventType = EventType.ActionPlanStarted,
+                IsActionPlanResult = true,
+                ReadByBroker = true,
+                NotifyBroker = false,
+                ProcessingStatus = ProcessingStatus.NoNeed,
+            };
+            APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = NotificationJSONKeys.TriggeredManually;
+            APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = dto.ActionPlanID.ToString();
+            lead.AppEvents = new() { APStartedEvent };
+            string HangfireJobId = "";
+            try
+            {
+                if (delays != null)
+                {
+                    HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID), timespan);
+                }
+                else
+                {
+                    HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID));
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
+                 " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor",dto.ActionPlanID,lead.Id, ex.Message);
+                lead.ActionPlanAssociations.Remove(apAssociation);
+                lead.AppEvents.Remove(APStartedEvent);
+                lead.HasActionPlanToStop = OldHasActionPlanToStop;
+                failedIDs.Add(lead.Id);
+            }
+            actionTracker.HangfireJobId = HangfireJobId;
         }
-        var notif = new Notification
-        {
-            BrokerId = brokerId,
-            LeadId = LeadId,
-            EventTimeStamp = timeNow,
-            NotifType = NotifType.ActionPlanStarted,
-            IsActionPlanResult = true,
-            ReadByBroker = true,
-            NotifyBroker = false,
-            ProcessingStatus = ProcessingStatus.NoNeed,
-        };
-        notif.NotifProps[NotificationJSONKeys.APTriggerType] = NotificationJSONKeys.TriggeredManually;
-        notif.NotifProps[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
-        _appDbContext.Notifications.Add(notif);
-
-
-        if (delays != null)
-        {
-            HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId), timespan);
-        }
-        else
-        {
-            HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, ActionPlanId));
-        }
-        actionTracker.HangfireJobId = HangfireJobId;
-        _appDbContext.ActionPlanAssociations.Add(apAssociation);
-
         //If this fails, ApProcessor's DoActionAsync method verifies if ActionPlanAssociation exists
-        //at beginning
-
+        //at beginning.
+        //But if Hangfire scheduling fails there needs to be a way other than removing everything
         await _appDbContext.SaveChangesAsync();
-
+        return new ActionPlanStartDTO { AlreadyRunningIDs = AlreadyRunningIDs, errorIDs = failedIDs};
     }
 
 

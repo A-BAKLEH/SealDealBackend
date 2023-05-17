@@ -1,5 +1,4 @@
-﻿
-using Core.Config.Constants.LoggingConstants;
+﻿using Core.Config.Constants.LoggingConstants;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces;
@@ -44,7 +43,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
         int FinalQuantity = agency.NumberOfBrokersInSubscription;
 
         var timestamp = DateTime.UtcNow;
-
+        request.admin.AppEvents = new();
         List<Broker> failedBrokers = new();
         var tasks = request.brokers
             .Select(async (broker) =>
@@ -57,17 +56,16 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
                     broker.AccountActive = true;
                     broker.isAdmin = false;
 
-                    var notif = new Notification
+                    var brokerCreationEvent = new AppEvent
                     {
                         EventTimeStamp = timestamp,
-                        NotifType = NotifType.BrokerCreated,
-                        NotifyBroker = false,
-                        ProcessingStatus = ProcessingStatus.Scheduled,
+                        EventType = EventType.BrokerCreated,
+                        NotifyBroker = true,
+                        ProcessingStatus = ProcessingStatus.Scheduled, //to send password
                         ReadByBroker = true,
                     };
-                    notif.NotifProps.Add(NotificationJSONKeys.TempPasswd, res.Item2);
-                    notif.NotifProps.Add(NotificationJSONKeys.EmailSent, "0");
-                    broker.Notifs = new List<Notification> { notif };
+                    brokerCreationEvent.Props.Add(NotificationJSONKeys.TempPasswd, res.Item2);
+                    broker.AppEvents = new() { brokerCreationEvent };
                     _logger.LogInformation("[{Tag}]Created B2C User with UserId {UserId} and LoginEmail {LoginEmail} ", TagConstants.AddBrokersRequest, res.Item1, broker.LoginEmail);
                 }
                 catch (Exception ex)
@@ -79,16 +77,15 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
                 }
             });
 
-        var StripeNotif = new Notification
+        var StripeEvent = new AppEvent
         {
             EventTimeStamp = timestamp,
-            NotifType = NotifType.StripeSubsChanged,
-            NotifyBroker = false,
-            ProcessingStatus = ProcessingStatus.Scheduled,
+            EventType = EventType.StripeSubsChanged,
+            NotifyBroker = true,
+            ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = true,
         };
-        StripeNotif.NotifProps.Add(NotificationJSONKeys.EmailSent, "0");
-        request.admin.Notifs = new List<Notification> { StripeNotif };
+        request.admin.AppEvents.Add(StripeEvent);
 
         await Task.WhenAll(tasks);
 
@@ -107,37 +104,21 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
         //Send email to brokers to login and RENEW PASSWORD
         foreach (var b in request.brokers)
         {
-            var notifId = b.Notifs[0].Id;
-            var brokerCreated = new BrokerCreated { NotifId = notifId };
+            var appEventId = b.AppEvents[0].Id;
+            var brokerCreated = new BrokerCreated { AppEventId = appEventId };
             try
             {
                 var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated));
-                OutboxMemCache.ScheduledDict.Add(notifId, HangfireJobId);
+                _logger.LogInformation("{place} broker with Id {brokerId} has Email sending jobId {HangfireJobId}", "brokerCreation", b.Id, HangfireJobId);
             }
             catch (Exception ex)
             {
                 //TODO refactor log message
-                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for BrokerCreated Event for notif" +
-                  "with {NotifId} with error {Error}", notifId, ex.Message);
-                OutboxMemCache.SchedulingErrorDict.Add(notifId, brokerCreated);
+                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for BrokerCreated Event for appEvent" +
+                  "with {appEventId} with error {Error}", appEventId, ex.Message);
+                OutboxMemCache.SchedulingErrorDict.TryAdd(appEventId, brokerCreated);
             }
         }
-        //Send email to admin to confirm Subscription Change
-        var StripeNotifId = StripeNotif.Id;
-        var stripeSubsChange = new StripeSubsChange { NotifId = StripeNotifId };
-        try
-        {
-            var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(stripeSubsChange));
-            OutboxMemCache.ScheduledDict.Add(StripeNotifId, HangfireJobId);
-        }
-        catch (Exception ex)
-        {
-            //TODO refactor log message
-            _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for BrokerCreated Event for notif" +
-              "with {NotifId} with error {Error}", StripeNotifId, ex.Message);
-            OutboxMemCache.SchedulingErrorDict.Add(StripeNotifId, stripeSubsChange);
-        }
-
         return failedBrokers;
     }
 }

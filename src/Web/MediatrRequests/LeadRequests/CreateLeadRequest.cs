@@ -15,6 +15,9 @@ using Web.Outbox.Config;
 
 namespace Web.MediatrRequests.LeadRequests;
 
+/// <summary>
+/// manually create lead.
+/// </summary>
 public class CreateLeadRequest : IRequest<LeadForListDTO>
 {
 
@@ -58,11 +61,11 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             LeadStatus = LeadStatus.New,
             ListingId = dto.ListingOfInterstId,
         };
-        if(request.createLeadDTO.language != null && Enum.TryParse<Language>(request.createLeadDTO.language, true, out var language))
+        if (request.createLeadDTO.language != null && Enum.TryParse<Language>(request.createLeadDTO.language, true, out var language))
         {
             lead.Language = language;
         }
-        if(dto.Emails != null && dto.Emails.Any())
+        if (dto.Emails != null && dto.Emails.Any())
         {
             lead.LeadEmails = new List<LeadEmail>(dto.Emails.Count);
             foreach (var email in dto.Emails)
@@ -75,34 +78,35 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             }
             lead.LeadEmails[0].IsMain = true;
         }
-        
+
         lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = request.BrokerWhoRequested.FirstName + " " + request.BrokerWhoRequested.LastName;
-        lead.LeadHistoryEvents = new();
+        lead.SourceDetails[NotificationJSONKeys.CreatedById] = request.BrokerWhoRequested.Id.ToString();
+        lead.AppEvents = new();
 
         //Action plan handling?
 
-        Notification notifCreation = new Notification
+        AppEvent leadCreationEvent = new AppEvent
         {
             EventTimeStamp = timestamp,
             DeleteAfterProcessing = false,
 
             ProcessingStatus = ProcessingStatus.NoNeed,
-            NotifyBroker = false,
+            NotifyBroker = true,
             ReadByBroker = true,
             BrokerId = request.BrokerWhoRequested.Id,
-            NotifType = NotifType.LeadCreated
+            EventType = EventType.LeadCreated
         };
-        Notification LeadAssignedNotif = null;
+        AppEvent LeadAssignedEvent = null;
         if (brokerToAssignToId != null)
         {
-            notifCreation.NotifType = NotifType.LeadCreated | NotifType.LeadAssigned;
+            leadCreationEvent.EventType = EventType.LeadCreated | EventType.LeadAssigned;
             //if assiging to self
             if (!dto.AssignToSelf)
             {
-                notifCreation.NotifProps[NotificationJSONKeys.AssignedToId] = brokerToAssignToId.ToString();
-                notifCreation.NotifProps[NotificationJSONKeys.AssignedToFullName] = request.createLeadDTO.AssignToBrokerFullName;
+                leadCreationEvent.Props[NotificationJSONKeys.AssignedToId] = brokerToAssignToId.ToString();
+                leadCreationEvent.Props[NotificationJSONKeys.AssignedToFullName] = request.createLeadDTO.AssignToBrokerFullName;
 
-                LeadAssignedNotif = new Notification
+                LeadAssignedEvent = new AppEvent
                 {
                     EventTimeStamp = timestamp,
                     DeleteAfterProcessing = false,
@@ -110,15 +114,15 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
                     NotifyBroker = true,
                     ReadByBroker = false,
                     BrokerId = (Guid)brokerToAssignToId,
-                    NotifType = NotifType.LeadAssigned
+                    EventType = EventType.LeadAssigned
                 };
-                LeadAssignedNotif.NotifProps[NotificationJSONKeys.AssignedById] = request.BrokerWhoRequested.Id.ToString();
-                LeadAssignedNotif.NotifProps[NotificationJSONKeys.AssignedByFullName] = request.BrokerWhoRequested.FirstName + " " + request.BrokerWhoRequested.LastName;
-                _appDbContext.Notifications.Add(LeadAssignedNotif);
+                LeadAssignedEvent.Props[NotificationJSONKeys.AssignedById] = request.BrokerWhoRequested.Id.ToString();
+                LeadAssignedEvent.Props[NotificationJSONKeys.AssignedByFullName] = request.BrokerWhoRequested.FirstName + " " + request.BrokerWhoRequested.LastName;
+                _appDbContext.AppEvents.Add(LeadAssignedEvent);
             }
         }
-        lead.LeadHistoryEvents.Add(notifCreation);
-        if (LeadAssignedNotif != null) lead.LeadHistoryEvents.Add(LeadAssignedNotif);
+        lead.AppEvents.Add(leadCreationEvent);
+        if (LeadAssignedEvent != null) lead.AppEvents.Add(LeadAssignedEvent);
 
         if (dto.TagsIds != null && dto.TagsIds.Any())
         {
@@ -127,9 +131,9 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         }
         //TODO insecure to input text directly, check how to store, display notes
         lead.Note = new Note { NotesText = dto.leadNote ?? "" };
-        if (LeadAssignedNotif != null)
+        if (LeadAssignedEvent != null)
         {
-            LeadAssignedNotif.NotifProps[NotificationJSONKeys.AdminNote] = dto.leadNote;
+            LeadAssignedEvent.Props[NotificationJSONKeys.AdminNote] = dto.leadNote;
         }
 
         if (dto.TagToAdd != null)
@@ -183,28 +187,27 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             }
         }
 
-        if (LeadAssignedNotif != null)
+        if (LeadAssignedEvent != null)
         {
-            var notifId = LeadAssignedNotif.Id;
-            var leadAssignedEvent = new LeadAssigned { NotifId = notifId };
+            var notifId = LeadAssignedEvent.Id;
+            var leadAssignedEvent = new LeadAssigned { AppEventId = notifId };
             try
             {
                 var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent));
-                OutboxMemCache.ScheduledDict.Add(notifId, HangfireJobId);
             }
             catch (Exception ex)
             {
                 //TODO refactor log message
                 _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for LeadAssigned Event for notif" +
                   "with {NotifId} with error {Error}", notifId, ex.Message);
-                OutboxMemCache.SchedulingErrorDict.Add(notifId, leadAssignedEvent);
+                OutboxMemCache.SchedulingErrorDict.TryAdd(notifId, leadAssignedEvent);
             }
         }
-         
+
         var response = new LeadForListDTO
         {
             Budget = lead.Budget,
-            Emails = lead.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain}).ToList(),
+            Emails = lead.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain }).ToList(),
             EntryDate = lead.EntryDate.UtcDateTime,
             LeadFirstName = lead.LeadFirstName,
             LeadId = lead.Id,

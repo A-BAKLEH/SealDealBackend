@@ -92,9 +92,8 @@ public class ActionPlansController : BaseApiController
       _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
       return Forbid();
     }
+     var res = await _actionPQService.StartLeadActionPlanManually(id,dto);
 
-     await _actionPQService.StartLeadActionPlanManually(id,dto.LeadId,dto.ActionPlanID, dto.customDelay);
-
-    return Ok();
+    return Ok(res);
   }
 }

@@ -23,7 +23,7 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
     public async Task<ToDoTaskWithLeadName> Handle(CreateTodoTaskRequest request, CancellationToken cancellationToken)
     {
         //TODO make sure reminders always happen
-        using var transaction = _appDbContext.Database.BeginTransaction();
+        using var transaction = await _appDbContext.Database.BeginTransactionAsync();
 
         var dueTime = request.createToDoTaskDTO.dueTime;
         var todo = new ToDoTask

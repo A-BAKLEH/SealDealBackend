@@ -4,5 +4,5 @@ namespace Web.Outbox.Config;
 
 public abstract class EventBase : INotification
 {
-  public int NotifId { get; set; }
+  public int AppEventId { get; set; }
 }

@@ -142,15 +142,35 @@ public class EmailProcessor
         //TODO make sure the email is not already being synced. the problem is if 
         // Syncscheduled is false. For now u can solve it with ConcurrentDictionary
         var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
-        if (!connEmail.SyncScheduled)
+        if (!connEmail.SyncScheduled && StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
         {
-            var jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email), TimeSpan.FromSeconds(6));
-            connEmail.SyncScheduled = true;
-            connEmail.SyncJobId = jobId;
-            await _appDbContext.SaveChangesAsync();
+            //'lock' obtained by putting subsID as key in dictionary
+            string jobId = "";
+            try
+            {
+                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email), TimeSpan.FromSeconds(10));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("{place} error scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
+                return;
+            }
+            try
+            {
+                connEmail.SyncScheduled = true;
+                connEmail.SyncJobId = jobId;
+                await _appDbContext.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("{place} error saving db after scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+
+                BackgroundJob.Delete(jobId);
+                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
+            }
         }
     }
-
     /// <summary>
     /// fetch all emails from last sync date and process them
     /// </summary>
@@ -493,7 +513,7 @@ public class EmailProcessor
         //connectedEmail/adminSettings automatic lead assignment is turned on
         //if false, create lead and never assign to anyone
         //TODO later determine if the original email should be forwarded to the broker or not based on sensitive info
-        //also good to have a manual setting that admins can set
+        //also good to have a manual setting that admins can set to automatically forward email with the lead
 
         Language lang = brokerDTO.BrokerLanguge;
         if (parsedContent.Language != null) Enum.TryParse(parsedContent.Language, true, out lang);
@@ -510,9 +530,10 @@ public class EmailProcessor
             LeadEmails = new() { new LeadEmail { EmailAddress = message.Sender.EmailAddress.Address } },
             Language = lang,
         };
-        lead.SourceDetails[NotificationJSONKeys.EmailId] = message.Id;
+        lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = brokerDTO.brokerFirstName + " " + brokerDTO.brokerLastName;
+        lead.SourceDetails[NotificationJSONKeys.CreatedById] = brokerDTO.Id.ToString();
 
-        Notification LeadCreationNotif = new()
+        AppEvent LeadCreationNotif = new()
         {
             EventTimeStamp = DateTime.UtcNow,
             DeleteAfterProcessing = false,
@@ -520,8 +541,9 @@ public class EmailProcessor
             NotifyBroker = true,
             ReadByBroker = false,
             BrokerId = brokerDTO.Id,
-            NotifType = NotifType.LeadCreated,
+            EventType = Core.Domain.NotificationAggregate.EventType.LeadCreated,
         };
+        LeadCreationNotif.Props[NotificationJSONKeys.EmailId] = message.Id;
         lead.LeadHistoryEvents = new() { LeadCreationNotif };
         if (brokerDTO.isSolo || !brokerDTO.isAdmin) //solo broker or non admin
         {

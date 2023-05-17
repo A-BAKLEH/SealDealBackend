@@ -161,7 +161,6 @@ public class LeadController : BaseApiController
             _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
             return Forbid();
         }
-
         var leads = await _leadQService.GetLeadsAsync(brokerid);
         if (leads == null || !leads.Any()) return NotFound();
 
@@ -170,7 +169,6 @@ public class LeadController : BaseApiController
         {
             lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
         }
-
         return Ok(leads);
     }
 

@@ -2,7 +2,6 @@
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
-using Core.Domain.LeadAggregate.Interactions;
 using Core.Domain.NotificationAggregate;
 using SharedKernel;
 
@@ -30,15 +29,16 @@ public class Lead : Entity<int>
     public Language Language { get; set; } = Language.English;
     /// <summary>
     /// notifs that action plans running on this lead should handle because they can
-    /// affect 
+    /// affect, such as leadStatusChange
     /// </summary>
-    public NotifType NotifsForActionPlans { get; set; } = NotifType.None;
+    public EventType EventsForActionPlans { get; set; } = EventType.None;
+    public bool HasActionPlanToStop { get; set; } = false;
     public DateTime LastNotifsViewedAt { get; set; }
     public DateTimeOffset EntryDate { get; set; }
     public LeadSource source { get; set; }
     public LeadType leadType { get; set; }
     /// <summary>
-    /// siteName, adminCreaterId (when assigne to broker by admin), emailId ()
+    /// always onctains Creator Name and Id, try siteName/lead provider name
     /// </summary>
     public Dictionary<string, string> SourceDetails { get; set; } = new();
     public LeadStatus LeadStatus { get; set; } = LeadStatus.New;
@@ -60,8 +60,12 @@ public class Lead : Entity<int>
     public List<Tag>? Tags { get; set; }
     public List<ToDoTask> ToDoTasks { get; set; }
     public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }
-    public List<Notification>? LeadHistoryEvents { get; set; }
-    public List<LeadInteraction>? LeadInteractions { get; set; }
+    /// <summary>
+    /// when created by auto, message ID is in AppEvent of creation/assignation
+    /// </summary>
+    public List<AppEvent>? AppEvents { get; set; }
+    public List<Notif>? Notifs { get; set; }
+    public List<EmailEvent>? EmailEvents { get; set; }
 }
 public enum LeadSource
 {
