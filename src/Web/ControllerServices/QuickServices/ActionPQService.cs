@@ -119,9 +119,9 @@ public class ActionPQService
                     break;
                 case ActionType.SendSms:
                     throw new CustomBadRequestException($"Invalid action {actionDTO.ActionType}", ProblemDetailsTitles.InvalidInput);
-                    //if (actionDTO.TemplateId == null) throw new CustomBadRequestException("TemplateId empty", ProblemDetailsTitles.InvalidInput);
-                    //action.DataTemplateId = actionDTO.TemplateId;
-                    //break;
+                //if (actionDTO.TemplateId == null) throw new CustomBadRequestException("TemplateId empty", ProblemDetailsTitles.InvalidInput);
+                //action.DataTemplateId = actionDTO.TemplateId;
+                //break;
                 default:
                     throw new CustomBadRequestException($"Invalid action {actionDTO.ActionType}", ProblemDetailsTitles.InvalidInput);
             }

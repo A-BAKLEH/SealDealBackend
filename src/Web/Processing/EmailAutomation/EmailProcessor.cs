@@ -139,12 +139,10 @@ public class EmailProcessor
 
     public async Task CheckEmailSyncAsync(Guid SubsId, string tenantId)
     {
-        //ADDCACHE
-        //TODO make sure the email is not already being synced. the problem is if 
-        // Syncscheduled is false. For now u can solve it with ConcurrentDictionary
-        var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
-        if (!connEmail.SyncScheduled && StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
+        //ADDCACHE      
+        if (StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
         {
+            var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
             //'lock' obtained by putting subsID as key in dictionary
             string jobId = "";
             try
@@ -184,8 +182,16 @@ public class EmailProcessor
           .Select(e => new { e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Language, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
           .FirstAsync(x => x.Email == email);
         _aDGraphWrapper.CreateClient(connEmail.tenantId);
-        //make sure subsID is in the dictionary and sync in databse is scheduled, else return
-        //StaticEmailConcurrencyHandler.EmailParsingdict;
+
+        //TODO later make robust
+        if (!StaticEmailConcurrencyHandler.EmailParsingdict.TryGetValue((Guid)connEmail.GraphSubscriptionId, out var s))
+        {
+            if(!StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd((Guid)connEmail.GraphSubscriptionId, true))
+            {
+                _logger.LogCritical("{place} problem email parsing jobs dictionary.", "emailParsing");
+                return;
+            }
+        }
 
         var brokerDTO = new BrokerEmailProcessingDTO
         { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
@@ -246,8 +252,8 @@ public class EmailProcessor
             $" WHERE Email = '{connEmail.Email}' AND BrokerId = '{brokerDTO.Id}';");
             //TODO update connectedEmail lastSync date and set sync scheduled off
             //and remove key from dictionary
-            //StaticEmailConcurrencyHandler.EmailParsingdict;
-            //TODO make sure this whole Hangfire job never fails
+            StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
+            //TODO make sure this whole Hangfire job never repeasts if fails
         }
         catch (Exception ex)
         {

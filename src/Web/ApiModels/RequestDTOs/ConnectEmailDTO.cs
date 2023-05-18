@@ -18,6 +18,5 @@ public class ConnectEmailDTO
     /// only relevant for admins, if false then leads won't be automatically assigned to brokers, they will
     /// show up in the unassigned leads list in admin view
     /// </summary>
-    public bool AssignLeadsAuto { get; set; } = false;
-
+    public bool AssignLeadsAuto { get; set; } = true;
 }

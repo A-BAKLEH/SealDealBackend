@@ -5,6 +5,7 @@ using Core.DTOs.ProcessingDTOs;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Web.Constants;
+using Web.RealTimeNotifs;
 
 namespace Web.Processing.ActionPlans;
 
@@ -62,23 +63,23 @@ public class APProcessor
         var timeNow = DateTime.UtcNow;
 
         //START ----Specific Action Handling------------
-        bool cont = false;
+        Tuple<bool, AppEvent?> res = null;
         if (CurrentAction.ActionType == ActionType.ChangeLeadStatus)
         {
-            cont = _actionExecuter.ExecuteChangeLeadStatus(ActionPlanAssociation, CurrentAction, brokerId, timeNow);
+            res = _actionExecuter.ExecuteChangeLeadStatus(ActionPlanAssociation, CurrentAction, brokerId, timeNow);
         }
         else if (CurrentAction.ActionType == ActionType.SendSms)
         {
-            cont = await _actionExecuter.ExecuteSendSms(ActionPlanAssociation, CurrentAction, brokerId, timeNow);
+            res = await _actionExecuter.ExecuteSendSms(ActionPlanAssociation, CurrentAction, brokerId, timeNow);
         }
         else if (CurrentAction.ActionType == ActionType.SendEmail)
         {
-            cont = await _actionExecuter.ExecuteSendEmail(ActionPlanAssociation, CurrentAction, brokerId, timeNow);
+            res = await _actionExecuter.ExecuteSendEmail(ActionPlanAssociation, CurrentAction, brokerId, timeNow);
         }
-        if (!cont) return;
-
-        //TODO signalR and push notifs after actions are done
+        if (!res.Item1) return;
         // END---------Specific action handling done --------
+
+        var RTEvents = new List<AppEvent>(2) { res.Item2 };
 
         // START---- Update current ActionTracker ----------
         CurrentActionTracker.ActionStatus = ActionStatus.Done;
@@ -141,10 +142,11 @@ public class APProcessor
             APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
             APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.AllActionsCompleted;
             _appDbContext.AppEvents.Add(APDoneEvent);
-            // TODO SignalR and push notifs
+            RTEvents.Add(APDoneEvent);
         }
 
         bool saved = false;
+        byte c = 0;
         while (!saved)
         {
             try
@@ -155,6 +157,7 @@ public class APProcessor
             }
             catch (DbUpdateConcurrencyException ex)
             {
+                if (c >= 3) throw;
                 foreach (var entry in ex.Entries)
                 {
                     if (entry.Entity is EmailTemplate || entry.Entity is SmsTemplate)
@@ -183,8 +186,12 @@ public class APProcessor
                             + entry.Metadata.Name);
                     }
                 }
+                c++;
+                await Task.Delay(200);
             }
         }
+        // SignalR and push notifs for action-result event + endofActionPlan event
+        await RealTimeNotifSender.SendRealTimeNotifsAsync(brokerId, true, true,RTEvents, null);
         // END---- Handle Next Action DONE--------
     }
 }

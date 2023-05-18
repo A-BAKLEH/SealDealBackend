@@ -1,6 +1,7 @@
 ﻿using Core.Domain.NotificationAggregate;
 using Infrastructure.Data;
 using Web.Outbox.Config;
+using Web.RealTimeNotifs;
 
 namespace Web.Outbox;
 
@@ -14,22 +15,23 @@ public class ListingAssigned : EventBase
 
 public class ListingAssignedHandler : EventHandlerBase<ListingAssigned>
 {
-  public ListingAssignedHandler(AppDbContext appDbContext, ILogger<ListingAssignedHandler> logger) : base(appDbContext, logger)
-  {
-  }
+    public ListingAssignedHandler(AppDbContext appDbContext, ILogger<ListingAssignedHandler> logger) : base(appDbContext, logger)
+    {
+    }
 
-  public override async Task Handle(ListingAssigned listingAssignedEvent, CancellationToken cancellationToken)
-  {
+    public override async Task Handle(ListingAssigned listingAssignedEvent, CancellationToken cancellationToken)
+    {
         AppEvent? appEvent = null;
         try
         {
             //process
             appEvent = _context.AppEvents.FirstOrDefault(x => x.Id == listingAssignedEvent.AppEventId);
-            if (appEvent == null) { _logger.LogError("No appEvent with NotifId {NotifId}", listingAssignedEvent.AppEventId); return; }
+            if (appEvent == null) { _logger.LogError("No appEvent with Id {AppEventId}", listingAssignedEvent.AppEventId); return; }
 
             if (appEvent.ProcessingStatus != ProcessingStatus.Done)
             {
                 //TODO notify broker now if he's online and send PushNotif
+                await RealTimeNotifSender.SendRealTimeNotifsAsync(appEvent.BrokerId, true, true, new List<AppEvent>(1) { appEvent }, null);
             }
             await this.FinishProcessing(appEvent);
         }

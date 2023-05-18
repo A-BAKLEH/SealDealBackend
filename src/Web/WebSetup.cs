@@ -7,6 +7,7 @@ using Web.Outbox.Config;
 using Web.Processing.ActionPlans;
 using Web.Processing.EmailAutomation;
 using Web.Processing.Various;
+using Web.RealTimeNotifs;
 
 namespace Web
 {

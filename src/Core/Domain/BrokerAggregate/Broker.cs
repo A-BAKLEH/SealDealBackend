@@ -41,6 +41,16 @@ public class Broker : Entity<Guid>
     /// mark emails as read after they are clicked in frontend
     /// </summary>
     public bool MarkEmailsRead { get; set; } = true;
+
+    /// <summary>
+    /// smallest id s.t. all notifs with NotifyBroker = true && id <= LastSeenNotifId are seen
+    /// </summary>
+    public int LastSeenNotifId { get; set; } = 0;
+    /// <summary>
+    /// earliest timestamp s.t. all notifs with NotifyBroker = true && time <= LastSeenTimesTamp are seen
+    /// </summary>
+    public DateTime LastSeenTimesTamp { get; set; }
+
     public List<ConnectedEmail>? ConnectedEmails { get; set; }
     public List<Lead>? Leads { get; set; }
     public List<BrokerListingAssignment>? AssignedListings { get; set; }

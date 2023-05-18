@@ -29,13 +29,13 @@ public class ActionExecuter
     /// // needs  signalR and push Notif after
     /// <param name="pars"></param>
     /// <returns></returns>
-    public bool ExecuteChangeLeadStatus(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
+    public Tuple<bool, AppEvent?> ExecuteChangeLeadStatus(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
     {
         var lead = ActionPlanAssociation.lead;
         string NewStatusString = currentActionDTO.ActionProperties[ActionPlanAction.NewLeadStatus];
 
         Enum.TryParse<LeadStatus>(NewStatusString, true, out var NewLeadStatus);
-        if (lead.LeadStatus == NewLeadStatus) return false;
+        if (lead.LeadStatus == NewLeadStatus) return new Tuple<bool,AppEvent?>(false, null);
         var oldStatus = lead.LeadStatus;
         lead.LeadStatus = NewLeadStatus;
 
@@ -57,7 +57,7 @@ public class ActionExecuter
         StatusChangeEvent.Props[NotificationJSONKeys.OldLeadStatus] = oldStatus.ToString();
         StatusChangeEvent.Props[NotificationJSONKeys.NewLeadStatus] = lead.LeadStatus.ToString();
         _appDbContext.AppEvents.Add(StatusChangeEvent);
-        return true;
+        return new Tuple<bool, AppEvent?>(true, StatusChangeEvent);
     }
 
     /// <summary>
@@ -67,13 +67,11 @@ public class ActionExecuter
     /// <param name="pars"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<bool> ExecuteSendEmail(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
+    public async Task<Tuple<bool, AppEvent?>> ExecuteSendEmail(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
     {
 
         var lead = ActionPlanAssociation.lead;
         var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
-        //var CurrentAction = actions[0];
-        //var currentActionLevel = CurrentAction.ActionLevel;
 
         var TemplateId = currentActionDTO.dataTemplateId;
         var broker = await _appDbContext.Brokers
@@ -141,7 +139,7 @@ public class ActionExecuter
         EmailSentNotif.Props[NotificationJSONKeys.ActionId] = currentActionDTO.Id.ToString();
         EmailSentNotif.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
         _appDbContext.AppEvents.Add(EmailSentNotif);
-        return true;
+        return new Tuple<bool, AppEvent?>(true, EmailSentNotif);
     }
     /// <summary>
     /// Returns true if continue processing, false stop right away dont need to
@@ -149,7 +147,7 @@ public class ActionExecuter
     /// <param name="pars"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<bool> ExecuteSendSms(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
+    public async Task<Tuple<bool, AppEvent?>> ExecuteSendSms(ActionPlanAssociation ActionPlanAssociation, ActionExecutingDTO currentActionDTO, Guid brokerId, DateTime timeNow)
     {
         var lead = ActionPlanAssociation.lead;
 
@@ -177,6 +175,6 @@ public class ActionExecuter
         SmsSentNotif.Props[NotificationJSONKeys.ActionId] = currentActionDTO.Id.ToString();
         SmsSentNotif.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
         _appDbContext.AppEvents.Add(SmsSentNotif);
-        return true;
+        return new Tuple<bool, AppEvent?>(true, SmsSentNotif);
     }
 }

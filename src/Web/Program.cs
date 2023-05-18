@@ -12,7 +12,7 @@ using SharedKernel.Exceptions.CustomProblemDetails;
 using System.Reflection;
 using Web;
 using Web.Config;
-using Web.SignalRInfra;
+using Web.RealTimeNotifs;
 
 var builder = WebApplication.CreateBuilder(args);
 
