@@ -8,11 +8,14 @@ public class APIConstants
     public const string ConvertToTimeZone = "ConvertToTimeZone";
 
     //sent email extended property id
-    public const string APSentEmailExtendedPropId = "String {46920687-7fb5-49f0-963b-be637eec7ec0} Name SentTagId";
+    public const string APSentEmailExtendedPropId = "String {46920687-7fb5-49f0-963b-be637eec7ec0} Name SentByAPId";
+    /// <summary>
+    /// when value = 1 then needs reprocessing, 0 means success
+    /// </summary>
     public const string ReprocessMessExtendedPropId = "String {40d29561-1bb1-4ca6-b6a5-6dc57b888ac9} Name ReprocessMessId";
     //email categories
-    public const string NewLeadCreated = "SD:LeadAdded";
-    public const string SentBySealDeal = "SD:SentByAutoFlow";
+    public const string NewLeadCreated = "SealDeal:LeadCreated";
+    public const string SentBySealDeal = "SealDeal:SentByAutoFlow";
     public const string SeenOnSealDeal = "SeenOnSealDeal";
 
     //gpt prompts

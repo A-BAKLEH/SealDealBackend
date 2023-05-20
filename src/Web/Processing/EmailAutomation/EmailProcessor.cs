@@ -12,6 +12,7 @@ using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
@@ -28,7 +29,6 @@ public class EmailProcessor
     private readonly IConfigurationSection _configurationSection;
     private readonly OpenAIGPT35Service _GPT35Service;
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
-    private List<Message> ReprocessMessages;
     public EmailProcessor(AppDbContext appDbContext, IConfiguration config,
         ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
     {
@@ -142,7 +142,6 @@ public class EmailProcessor
     public async Task CheckEmailSyncAsync(Guid SubsId, string tenantId)
     {
         //ADDCACHE
-        //TODO integrate PerformContext performContext to make more solid
         if (StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
         {
             var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
@@ -150,7 +149,7 @@ public class EmailProcessor
             string jobId = "";
             try
             {
-                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), TimeSpan.FromSeconds(10));
+                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), TimeSpan.FromMinutes(1));
             }
             catch (Exception ex)
             {
@@ -173,6 +172,44 @@ public class EmailProcessor
             }
         }
     }
+
+    public async Task TagFailedMessages(List<Message> failedMessages, string brokerEmail)
+    {
+        try
+        {
+
+            foreach (var mess in failedMessages)
+            {
+                await _aDGraphWrapper._graphClient.Users[brokerEmail]
+                .Messages[mess.Id]
+                .PatchAsync(new Message
+                {
+                    SingleValueExtendedProperties = new()
+                                {
+                                  new SingleValueLegacyExtendedProperty
+                                  {
+                                    Id = APIConstants.ReprocessMessExtendedPropId,
+                                    Value = "1"
+                                  }
+                                }
+                });
+            }
+        }
+        catch (ODataError er)
+        {
+            _logger.LogError("{place} failed with error code {code} and error message {message}", "TagFailedMessages", er.Error.Code, er.Error.Message);
+        }
+    }
+
+    /// <summary>
+    /// failed messages since up to a week ago
+    /// </summary>
+    /// <param name="failedMessages"></param>
+    /// <returns></returns>
+    //public async Task<List<Message>> GetFailedMessages()
+    //{
+
+    //}
     /// <summary>
     /// fetch all emails from last sync date and process them
     /// </summary>
@@ -213,13 +250,14 @@ public class EmailProcessor
 
         bool error = false;
 
-        //TODO fetch failed messages with extension property "reprocess", these were failed from previous runs
-
         var date = lastSync.ToString("o");
         int totaltokens = 0;
         int pageSize = 15;
 
         DateTimeOffset LastProcessedTimestamp = lastSync;
+        var ReprocessMessages = new List<Message>();
+
+        bool ReachedFailedMessages = false;
 
         try
         {
@@ -264,13 +302,48 @@ public class EmailProcessor
             while (pageIterator.State != PagingState.Complete)
             {
                 //process the messages
-                var toks = await ProcessMessagesAsync(messagesList, brokerDTO);
-                totaltokens += toks;
+                var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
+                totaltokens += toks1;
                 LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
                 // Reset count and list
                 count = 0;
                 messagesList = new(pageSize);
                 await pageIterator.ResumeAsync();
+            }
+            ReachedFailedMessages = true;
+            //failed messages
+            var weekAgo1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(7);
+            var weekAgo = weekAgo1.ToString("o");
+            var failedMessages1 = await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail]
+            .MailFolders["Inbox"]
+            .Messages
+            .GetAsync(config =>
+            {
+                config.QueryParameters.Select = new string[] { "id", "sender", "from", "subject", "isRead", "conversationId", "receivedDateTime", "body" };
+                config.QueryParameters.Filter = $"receivedDateTime gt {weekAgo} and singleValueExtendedProperties/any(ep:ep/id eq '{APIConstants.ReprocessMessExtendedPropId}' and ep/value eq '1')";
+                config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+                config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+            });
+            var failedMessages = failedMessages1.Value;
+            var faultedReprocess = new List<Message>();
+            var toks = await ProcessMessagesAsync(failedMessages, brokerDTO, faultedReprocess);
+            totaltokens += toks;
+            var success = failedMessages.Where(m => !faultedReprocess.Contains(m));
+            foreach (var markSuccessMessage in success)
+            {
+                await _aDGraphWrapper._graphClient.Users[email]
+                .Messages[markSuccessMessage.Id]
+                .PatchAsync(new Message
+                {
+                    SingleValueExtendedProperties = new()
+                    {
+                      new SingleValueLegacyExtendedProperty
+                      {
+                        Id = APIConstants.ReprocessMessExtendedPropId,
+                        Value = "0"
+                      }
+                    }
+                });
             }
         }
         catch (Exception ex)
@@ -280,6 +353,7 @@ public class EmailProcessor
                 .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
                 .SetProperty(e => e.SyncScheduled, false)
                 .SetProperty(e => e.LastSync, LastProcessedTimestamp));
+            await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
             StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
             return;
         }
@@ -290,6 +364,7 @@ public class EmailProcessor
                 .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
                 .SetProperty(e => e.SyncScheduled, false)
                 .SetProperty(e => e.LastSync, LastProcessedTimestamp));
+            await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
             StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
         }
         catch (Exception ex)
@@ -315,10 +390,10 @@ public class EmailProcessor
           .GetAsync(config =>
           {
               config.QueryParameters.Top = 4;
-              config.QueryParameters.Select = new string[] { "id", "sender", "from", "conversationId", "receivedDateTime"};
+              config.QueryParameters.Select = new string[] { "id", "sender", "from", "conversationId", "receivedDateTime" };
               config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq {message.ConversationId}";
               config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
-              config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\""});
+              config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
           }
           );
         var messList = messages.Value;
@@ -327,11 +402,11 @@ public class EmailProcessor
             BrokerEmail = brokerEmail,
             Id = message.Id,
             LeadParsedFromEmail = false,
-            Seen = (bool) message.IsRead,
+            Seen = (bool)message.IsRead,
             TimeReceived = (DateTimeOffset)message.ReceivedDateTime,
             LeadId = leadId
         };
-        if(messList.Count == 1 && messList[0].Id == message.Id)
+        if (messList.Count == 1 && messList[0].Id == message.Id)
         {
             emailEvent.NeedsAction = true;
             emailEvent.RepliedTo = false;
@@ -350,15 +425,14 @@ public class EmailProcessor
     /// <param name="SoloBroker"></param>
     /// <param name="brokerEmail"></param>
     /// <returns>number of tokens used</returns>
-    public async Task<int> ProcessMessagesAsync(List<Message> messages, BrokerEmailProcessingDTO brokerDTO)
+    public async Task<int> ProcessMessagesAsync(List<Message> messages, BrokerEmailProcessingDTO brokerDTO, List<Message> ReprocessMessages)
     {
         using var localdbContext = _contextFactory.CreateDbContext();
         int tokens = 0;
         var KnownLeadEmailEvents = new List<EmailEvent>();
-        var KnownLeadTasks = new List<Tuple<Task<EmailEvent>,Message>>();
+        var KnownLeadTasks = new List<Tuple<Task<EmailEvent>, Message>>();
         //TODO see if from or sender is better for lead providers
         var groupedMessagesBySender = messages.GroupBy(m => m.From.EmailAddress.Address);
-        ReprocessMessages = new List<Message>();
 
         var GroupedleadProviderEmails = groupedMessagesBySender.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
         List<Task<OpenAIResponse?>> LeadProviderTasks = new();
@@ -406,7 +480,7 @@ public class EmailProcessor
                     }
                     else
                     { //just 1 message, check that its not in a conversation
-                        KnownLeadTasks.Add(new Tuple<Task<EmailEvent>,Message>(CreateEmailEventKnownLead(convo.First(),brokerDTO.BrokerEmail,leadEmail.LeadId), convo.First()));
+                        KnownLeadTasks.Add(new Tuple<Task<EmailEvent>, Message>(CreateEmailEventKnownLead(convo.First(), brokerDTO.BrokerEmail, leadEmail.LeadId), convo.First()));
                     }
                 }
             }
@@ -444,7 +518,7 @@ public class EmailProcessor
         {
             var leadTask = LeadProviderTasks[i];
             var message = LeadProviderTaskMessages[i];
-            tokens += HandleTaskResult(leadTask, message, LeadProviderDBRecordsTasks, true, brokerDTO);
+            tokens += HandleTaskResult(leadTask, message, LeadProviderDBRecordsTasks, true, brokerDTO, ReprocessMessages);
         }
         try
         {
@@ -457,7 +531,7 @@ public class EmailProcessor
         {
             var leadTask = UnknownSenderTasks[i];
             var message = UnknownSenderTaskMessages[i];
-            tokens += HandleTaskResult(leadTask, message, UnknownDBRecordsTasks, false, brokerDTO);
+            tokens += HandleTaskResult(leadTask, message, UnknownDBRecordsTasks, false, brokerDTO, ReprocessMessages);
         }
         //--------------------
 
@@ -785,7 +859,7 @@ public class EmailProcessor
     /// <param name="isAdmin"></param>
     /// <param name="brokerId"></param>
     /// <returns></returns>
-    public int HandleTaskResult(Task<OpenAIResponse?> leadTask, Message message, List<Tuple<Task<EmailparserDBRecrodsRes>, Message>> DBRecordsTasks, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO)
+    public int HandleTaskResult(Task<OpenAIResponse?> leadTask, Message message, List<Tuple<Task<EmailparserDBRecrodsRes>, Message>> DBRecordsTasks, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO, List<Message> ReprocessMessages)
     {
         if (leadTask.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
         {
