@@ -261,11 +261,11 @@ public class ActionPQService
             {
                 if (delays != null)
                 {
-                    HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID), timespan);
+                    HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID, null), timespan);
                 }
                 else
                 {
-                    HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID));
+                    HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID, null));
                 }
             }
             catch (Exception ex)

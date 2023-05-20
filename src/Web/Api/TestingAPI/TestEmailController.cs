@@ -16,16 +16,76 @@ namespace Web.Api.TestingAPI;
 [ApiController]
 public class TestEmailController : ControllerBase
 {
-    //public GraphServiceClient _graphClient;
     private readonly ADGraphWrapper _adGraphWrapper;
     private readonly ILogger<TestEmailController> _logger;
-    private string? deltaLinkString = null;
     public string santaBro = "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";
     public TestEmailController(ADGraphWrapper aDGraphWrapper, ILogger<TestEmailController> logger)
     {
         _logger = logger;
         _adGraphWrapper = aDGraphWrapper;
     }
+
+    [HttpGet("convotest")]
+    public async Task<IActionResult> convotestg()
+    {
+        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+
+        var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(360);
+        var date = date1.ToString("o");
+        int pagesize = 5;
+
+        _adGraphWrapper.CreateClient(tenantId);
+        var messages = await _adGraphWrapper._graphClient
+          .Users["bashar.eskandar@sealdeal.ca"]
+          .MailFolders["Inbox"]
+          .Messages
+          .GetAsync(config =>
+          {
+              config.QueryParameters.Top = pagesize;
+              config.QueryParameters.Select = new string[] { "id", "sender", "from", "subject", "isRead", "conversationId", "receivedDateTime", "body" };
+              config.QueryParameters.Filter = $"receivedDateTime gt {date}";
+              config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+              config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+          }
+          );
+        int count = 0;
+        int pauseAfter = pagesize;
+        List<Message> messagesList = new(pagesize);
+
+        var pageIterator = PageIterator<Message, MessageCollectionResponse>
+            .CreatePageIterator(
+            _adGraphWrapper._graphClient,
+            messages,
+                (m) =>
+                {
+                    messagesList.Add(m);
+                    count++;
+                    // If we've iterated over the limit,
+                    // stop the iteration by returning false
+                    return count < pauseAfter;
+                },
+                (req) =>
+                {
+                    // Re-add the header to subsequent requests
+                    req.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+                    return req;
+                }
+            );
+        await pageIterator.IterateAsync();
+
+        while (pageIterator.State != PagingState.Complete)
+        {
+            //process the messages
+            var lol = messagesList;
+
+            // Reset count and list
+            count = 0;
+            messagesList = new(pagesize);
+            await pageIterator.ResumeAsync();
+        }
+        return Ok();
+    }
+
 
     [HttpGet("GraphFilterTest")]
     public async Task<IActionResult> GraphReplyTesting()

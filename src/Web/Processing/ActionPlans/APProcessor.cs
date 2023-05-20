@@ -2,6 +2,7 @@
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
+using Hangfire.Server;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Web.Constants;
@@ -20,6 +21,12 @@ public class APProcessor
         _logger = logger;
         _actionExecuter = actionExecuter;
     }
+
+    public void testhangfirecontext(int firstParam, PerformContext performContext)
+    {
+        Console.WriteLine("SDfsdfsdf");
+        Console.WriteLine(performContext.BackgroundJob.Id);
+    }
     /// <summary>
     /// Executes Action Plan action for a given ActionPlanAssociation and ActionTracker
     /// executes signalR and push notif since called in background
@@ -28,7 +35,7 @@ public class APProcessor
     /// <param name="ActionId"></param>
     /// <param name="ActionPlanId"></param>
     /// <returns></returns>
-    public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId)
+    public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId, PerformContext performContext)
     {
         var ActionPlanAssociation = await _appDbContext.ActionPlanAssociations
           .Include(ass => ass.ActionTrackers.Where(a => a.TrackedActionId == ActionId))
@@ -58,6 +65,8 @@ public class APProcessor
             _logger.LogError("{DoAction} processing action with id {ActionId} for lead {LeadId} with status {ActionTrackerStatus}", "doAction", ActionId, LeadId, CurrentActionTracker.ActionStatus.ToString());
             return;
         }
+
+        if (CurrentActionTracker.HangfireJobId == null) CurrentActionTracker.HangfireJobId = performContext.BackgroundJob.Id;
         Guid brokerId = lead.BrokerId ?? actions[0].BrokerId;
 
         var timeNow = DateTime.UtcNow;
@@ -114,11 +123,11 @@ public class APProcessor
 
             if (delays != null)
             {
-                NextHangfireJobId = Hangfire.BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId), timespan);
+                NextHangfireJobId = Hangfire.BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId, null), timespan);
             }
             else
             {
-                NextHangfireJobId = Hangfire.BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId));
+                NextHangfireJobId = Hangfire.BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId, null));
             }
             NextActionTracker.HangfireJobId = NextHangfireJobId;
         }
@@ -190,8 +199,9 @@ public class APProcessor
                 await Task.Delay(200);
             }
         }
-        // SignalR and push notifs for action-result event + endofActionPlan event
-        await RealTimeNotifSender.SendRealTimeNotifsAsync(brokerId, true, true,RTEvents, null);
         // END---- Handle Next Action DONE--------
+
+        // SignalR and push notifs for action-result event + endofActionPlan event
+        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger,brokerId, true, true, RTEvents, null);  
     }
 }

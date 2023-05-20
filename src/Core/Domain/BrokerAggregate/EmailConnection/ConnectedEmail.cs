@@ -32,7 +32,7 @@ public class ConnectedEmail : EntityBase
     public bool SyncScheduled { get; set; } = false;
     public string? SyncJobId { get; set; }
     /// <summary>
-    /// Created property of last email fetched
+    /// received property of last email fetched
     /// </summary>
     public DateTimeOffset? LastSync { get; set; }
 

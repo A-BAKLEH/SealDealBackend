@@ -30,7 +30,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
             if (appEvent.ProcessingStatus != ProcessingStatus.Done)
             {
                 //TODO notify broker now if he's online and send PushNotif
-                await RealTimeNotifSender.SendRealTimeNotifsAsync(appEvent.BrokerId,true, true, new List<AppEvent>(1) { appEvent }, null);
+                await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger,appEvent.BrokerId,true, true, new List<AppEvent>(1) { appEvent }, null);
             }
             await this.FinishProcessing(appEvent);
         }

@@ -11,9 +11,18 @@ public static class RealTimeNotifSender
     /// </summary>
     /// <param name="list"></param>
     /// <returns></returns>
-    public static async Task SendRealTimeNotifsAsync(Guid brokerId,bool browser, bool PushNotif, List<AppEvent>? events, List<Notif>? notifs )
+    public static async Task SendRealTimeNotifsAsync(ILogger logger,Guid brokerId, bool browser, bool PushNotif, List<AppEvent>? appEvents, List<EmailEvent>? emailEvents)
     {
-        Console.WriteLine("Sending RealTimeNotifs");
-        await Task.Delay(1000);
+        //should never fail
+        try
+        {
+            Console.WriteLine("Sending RealTimeNotifs");
+            await Task.Delay(1000);
+        }
+        // FOR NOW IGNORE PUSH NOTIFS    
+        catch (Exception ex)
+        {
+            logger.LogError("{place} failed sending real time notifs with error {error}", "realtimenotifs",ex.Message);
+        }
     }
 }
