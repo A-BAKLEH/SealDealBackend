@@ -204,12 +204,32 @@ public class EmailProcessor
     /// <summary>
     /// failed messages since up to a week ago
     /// </summary>
-    /// <param name="failedMessages"></param>
-    /// <returns></returns>
-    //public async Task<List<Message>> GetFailedMessages()
-    //{
-
-    //}
+    /// <param name = "failedMessages" ></ param >
+    /// < returns ></ returns >
+    public async Task<List<Message>> GetFailedMessages(string email)
+    {
+        try
+        {
+            var weekAgo1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(7);
+            var weekAgo = weekAgo1.ToString("o");
+            var failedMessages1 = await _aDGraphWrapper._graphClient.Users[email]
+            .MailFolders["Inbox"]
+            .Messages
+            .GetAsync(config =>
+            {
+                config.QueryParameters.Select = new string[] { "id", "sender", "from", "subject", "isRead", "conversationId", "receivedDateTime", "body" };
+                config.QueryParameters.Filter = $"receivedDateTime gt {weekAgo} and singleValueExtendedProperties/any(ep:ep/id eq '{APIConstants.ReprocessMessExtendedPropId}' and ep/value eq '1')";
+                config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+                config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+            });
+            return failedMessages1.Value;
+        }
+        catch (ODataError er)
+        {
+            _logger.LogError("{place} failed with error code {code} and error message {message}", "TagFailedMessages", er.Error.Code, er.Error.Message);
+            return null;
+        }
+    }
     /// <summary>
     /// fetch all emails from last sync date and process them
     /// </summary>
@@ -312,38 +332,30 @@ public class EmailProcessor
             }
             ReachedFailedMessages = true;
             //failed messages
-            var weekAgo1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(7);
-            var weekAgo = weekAgo1.ToString("o");
-            var failedMessages1 = await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail]
-            .MailFolders["Inbox"]
-            .Messages
-            .GetAsync(config =>
+
+            var failedMessages = await GetFailedMessages(email);
+            if (failedMessages != null && failedMessages.Count > 0)
             {
-                config.QueryParameters.Select = new string[] { "id", "sender", "from", "subject", "isRead", "conversationId", "receivedDateTime", "body" };
-                config.QueryParameters.Filter = $"receivedDateTime gt {weekAgo} and singleValueExtendedProperties/any(ep:ep/id eq '{APIConstants.ReprocessMessExtendedPropId}' and ep/value eq '1')";
-                config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
-                config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
-            });
-            var failedMessages = failedMessages1.Value;
-            var faultedReprocess = new List<Message>();
-            var toks = await ProcessMessagesAsync(failedMessages, brokerDTO, faultedReprocess);
-            totaltokens += toks;
-            var success = failedMessages.Where(m => !faultedReprocess.Contains(m));
-            foreach (var markSuccessMessage in success)
-            {
-                await _aDGraphWrapper._graphClient.Users[email]
-                .Messages[markSuccessMessage.Id]
-                .PatchAsync(new Message
+                var faultedReprocess = new List<Message>();
+                var toks = await ProcessMessagesAsync(failedMessages, brokerDTO, faultedReprocess);
+                totaltokens += toks;
+                var success = failedMessages.Where(m => !faultedReprocess.Contains(m));
+                foreach (var markSuccessMessage in success)
                 {
-                    SingleValueExtendedProperties = new()
+                    await _aDGraphWrapper._graphClient.Users[email]
+                    .Messages[markSuccessMessage.Id]
+                    .PatchAsync(new Message
                     {
+                        SingleValueExtendedProperties = new()
+                        {
                       new SingleValueLegacyExtendedProperty
                       {
                         Id = APIConstants.ReprocessMessExtendedPropId,
                         Value = "0"
                       }
-                    }
-                });
+                        }
+                    });
+                }
             }
         }
         catch (Exception ex)
