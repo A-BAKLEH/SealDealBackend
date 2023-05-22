@@ -5,6 +5,7 @@ using Web.ControllerServices.QuickServices;
 using Web.HTTPClients;
 using Web.Outbox.Config;
 using Web.Processing.ActionPlans;
+using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 using Web.Processing.Various;
 using Web.RealTimeNotifs;
@@ -16,6 +17,7 @@ namespace Web
         public static void AddWebServices(this IServiceCollection services)
         {
             services.AddScoped<ActionExecuter>();
+            services.AddScoped<NotifAnalyzer>();
 
             services.AddScoped<AuthorizationService>();
             services.AddScoped<BrokerQService>();

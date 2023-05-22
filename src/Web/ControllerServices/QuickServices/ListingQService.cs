@@ -129,6 +129,10 @@ public class ListingQService
             apt = dto.Address.apt.Replace(" ", "");
         }
         var formatted = streetAddress.FormatStreetAddress();
+
+        var listingStatus = ListingStatus.Listed;
+        Enum.TryParse(dto.Status, true,out listingStatus);
+
         var listing = new Listing
         {
             Address = new Address
@@ -145,7 +149,7 @@ public class ListingQService
             AgencyId = AgencyId,
             Price = dto.Price,
             URL = dto.URL,
-            Status = dto.Status == "l" ? ListingStatus.Listed : ListingStatus.Sold,
+            Status =  listingStatus,
             AssignedBrokersCount = brokersCount,
             BrokersAssigned = brokersAssignments,
             LeadsGeneratedCount = 0

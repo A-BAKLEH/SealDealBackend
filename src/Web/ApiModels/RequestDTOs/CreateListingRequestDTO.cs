@@ -8,7 +8,7 @@ public class CreateListingRequestDTO
   public string? URL { get; set; }
   public AddressCreateDTO Address { get; set; }
   /// <summary>
-  /// listed l , sold s
+  /// listed , sold
   /// </summary>
   [Required(AllowEmptyStrings = false)]
   public string Status { get; set; }
