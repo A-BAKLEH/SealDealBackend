@@ -5,7 +5,7 @@ public class UpdateLeadDTO
     public string? LeadFirstName { get; set; }
     public string? LeadLastName { get; set; }
     public string? PhoneNumber { get; set; }
-    public List<string> Emails { get; set; }
+    public List<string>? Emails { get; set; }
     public int? Budget { get; set; }
 
     //options: Buyer Renter Unknown

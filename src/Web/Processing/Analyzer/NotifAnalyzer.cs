@@ -11,8 +11,6 @@ public class NotifAnalyzer
         _appDbContext = appDbContext;
         _logger = logger;
     }
-
-
     public async Task AnalyzeNotifsAsync()
     {
         throw new NotImplementedException();
