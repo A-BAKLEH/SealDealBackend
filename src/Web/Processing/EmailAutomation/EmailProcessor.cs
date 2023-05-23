@@ -288,7 +288,7 @@ public class EmailProcessor
           .GetAsync(config =>
           {
               config.QueryParameters.Top = pageSize;
-              config.QueryParameters.Select = new string[] { "id", "sender", "from", "subject", "isRead", "conversationId", "receivedDateTime", "body" };
+              config.QueryParameters.Select = new string[] { "id", "from", "subject", "isRead", "conversationId", "receivedDateTime", "body" };
               config.QueryParameters.Filter = $"receivedDateTime gt {date}";
               config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
               config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
@@ -443,7 +443,7 @@ public class EmailProcessor
         int tokens = 0;
         var KnownLeadEmailEvents = new List<EmailEvent>();
         var KnownLeadTasks = new List<Tuple<Task<EmailEvent>, Message>>();
-        //TODO see if from or sender is better for lead providers
+
         var groupedMessagesBySender = messages.GroupBy(m => m.From.EmailAddress.Address);
 
         var GroupedleadProviderEmails = groupedMessagesBySender.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));

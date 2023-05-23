@@ -73,8 +73,8 @@ public enum EventType
 
     /// <summary>
     /// will only be possible after admin manually assigns lead to a broker
-    /// </summary>
-    LeadUnAssigned = 1 << 5,
+    /// </summary> ******DELETED NOT USED ************
+    //LeadUnAssigned = 1 << 5,
 
     /// <summary>
     /// data: props : APTriggerType, ActionPlanId
@@ -113,5 +113,5 @@ public enum EventType
     /// <summary>
     /// for admin when manually/automation creates a lead and lead is unassigned for > 1 hour
     /// </summary>
-    UnAssignedNewLEad = 1 << 23
+    UnAssignedNewLead = 1 << 23
 }

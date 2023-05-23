@@ -4,7 +4,6 @@ using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces;
-using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using MediatR;
@@ -15,7 +14,6 @@ using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
-using Web.Processing.ActionPlans;
 
 namespace Web.Api.TestingAPI;
 
@@ -53,10 +51,21 @@ public class TestController : ControllerBase
         _actionPQService = actionPQService;
     }
 
-    [HttpGet("testhangfire")]
-    public async Task<IActionResult> test_ef_navigation()
+    [HttpGet("testdictRemove")]
+    public async Task<IActionResult> testdictRemove()
     {
-        BackgroundJob.Enqueue<APProcessor>(p => p.testhangfirecontext(1, null));
+        //var appEvent = new AppEvent
+        //{
+        //    BrokerId = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA"),
+        //    LeadId = null,
+        //};
+        //appEvent.Props["lol"] = "lol";
+        var found = await _appDbContext.AppEvents.FindAsync(25);
+
+        //TECH
+        found.Props.Remove("lol");
+        _appDbContext.Entry(found).Property(f => f.Props).IsModified = true;
+        await _appDbContext.SaveChangesAsync();
         return Ok();
     }
 

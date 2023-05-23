@@ -5,7 +5,8 @@ using SharedKernel;
 namespace Core.Domain.NotificationAggregate;
 
 /// <summary>
-/// respresents notification created by analyzer
+/// respresents notification created by analyzer. 
+/// Not displayed in lead notifs.  
 /// </summary>
 public class Notif : Entity<int>
 {
@@ -16,6 +17,9 @@ public class Notif : Entity<int>
     public DateTimeOffset CreatedTimeStamp { get; set; }
     public EventType NotifType { get; set; }
     public bool isSeen { get; set; } = false;
+    /// <summary>
+    /// 1 to 4
+    /// </summary>
     public byte priority { get; set; }
     /// <summary>
     /// AppEvent Or email that we are reminding of. Depending on NotifType parse as string or int

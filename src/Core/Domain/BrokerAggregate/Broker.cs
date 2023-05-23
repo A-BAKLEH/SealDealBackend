@@ -49,7 +49,7 @@ public class Broker : Entity<Guid>
     /// <summary>
     /// earliest timestamp s.t. all notifs with NotifyBroker = true && time <= LastSeenTimesTamp are seen
     /// </summary>
-    public DateTime LastSeenTimesTamp { get; set; }
+    public DateTime LastSeenTimeStamp { get; set; }
 
     public List<ConnectedEmail>? ConnectedEmails { get; set; }
     public List<Lead>? Leads { get; set; }
