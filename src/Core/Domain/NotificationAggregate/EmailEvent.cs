@@ -19,15 +19,23 @@ public class EmailEvent : Entity<string>
     public int? LeadId { get; set; }
     public Lead? lead { get; set; }
     public DateTimeOffset TimeReceived { get; set; }
-    public bool Seen { get; set; } = false;
     /// <summary>
-    /// can be null when NeedsAction is null, or when dont know
+    /// ID of conversation in MSFT or Thread in gmail. useful to see if broker replied to email
     /// </summary>
-    public bool? RepliedTo { get; set; }
+    public string? ConversationId { get; set; }
+    /// <summary>
+    /// email seen by broker
+    /// </summary>
+    public bool Seen { get; set; } = false;
+
+    /// <summary>
+    /// or forwarded
+    /// </summary>
+    public bool RepliedTo { get; set; } = false;
     /// <summary>
     /// needs reply or forward
     /// </summary>
-    public bool? NeedsAction { get; set; } = null;
+    public bool NeedsAction { get; set; } = false;
     /// <summary>
     /// true if lead was extracted from email
     /// </summary>

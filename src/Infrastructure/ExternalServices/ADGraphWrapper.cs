@@ -35,4 +35,27 @@ public class ADGraphWrapper
         }
         return _graphClient;
     }
+
+    /// <summary>
+    /// always creates and returns new client. does not save it in adGraphWrapper
+    /// </summary>
+    /// <param name="tenantId"></param>
+    /// <returns></returns>
+    public GraphServiceClient CreateExtraClient(string tenantId)
+    {
+
+        var scopes = new[] { "https://graph.microsoft.com/.default" };
+        var clientId = _configurationSection["ClientId"];
+        var clientSecret = _configurationSection["ClientSecret"];
+
+        // using Azure.Identity;
+        var options = new TokenCredentialOptions
+        {
+            AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
+        };
+        var clientSecretCredential = new ClientSecretCredential(
+            tenantId, clientId, clientSecret, options);
+
+        return new GraphServiceClient(clientSecretCredential, scopes);
+    }
 }

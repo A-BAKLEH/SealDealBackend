@@ -16,13 +16,16 @@ public class Notif : Entity<int>
     public Lead? lead { get; set; }
     public DateTimeOffset CreatedTimeStamp { get; set; }
     public EventType NotifType { get; set; }
+    /// <summary>
+    /// when isSeen,dont show to user and its marked for deletion in nightly task.
+    /// </summary>
     public bool isSeen { get; set; } = false;
     /// <summary>
     /// 1 to 4
     /// </summary>
     public byte priority { get; set; }
     /// <summary>
-    /// AppEvent Or email that we are reminding of. Depending on NotifType parse as string or int
+    /// AppEvent (int) Or email that we are reminding of. Depending on NotifType parse as string or int
     /// </summary>
     public string? EventId { get; set; }
 

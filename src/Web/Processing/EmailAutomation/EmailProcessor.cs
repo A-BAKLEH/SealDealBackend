@@ -391,7 +391,7 @@ public class EmailProcessor
     /// <param name="message"></param>
     /// <param name="brokerEmail"></param>
     /// <returns></returns>
-    public async Task<EmailEvent> CreateEmailEventKnownLead(Message message, string brokerEmail, int leadId)
+    public async Task<EmailEvent?> CreateEmailEventKnownLead(Message message, string brokerEmail, int leadId)
     {
         var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
         var date = date1.ToString("o");
@@ -401,8 +401,8 @@ public class EmailProcessor
           .Messages
           .GetAsync(config =>
           {
-              config.QueryParameters.Top = 4;
-              config.QueryParameters.Select = new string[] { "id", "sender", "from", "conversationId", "receivedDateTime" };
+              config.QueryParameters.Top = 3;
+              config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "receivedDateTime" };
               config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq {message.ConversationId}";
               config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
               config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
@@ -420,11 +420,13 @@ public class EmailProcessor
         };
         if (messList.Count == 1 && messList[0].Id == message.Id)
         {
+            emailEvent.ConversationId = message.ConversationId;
             emailEvent.NeedsAction = true;
-            emailEvent.RepliedTo = false;
+            emailEvent.RepliedTo = false;           
         }
         else
         {
+            if ((bool)message.IsRead) return null;
             emailEvent.NeedsAction = false;
         }
         return emailEvent;
@@ -442,7 +444,7 @@ public class EmailProcessor
         using var localdbContext = _contextFactory.CreateDbContext();
         int tokens = 0;
         var KnownLeadEmailEvents = new List<EmailEvent>();
-        var KnownLeadTasks = new List<Tuple<Task<EmailEvent>, Message>>();
+        var KnownLeadTasks = new List<Tuple<Task<EmailEvent?>, Message>>();
 
         var groupedMessagesBySender = messages.GroupBy(m => m.From.EmailAddress.Address);
 
@@ -492,7 +494,7 @@ public class EmailProcessor
                     }
                     else
                     { //just 1 message, check that its not in a conversation
-                        KnownLeadTasks.Add(new Tuple<Task<EmailEvent>, Message>(CreateEmailEventKnownLead(convo.First(), brokerDTO.BrokerEmail, leadEmail.LeadId), convo.First()));
+                        KnownLeadTasks.Add(new Tuple<Task<EmailEvent?>, Message>(CreateEmailEventKnownLead(convo.First(), brokerDTO.BrokerEmail, leadEmail.LeadId), convo.First()));
                     }
                 }
             }
@@ -514,7 +516,7 @@ public class EmailProcessor
         }
         catch { }
 
-        var tempEvents = KnownLeadTasks.Select(t => t.Item1.Result).ToList();
+        var tempEvents = KnownLeadTasks.Select(t => t.Item1.Result).Where(e => e != null).ToList();
         tempEvents.ForEach(e => e.BrokerId = brokerDTO.Id);
         KnownLeadEmailEvents.AddRange(tempEvents);
         localdbContext.AddRange(KnownLeadEmailEvents);
@@ -769,8 +771,8 @@ public class EmailProcessor
             NeedsAction = !FromLeadProvider, //method called when mess from leadProvider OR new lead 
             //directly messaging. When directly messaging it needs reply.
         };
-        //TODO see if from or sender is better for lead providers
         if (FromLeadProvider) emailEvent.LeadProviderEmail = message.From.EmailAddress.Address;
+        else emailEvent.ConversationId = message.ConversationId;
         lead.EmailEvents = new() { emailEvent };
 
         if (brokerDTO.isSolo || !brokerDTO.isAdmin) //solo broker or non admin

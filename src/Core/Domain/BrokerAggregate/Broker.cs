@@ -43,13 +43,25 @@ public class Broker : Entity<Guid>
     public bool MarkEmailsRead { get; set; } = true;
 
     /// <summary>
-    /// smallest id s.t. all notifs with NotifyBroker = true && id <= LastSeenNotifId are seen
+    /// smallest id s.t. all appEvents with NotifyBroker = true && id smaller than LastSeenNotifId are seen. no idea
+    /// if event with this id is seen or unseen. This is to decrease number of results returned when querying for unseen events
     /// </summary>
-    public int LastSeenNotifId { get; set; } = 0;
+    public int LastSeenAppEventId { get; set; } = 0;
+
     /// <summary>
-    /// earliest timestamp s.t. all notifs with NotifyBroker = true && time <= LastSeenTimesTamp are seen
+    /// biggest AppEvent Id analyzed for this broker
     /// </summary>
-    public DateTime LastSeenTimeStamp { get; set; }
+    public int AppEventAnalyzerLastId { get; set; } = 0;
+
+    /// <summary>
+    /// just for admins (not solo brokers)
+    /// </summary>
+    public int LastUnassignedLeadIdAnalyzed { get; set; } = 0;
+
+    /// <summary>
+    /// last timestamp analyzed from emailEvents for this broker
+    /// </summary>
+    public DateTimeOffset EmailEventAnalyzerLastTimestamp { get; set; }
 
     public List<ConnectedEmail>? ConnectedEmails { get; set; }
     public List<Lead>? Leads { get; set; }
