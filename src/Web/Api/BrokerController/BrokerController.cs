@@ -101,7 +101,7 @@ public class BrokerController : BaseApiController
     {
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-        if (!brokerTuple.Item3 || !brokerTuple.Item2)
+        if (!brokerTuple.Item2)
         {
             _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} or Non-paying tried to add brokers", TagConstants.Unauthorized, id);
             return Unauthorized();
