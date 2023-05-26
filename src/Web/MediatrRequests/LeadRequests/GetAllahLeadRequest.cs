@@ -40,12 +40,13 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
               Note = l.Note,
               PhoneNumber = l.PhoneNumber,
               Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName }),
-              ActionPlanAssociations = l.ActionPlanAssociations.Select(ass => new ActionPlanAssociationDTO
+              ActionPlanAssociations = l.ActionPlanAssociations.Where(asss => asss.ThisActionPlanStatus == Core.Domain.ActionPlanAggregate.ActionPlanStatus.Running)
+              .Select(ass => new ActionPlanAssociationDTO
               {
                   Id = ass.Id,
                   APID = (int)ass.ActionPlanId,
-                  APStatus = ass.ThisActionPlanStatus,
-                  APName = ass.ActionPlan.Name
+                  APStatus = ass.ThisActionPlanStatus.ToString(),
+                  APName = ass.ActionPlan.Name,
               }),
           }).FirstOrDefaultAsync(l => l.LeadId == request.leadId && l.brokerId == request.BrokerId);
 
