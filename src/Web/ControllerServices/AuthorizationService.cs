@@ -48,6 +48,22 @@ public class AuthorizationService
         {
             throw new InconsistentStateException("VerifyAccount", "Broker not found in DB", id.ToString());
         }
+
+        if(broker.TimeZoneId == null)
+        {
+            if(TimeZoneId == null)
+            {
+                var adminTimeZoneId = await _appDbContext.Brokers
+                    .Select(a => new { a.TimeZoneId, a.Id, a.AgencyId, a.isAdmin})
+                    .FirstAsync(b => b.AgencyId == broker.AgencyId && b.isAdmin);
+                broker.TimeZoneId = adminTimeZoneId.TimeZoneId;
+            }
+            else broker.TimeZoneId = TimeZoneId;
+
+            await _appDbContext.SaveChangesAsync();
+        }
+
+
         response.AgencyId = broker.AgencyId;
         response.BrokerId = id;
         response.Created = broker.Created;
@@ -64,7 +80,7 @@ public class AuthorizationService
         {
             response.AccountStatus.TimeZoneChangeDetected = true;
             response.AccountStatus.MainTimeZone = broker.TimeZoneId;
-            response.AccountStatus.DetectedTimeZone = TimeZoneId;
+            response.AccountStatus.DetectedTimeZone = TimeZoneId;            
         }
         //TODO: maybe handle if account is active but subscription is not?
         if (broker.AccountActive)
