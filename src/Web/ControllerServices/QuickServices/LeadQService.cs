@@ -9,15 +9,18 @@ using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using Web.ApiModels;
 using Web.Constants;
+using Web.Outbox.Config;
+using Web.Outbox;
 
 namespace Web.ControllerServices.QuickServices;
 
 public class LeadQService
 {
     private readonly AppDbContext _appDbContext;
-
-    public LeadQService(AppDbContext appDbContext)
+    private readonly ILogger<LeadQService> _logger;
+    public LeadQService(AppDbContext appDbContext, ILogger<LeadQService> logger)
     {
+        _logger = logger;
         _appDbContext = appDbContext;
     }
 
@@ -226,17 +229,23 @@ public class LeadQService
     {
         //TODO later adjust for multiple admins
         var creationEvent = await _appDbContext.AppEvents
+            .Include(e => e.lead)
             .FirstOrDefaultAsync(e => e.BrokerId == adminId && e.LeadId == LeadId && e.EventType == EventType.LeadCreated);
+
+        creationEvent.lead.BrokerId = AssignToId;
 
         var brokerIds = new List<Guid> {adminId, AssignToId };
         var brokers = await _appDbContext.Brokers
+            .Select(b => new { b.Id, b.isAdmin, b.FirstName, b.LastName})
             .Where(b => brokerIds.Contains(b.Id))
+            .AsNoTracking()
             .ToListAsync();
         var adminBroker = brokers.FirstOrDefault(b => b.Id == adminId);
         var broker = brokers.FirstOrDefault(b => b.Id == AssignToId);
 
         creationEvent.Props[NotificationJSONKeys.AssignedToId] = AssignToId.ToString();
         creationEvent.Props[NotificationJSONKeys.AssignedToFullName] = $"{broker.FirstName} {broker.LastName}";
+        _appDbContext.Entry(creationEvent).Property(f => f.Props).IsModified = true;
 
         var AssignEvent = new AppEvent
         {
@@ -252,5 +261,21 @@ public class LeadQService
         AssignEvent.Props[NotificationJSONKeys.AssignedById] = adminId.ToString();
         AssignEvent.Props[NotificationJSONKeys.AssignedByFullName] = $"{adminBroker.FirstName} {adminBroker.LastName}";
         _appDbContext.AppEvents.Add(AssignEvent);
+
+        await _appDbContext.SaveChangesAsync();
+
+        var notifId = AssignEvent.Id;
+        var leadAssignedEvent = new LeadAssigned { AppEventId = notifId };
+        try
+        {
+            var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent));
+        }
+        catch (Exception ex)
+        {
+            //TODO refactor log message
+            _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for LeadAssigned Event for notif" +
+              "with {NotifId} with error {Error}", notifId, ex.Message);
+            OutboxMemCache.SchedulingErrorDict.TryAdd(notifId, leadAssignedEvent);
+        }
     }
 }

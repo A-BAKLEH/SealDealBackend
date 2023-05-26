@@ -24,8 +24,8 @@ public class LeadController : BaseApiController
         _leadQService = leadQService;
     }
 
-    [HttpPost("AssignToBroker/{LeadId}/{BrokerId}")]
-    public async Task<IActionResult> AssignToBroker(int LeadId, Guid brokerId)
+    [HttpPost("AssignToBroker")]
+    public async Task<IActionResult> AssignToBroker([FromBody] AssignBrokerPOSTDTO dto)
     {
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -35,7 +35,7 @@ public class LeadController : BaseApiController
             return Forbid();
         }
 
-        await _leadQService.AssignLeadToBroker(id, brokerId, LeadId);
+        await _leadQService.AssignLeadToBroker(id, dto.brokerId, dto.LeadID);
         return Ok();
     }
 
