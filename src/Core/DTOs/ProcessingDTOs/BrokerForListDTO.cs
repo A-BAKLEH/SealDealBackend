@@ -9,6 +9,4 @@ public class BrokerForListDTO
   public string SigninEmail { get; set; }
   public string PhoneNumber { get; set; }
   public DateTime created { get; set; }
-  public int LeadsCount { get; set; }
-  public int ListingsCount { get; set; }
 }

@@ -55,8 +55,6 @@ public class BrokerQService
               LastName = b.LastName,
               SigninEmail = b.LoginEmail,
               created = b.Created.UtcDateTime,
-              LeadsCount = b.Leads.Count,
-              ListingsCount = b.AssignedListings.Count,
               PhoneNumber = b.PhoneNumber
           })
           .ToListAsync();
