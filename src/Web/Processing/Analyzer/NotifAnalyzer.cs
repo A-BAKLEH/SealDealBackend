@@ -30,39 +30,49 @@ public class NotifAnalyzer
     /// <returns></returns>
     public async Task<Tuple<bool, bool>> CheckSeenAndRepliedToAsync(GraphServiceClient graphServiceClient, string brokerEmail, string messageId, string? convoId, bool Seen, bool Reply)
     {
-        if (Seen && !Reply)
+        try
         {
-            var mess = await graphServiceClient
-            .Users[brokerEmail]
-            .Messages[messageId]
-            .GetAsync(config =>
+            if (Seen && !Reply)
             {
-                config.QueryParameters.Select = new string[] { "id", "isRead" };
-                config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
-            });
-            return new Tuple<bool, bool>((bool)mess.IsRead, false);
+                var mess = await graphServiceClient
+                .Users[brokerEmail]
+                .Messages[messageId]
+                .GetAsync(config =>
+                {
+                    config.QueryParameters.Select = new string[] { "id", "isRead" };
+                    config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+                });
+                return new Tuple<bool, bool>((bool)mess.IsRead, false);
+            }
+            else
+            {
+                var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
+                var date = date1.ToString("o");
+                var messages = await graphServiceClient
+                  .Users[brokerEmail]
+                  .Messages
+                  .GetAsync(config =>
+                  {
+                      config.QueryParameters.Top = 5;
+                      config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "isRead", "toRecipients", "receivedDateTime" };
+                      config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq {convoId}";
+                      config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+                      config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+                  });
+                var messs = messages.Value;
+                bool replied = messs.Count > 1 && messs.Any(m => m.From.EmailAddress.Address == brokerEmail);
+                bool originalSeen = replied;
+                if (!replied) originalSeen = (bool)messs.First(m => m.Id == messageId).IsRead;
+                return new Tuple<bool, bool>(replied, replied);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
-            var date = date1.ToString("o");
-            var messages = await graphServiceClient
-              .Users[brokerEmail]
-              .Messages
-              .GetAsync(config =>
-              {
-                  config.QueryParameters.Top = 5;
-                  config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "isRead", "toRecipients", "receivedDateTime" };
-                  config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq {convoId}";
-                  config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
-                  config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
-              });
-            var messs = messages.Value;
-            bool replied = messs.Count > 1 && messs.Any(m => m.From.EmailAddress.Address == brokerEmail);
-            bool originalSeen = replied;
-            if (!replied) originalSeen = (bool)messs.First(m => m.Id == messageId).IsRead;
-            return new Tuple<bool, bool>(replied, replied);
+            //TODO: log
+            _logger.LogCritical("sdf {error}", ex.Message);
+            return new Tuple<bool, bool>(true, true);
         }
+
     }
     public async Task AnalyzeNotifsAsync(Guid brokerId)
     {
@@ -201,7 +211,45 @@ public class NotifAnalyzer
             broker.EmailEventAnalyzerLastTimestamp = newEmailEventAnalyzerLastTimestamp;
         }
 
+        var StillUnRepliedEmailEvents = await dbcontext.EmailEvents
+            .Where(e => e.BrokerId == brokerId && e.Seen && e.NeedsAction && !e.RepliedTo && e.TimeReceived < broker.EmailEventAnalyzerLastTimestamp)
+            .OrderBy(e => e.TimeReceived)
+            .ToListAsync();
+        emails = StillUnRepliedEmailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
+        foreach (var e in emails)
+        {
+            if (!dict.ContainsKey(e)) dict.Add(e, _aDGraphWrapper.CreateExtraClient(broker.ConnectedEmails.First(connemail => connemail.Email == e).tenantId));
+        }
+        if (StillUnRepliedEmailEvents.Count > 0)
+        {
+            foreach (var unrepliedEmail in StillUnRepliedEmailEvents)
+            {
+                //check replied-to in graph
+                var resT = await CheckSeenAndRepliedToAsync(dict[unrepliedEmail.BrokerEmail], unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, false, true);
+                var existingNotif = await dbcontext.Notifs.FirstOrDefaultAsync(n => n.BrokerId == brokerId && n.LeadId == unrepliedEmail.LeadId && !n.isSeen && n.NotifType == EventType.UnrepliedEmail && n.EventId == unrepliedEmail.Id);
 
+                //replied to
+                if (resT.Item2)
+                {
+                    unrepliedEmail.RepliedTo = true;
+                    if(existingNotif != null) existingNotif.isSeen = true;
+                }
+                //still unreplied to
+                else if (existingNotif != null)
+                {
+                    notifs.Add(new Notif
+                    {
+                        BrokerId = brokerId,
+                        LeadId = unrepliedEmail.LeadId,
+                        NotifType = EventType.UnrepliedEmail,
+                        CreatedTimeStamp = DateTimeOffset.UtcNow,
+                        isSeen = false,
+                        EventId = unrepliedEmail.Id,
+                        priority = 2
+                    });
+                }
+            }
+        }
         //----------------------
         var appeventFilterBiggerThanID = 0;
         if (broker.AppEventAnalyzerLastId > NewLastSeenAppEventId || broker.AppEventAnalyzerLastId == NewLastSeenAppEventId) appeventFilterBiggerThanID = broker.AppEventAnalyzerLastId;
@@ -247,7 +295,7 @@ public class NotifAnalyzer
 
         //if admin get all unassigned created Leads that have been unassigned for 1 > hours (priority 1)
         var NowMinusOneHour = TimeNow - TimeSpan.FromHours(1);
-        if (broker.isAdmin)
+        if (broker.isAdmin && !broker.isSolo)
         {
             var unassignedCreatedLeads = await dbcontext.Leads
                 .Where(x => x.AgencyId == broker.AgencyId && x.Id >= broker.LastUnassignedLeadIdAnalyzed && x.BrokerId == null && x.EntryDate <= NowMinusOneHour)

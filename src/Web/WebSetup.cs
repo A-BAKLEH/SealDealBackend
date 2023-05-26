@@ -8,7 +8,6 @@ using Web.Processing.ActionPlans;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 using Web.Processing.Various;
-using Web.RealTimeNotifs;
 
 namespace Web
 {
@@ -18,6 +17,7 @@ namespace Web
         {
             services.AddScoped<ActionExecuter>();
             services.AddScoped<NotifAnalyzer>();
+            services.AddScoped<NotificationService>();
 
             services.AddScoped<AuthorizationService>();
             services.AddScoped<BrokerQService>();

@@ -174,7 +174,8 @@ public class LeadQService
               PhoneNumber = l.PhoneNumber,
               source = l.source.ToString(),
               language = l.Language.ToString(),
-              Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName })
+              Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName }),
+              RunningWorkflows = l.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Select(apa => new RunningLeadActionPlanDTO { ActionPlanId = (int) apa.ActionPlanId, ActionPlanName = apa.ActionPlan.Name })
           })
           .OrderByDescending(l => l.LeadId)
           .ToListAsync();

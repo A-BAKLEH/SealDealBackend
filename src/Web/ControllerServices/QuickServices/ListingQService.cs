@@ -75,7 +75,7 @@ public class ListingQService
                     BrokerId = b.BrokerId,
                     firstName = b.Broker.FirstName,
                     lastName = b.Broker.LastName
-                })
+                }),
             }).AsNoTracking()
             .ToListAsync();
         }

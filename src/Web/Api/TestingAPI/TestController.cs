@@ -141,6 +141,21 @@ public class TestController : ControllerBase
         return Ok();
     }
 
+    [HttpGet("testGroupBy")]
+    public async Task<IActionResult> testGroupBy()
+    {
+        //var id = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA");
+        //var EmailEventsTask = await _appDbContext.EmailEvents
+        //    .Where(e => e.BrokerId == id && !e.Seen && e.LeadId != null)
+        //    .Select(e => new { e.Id, e.LeadId, e.BrokerEmail, e.Seen, e.TimeReceived })
+        //    .GroupBy(e => e.LeadId)
+        //    .Select(g => new {g.Key,  })
+        //    .AsNoTracking()
+        //    .ToListAsync();
+       // var lol = id;
+        return Ok();
+    }
+
     [HttpGet("create-data")]
     public async Task<IActionResult> createData()
     {

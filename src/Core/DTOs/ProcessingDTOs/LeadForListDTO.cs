@@ -15,6 +15,7 @@ public class LeadForListDTO
     public string LeadStatus { get; set; }
     public NoteDTO? Note { get; set; }
     public IEnumerable<TagDTO>? Tags { get; set; }
+    public IEnumerable<RunningLeadActionPlanDTO> RunningWorkflows { get; set; }
 
 }
 
