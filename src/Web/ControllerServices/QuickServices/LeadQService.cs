@@ -1,12 +1,14 @@
 ﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.LeadAggregate;
+using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using Web.ApiModels;
+using Web.Constants;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -216,7 +218,39 @@ public class LeadQService
             item.Emails.Remove(first);
             item.Emails.Insert(0, first);
         }
-
         return leads;
+    }
+
+
+    public async Task AssignLeadToBroker(Guid adminId, Guid AssignToId, int LeadId)
+    {
+        //TODO later adjust for multiple admins
+        var creationEvent = await _appDbContext.AppEvents
+            .FirstOrDefaultAsync(e => e.BrokerId == adminId && e.LeadId == LeadId && e.EventType == EventType.LeadCreated);
+
+        var brokerIds = new List<Guid> {adminId, AssignToId };
+        var brokers = await _appDbContext.Brokers
+            .Where(b => brokerIds.Contains(b.Id))
+            .ToListAsync();
+        var adminBroker = brokers.FirstOrDefault(b => b.Id == adminId);
+        var broker = brokers.FirstOrDefault(b => b.Id == AssignToId);
+
+        creationEvent.Props[NotificationJSONKeys.AssignedToId] = AssignToId.ToString();
+        creationEvent.Props[NotificationJSONKeys.AssignedToFullName] = $"{broker.FirstName} {broker.LastName}";
+
+        var AssignEvent = new AppEvent
+        {
+            BrokerId = AssignToId,
+            LeadId = LeadId,
+            EventType = EventType.LeadAssigned,
+            EventTimeStamp = DateTimeOffset.UtcNow,
+            NotifyBroker = true,
+            ProcessingStatus = ProcessingStatus.Scheduled,
+            ReadByBroker = false,
+            IsActionPlanResult = false
+        };
+        AssignEvent.Props[NotificationJSONKeys.AssignedById] = adminId.ToString();
+        AssignEvent.Props[NotificationJSONKeys.AssignedByFullName] = $"{adminBroker.FirstName} {adminBroker.LastName}";
+        _appDbContext.AppEvents.Add(AssignEvent);
     }
 }

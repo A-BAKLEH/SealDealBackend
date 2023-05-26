@@ -24,6 +24,22 @@ public class LeadController : BaseApiController
         _leadQService = leadQService;
     }
 
+    [HttpPost("AssignToBroker/{LeadId}/{BrokerId}")]
+    public async Task<IActionResult> AssignToBroker(int LeadId, Guid brokerId)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2 || !brokerTuple.Item3)
+        {
+            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
+            return Forbid();
+        }
+
+        await _leadQService.AssignLeadToBroker(id, brokerId, LeadId);
+        return Ok();
+    }
+
+
     [HttpPost]
     public async Task<IActionResult> CreateLead([FromBody] CreateLeadDTO createLeadDTO)
     {

@@ -97,8 +97,8 @@ public class ActionPlansController : BaseApiController
         return Ok(res);
     }
 
-    [HttpPatch("ToggleAutoTrigger/{ActionPlanId}/{Toggle}")]
-    public async Task<IActionResult> ToggleAutoTrigger(int ActionPlanId, bool Toggle)
+    [HttpPatch("ToggleAutoTrigger")]
+    public async Task<IActionResult> ToggleAutoTrigger([FromBody] PatchActionPlanTriggerDTO dto)
     {
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -107,8 +107,7 @@ public class ActionPlansController : BaseApiController
             _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
             return Forbid();
         }
-        await _actionPQService.ToggleAutoTriggerAsync(id, Toggle, ActionPlanId);
-
+        await _actionPQService.ToggleAutoTriggerAsync(id, dto.Toggle, dto.ActionPlanId);
         return Ok();
     }
 }
