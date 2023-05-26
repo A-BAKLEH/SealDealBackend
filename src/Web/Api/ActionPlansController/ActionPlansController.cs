@@ -12,88 +12,103 @@ namespace Web.Api.ActionPlansController;
 [Authorize]
 public class ActionPlansController : BaseApiController
 {
-  private readonly ILogger<ActionPlansController> _logger;
-  private readonly ActionPQService _actionPQService;
-  public ActionPlansController(AuthorizationService authorizeService, ActionPQService actionPQService, IMediator mediator, ILogger<ActionPlansController> logger) : base(authorizeService, mediator)
-  {
-    _logger = logger;
-    _actionPQService = actionPQService;
-  }
-
-
-  [HttpPost]
-  public async Task<IActionResult> Create([FromBody] CreateActionPlanDTO dto)
-  {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-    if (!brokerTuple.Item2)
+    private readonly ILogger<ActionPlansController> _logger;
+    private readonly ActionPQService _actionPQService;
+    public ActionPlansController(AuthorizationService authorizeService, ActionPQService actionPQService, IMediator mediator, ILogger<ActionPlansController> logger) : base(authorizeService, mediator)
     {
-      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
-      return Forbid();
+        _logger = logger;
+        _actionPQService = actionPQService;
     }
 
-    var result = await _actionPQService.CreateActionPlanAsync(dto,id);
 
-    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
-    result.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, result.TimeCreated);
-
-    return Ok(result);
-  }
-
-
-  [HttpDelete("{ActionPlanId}")]
-  public async Task<IActionResult> Delete(int ActionPlanId)
-  {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-    if (!brokerTuple.Item2)
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateActionPlanDTO dto)
     {
-      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
-      return Forbid();
-    }
-    await _actionPQService.DeleteActionPlanAsync(id,ActionPlanId);
-    return Ok();
-  }
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
+            return Forbid();
+        }
 
+        var result = await _actionPQService.CreateActionPlanAsync(dto, id);
 
-  [HttpGet]
-  public async Task<IActionResult> GetMyAPs()
-  {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-    if (!brokerTuple.Item2)
-    {
-      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
-      return Forbid();
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+        result.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, result.TimeCreated);
+
+        return Ok(result);
     }
 
-    var result = await _actionPQService.GetMyActionPlansAsync(id);
 
-    var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
-    foreach (var item in result)
+    [HttpDelete("{ActionPlanId}")]
+    public async Task<IActionResult> Delete(int ActionPlanId)
     {
-      item.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, item.TimeCreated);
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        await _actionPQService.DeleteActionPlanAsync(id, ActionPlanId);
+        return Ok();
     }
-    return Ok(result);
-  }
 
-  /// <summary>
-  /// manually starts an action plan for a lead
-  /// </summary>
-  /// <param name="dto"></param>
-  /// <returns></returns>
-  [HttpPost("ManualStart")]
-  public async Task<IActionResult> ManualStart([FromBody] StartActionPlanDTO dto)
-  {
-    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-    var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-    if (!brokerTuple.Item2)
+
+    [HttpGet]
+    public async Task<IActionResult> GetMyAPs()
     {
-      _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
-      return Forbid();
-    }
-     var res = await _actionPQService.StartLeadActionPlanManually(id,dto);
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
+            return Forbid();
+        }
 
-    return Ok(res);
-  }
+        var result = await _actionPQService.GetMyActionPlansAsync(id);
+
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+        foreach (var item in result)
+        {
+            item.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, item.TimeCreated);
+        }
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// manually starts an action plan for a lead
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPost("ManualStart")]
+    public async Task<IActionResult> ManualStart([FromBody] StartActionPlanDTO dto)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        var res = await _actionPQService.StartLeadActionPlanManually(id, dto);
+
+        return Ok(res);
+    }
+
+    [HttpPatch("ToggleAutoTrigger/{ActionPlanId}/{Toggle}")]
+    public async Task<IActionResult> ToggleAutoTrigger(int ActionPlanId, bool Toggle)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        await _actionPQService.ToggleAutoTriggerAsync(id, Toggle, ActionPlanId);
+
+        return Ok();
+    }
 }

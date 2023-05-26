@@ -25,6 +25,13 @@ public class ActionPQService
         _appDbContext = appDbContext;
     }
 
+    public async Task ToggleAutoTriggerAsync(Guid brokerId, bool Toggle, int ActionPlanId)
+    {
+        await _appDbContext.ActionPlans
+            .Where(a => a.Id == ActionPlanId && a.BrokerId == brokerId)
+            .ExecuteUpdateAsync(setters =>
+        setters.SetProperty(a => a.isActive, Toggle));
+    }
     public async Task<List<ActionPlanDTO>> GetMyActionPlansAsync(Guid brokerId)
     {
         var actionPlans = await _appDbContext.ActionPlans
