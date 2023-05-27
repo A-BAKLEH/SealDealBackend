@@ -422,7 +422,7 @@ public class EmailProcessor
         {
             emailEvent.ConversationId = message.ConversationId;
             emailEvent.NeedsAction = true;
-            emailEvent.RepliedTo = false;           
+            emailEvent.RepliedTo = false;
         }
         else
         {
@@ -779,7 +779,7 @@ public class EmailProcessor
         {
             //always assign lead to self, if no listing found THAT IS ASSIGNED
             //TO SELF for non-admin non-solo broker then no listing linked, if listing found for soloBroker always link
-            LeadCreationNotif.EventType = EventType.LeadCreated | EventType.LeadAssigned;
+            LeadCreationNotif.EventType = EventType.LeadCreated | EventType.LeadAssignedToYou;
             lead.BrokerId = brokerDTO.Id;
             if (listingFound)
             {
@@ -821,13 +821,13 @@ public class EmailProcessor
                     if (brokerToAssignToId == brokerDTO.Id)//if assigned to self
                     {
                         lead.BrokerId = brokerDTO.Id;
-                        LeadCreationNotif.EventType = EventType.LeadCreated | EventType.LeadAssigned;
+                        LeadCreationNotif.EventType = EventType.LeadCreated | EventType.LeadAssignedToYou;
                     }
                     //if admin email's auto lead assignment is turned on, assign to broker
                     else if (brokerDTO.AssignLeadsAuto)
                     {
                         lead.BrokerId = brokerToAssignToId;
-
+                        LeadCreationNotif.EventType = EventType.LeadCreated | EventType.YouAssignedtoBroker;
                         LeadCreationNotif.Props[NotificationJSONKeys.AssignedToId] = brokerToAssignToId.ToString();
                         LeadCreationNotif.Props[NotificationJSONKeys.AssignedToFullName] = brokerToAssignToFullName;
 
@@ -839,7 +839,7 @@ public class EmailProcessor
                             NotifyBroker = true,
                             ReadByBroker = false,
                             BrokerId = brokerToAssignToId,
-                            EventType = EventType.LeadAssigned
+                            EventType = EventType.LeadAssignedToYou
                         };
                         LeadAssignedNotif.Props[NotificationJSONKeys.AssignedById] = brokerDTO.Id.ToString();
                         LeadAssignedNotif.Props[NotificationJSONKeys.AssignedByFullName] = $"{brokerDTO.brokerFirstName} {brokerDTO.brokerLastName}";

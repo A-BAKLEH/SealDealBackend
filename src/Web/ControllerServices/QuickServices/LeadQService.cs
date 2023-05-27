@@ -243,28 +243,43 @@ public class LeadQService
         var adminBroker = brokers.FirstOrDefault(b => b.Id == adminId);
         var broker = brokers.FirstOrDefault(b => b.Id == AssignToId);
 
-        creationEvent.Props[NotificationJSONKeys.AssignedToId] = AssignToId.ToString();
-        creationEvent.Props[NotificationJSONKeys.AssignedToFullName] = $"{broker.FirstName} {broker.LastName}";
-        _appDbContext.Entry(creationEvent).Property(f => f.Props).IsModified = true;
+        //creationEvent.Props[NotificationJSONKeys.AssignedToId] = AssignToId.ToString();
+        //creationEvent.Props[NotificationJSONKeys.AssignedToFullName] = $"{broker.FirstName} {broker.LastName}";
+        //_appDbContext.Entry(creationEvent).Property(f => f.Props).IsModified = true;
 
-        var AssignEvent = new AppEvent
+        var AssignedToYouEvent = new AppEvent
         {
             BrokerId = AssignToId,
             LeadId = LeadId,
-            EventType = EventType.LeadAssigned,
+            EventType = EventType.LeadAssignedToYou,
             EventTimeStamp = DateTimeOffset.UtcNow,
             NotifyBroker = true,
             ProcessingStatus = ProcessingStatus.Scheduled,
             ReadByBroker = false,
             IsActionPlanResult = false
         };
-        AssignEvent.Props[NotificationJSONKeys.AssignedById] = adminId.ToString();
-        AssignEvent.Props[NotificationJSONKeys.AssignedByFullName] = $"{adminBroker.FirstName} {adminBroker.LastName}";
-        _appDbContext.AppEvents.Add(AssignEvent);
+        AssignedToYouEvent.Props[NotificationJSONKeys.AssignedById] = adminId.ToString();
+        AssignedToYouEvent.Props[NotificationJSONKeys.AssignedByFullName] = $"{adminBroker.FirstName} {adminBroker.LastName}";
+        _appDbContext.AppEvents.Add(AssignedToYouEvent);
+
+        var YouAssignedToBrokerEvent = new AppEvent
+        {
+            BrokerId = adminId,
+            LeadId = LeadId,
+            EventType = EventType.YouAssignedtoBroker,
+            EventTimeStamp = DateTimeOffset.UtcNow,
+            NotifyBroker = true,
+            ProcessingStatus = ProcessingStatus.NoNeed,
+            ReadByBroker = true,
+            IsActionPlanResult = false
+        };
+        YouAssignedToBrokerEvent.Props[NotificationJSONKeys.AssignedToId] = broker.Id.ToString();
+        YouAssignedToBrokerEvent.Props[NotificationJSONKeys.AssignedToFullName] = $"{broker.FirstName} {broker.LastName}";
+        _appDbContext.AppEvents.Add(YouAssignedToBrokerEvent);
 
         await _appDbContext.SaveChangesAsync();
 
-        var notifId = AssignEvent.Id;
+        var notifId = AssignedToYouEvent.Id;
         var leadAssignedEvent = new LeadAssigned { AppEventId = notifId };
         try
         {

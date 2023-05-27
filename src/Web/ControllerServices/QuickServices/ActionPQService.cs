@@ -73,7 +73,7 @@ public class ActionPQService
         switch (dto.Trigger)
         {
             case "LeadAssigned":
-                trigger = EventType.LeadAssigned;
+                trigger = EventType.LeadAssignedToYou;
                 break;
             case "Manual":
                 trigger = EventType.None;

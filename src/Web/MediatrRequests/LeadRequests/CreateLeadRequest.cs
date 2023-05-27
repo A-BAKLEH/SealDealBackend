@@ -98,7 +98,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         AppEvent LeadAssignedEvent = null;
         if (brokerToAssignToId != null)
         {
-            leadCreationEvent.EventType = EventType.LeadCreated | EventType.LeadAssigned;
+            leadCreationEvent.EventType = EventType.LeadCreated | EventType.YouAssignedtoBroker;
             //if assiging to self
             if (!dto.AssignToSelf)
             {
@@ -113,7 +113,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
                     NotifyBroker = true,
                     ReadByBroker = false,
                     BrokerId = (Guid)brokerToAssignToId,
-                    EventType = EventType.LeadAssigned
+                    EventType = EventType.LeadAssignedToYou
                 };
                 LeadAssignedEvent.Props[NotificationJSONKeys.AssignedById] = request.BrokerWhoRequested.Id.ToString();
                 LeadAssignedEvent.Props[NotificationJSONKeys.AssignedByFullName] = request.BrokerWhoRequested.FirstName + " " + request.BrokerWhoRequested.LastName;

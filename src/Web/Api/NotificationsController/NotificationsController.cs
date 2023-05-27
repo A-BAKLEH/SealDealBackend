@@ -32,9 +32,9 @@ public class NotificationsController : BaseApiController
             _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
-
+        //TODO make times local
         var res = await _notificationService.GetAllDashboardNotifs(brokerTuple.Item1.Id);
-        return Ok();
+        return Ok(res);
     }
 
     /// <summary>

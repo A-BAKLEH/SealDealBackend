@@ -59,18 +59,22 @@ public enum EventType
     ListingUnAssigned = 1 << 2,
 
     /// <summary>
-    /// whenever Lead enters the system no matter how. BrokerId is the Id of person who created the Lead,.
+    /// whenever UNASSIGNED Lead enters the system no matter how. BrokerId is the Id of person who created the Lead,.
     /// data: 
     /// </summary>
     LeadCreated = 1 << 3,
 
     /// <summary>
-    /// whenever an association between lead and broker is created, BrokerId is the Id of Broker
+    /// whenever an association between lead and me as a broker is created, BrokerId is the Id of Broker
     /// It is assigned to.
     /// data: UserId who did it, message/comment from person who assigned it if not broker to himself.
     /// </summary>
-    LeadAssigned = 1 << 4,
+    LeadAssignedToYou = 1 << 4,
 
+    /// <summary>
+    /// for admin: when admin assigns a lead to someone else
+    /// </summary>
+    YouAssignedtoBroker = 1 << 5,
     /// <summary>
     /// will only be possible after admin manually assigns lead to a broker
     /// </summary> ******DELETED NOT USED ************
@@ -113,5 +117,5 @@ public enum EventType
     /// <summary>
     /// for admin when manually/automation creates a lead and lead is unassigned for > 1 hour
     /// </summary>
-    UnAssignedNewLead = 1 << 23
+    UnAssignedLead = 1 << 23
 }

@@ -256,17 +256,19 @@ public class NotifAnalyzer
         else appeventFilterBiggerThanID = NewLastSeenAppEventId - 1;
         if (appeventFilterBiggerThanID < 0) appeventFilterBiggerThanID = 0;
 
-        var UnseenAppEventsToAnalyze = await dbcontext.AppEvents
-        .Where(x => x.BrokerId == brokerId && x.Id > appeventFilterBiggerThanID && x.NotifyBroker == true && x.ReadByBroker == false)
+        int leadAssignedToYou = (int)EventType.LeadAssignedToYou;
+        var UnseenLeadAssignedEventsToAnalyze = await dbcontext.AppEvents
+        .Where(x => x.BrokerId == brokerId && x.Id > appeventFilterBiggerThanID && x.NotifyBroker == true && x.ReadByBroker == false &&
+        (((int)x.EventType & leadAssignedToYou) > 0))
         .OrderBy(x => x.Id)
         .AsNoTracking()
         .ToListAsync();
 
         var currHighestAnalyzedAppEventId = 0;
-        UnseenAppEventsToAnalyze.ForEach(e =>
+        UnseenLeadAssignedEventsToAnalyze.ForEach(e =>
             {
                 //unseen LeadAssigned events > 15 mins
-                if (e.EventType.HasFlag(EventType.LeadAssigned) && e.EventTimeStamp <= TimeNow - TimeSpan.FromMinutes(15))
+                if (e.EventTimeStamp <= TimeNow - TimeSpan.FromMinutes(15))
                 {
                     currHighestAnalyzedAppEventId = e.Id;
                     notifs.Add(new Notif
@@ -279,18 +281,18 @@ public class NotifAnalyzer
                     });
                 }
                 //Other app events with notify Broker = true and Seen = false for > 1 days (priority 4)
-                else if (!e.EventType.HasFlag(EventType.LeadCreated) && e.EventTimeStamp <= TimeNow - TimeSpan.FromDays(1))
-                {
-                    currHighestAnalyzedAppEventId = e.Id;
-                    notifs.Add(new Notif
-                    {
-                        BrokerId = brokerId,
-                        LeadId = e.LeadId,
-                        CreatedTimeStamp = TimeNow,
-                        NotifType = e.EventType,
-                        priority = 4,
-                    });
-                }
+                //else if (!e.EventType.HasFlag(EventType.LeadCreated) && e.EventTimeStamp <= TimeNow - TimeSpan.FromDays(1))
+                //{
+                //    currHighestAnalyzedAppEventId = e.Id;
+                //    notifs.Add(new Notif
+                //    {
+                //        BrokerId = brokerId,
+                //        LeadId = e.LeadId,
+                //        CreatedTimeStamp = TimeNow,
+                //        NotifType = e.EventType,
+                //        priority = 4,
+                //    });
+                //}
             });
 
         //if admin get all unassigned created Leads that have been unassigned for 1 > hours (priority 1)
@@ -307,7 +309,7 @@ public class NotifAnalyzer
                 BrokerId = brokerId,
                 LeadId = l.Id,
                 CreatedTimeStamp = TimeNow,
-                NotifType = EventType.UnAssignedNewLead,
+                NotifType = EventType.UnAssignedLead,
                 priority = 1,
             }));
             broker.LastUnassignedLeadIdAnalyzed = unassignedCreatedLeads.Last().Id;
