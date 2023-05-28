@@ -34,6 +34,25 @@ public class NotificationsController : BaseApiController
         }
         //TODO make times local
         var res = await _notificationService.GetAllDashboardNotifs(brokerTuple.Item1.Id);
+        return Ok(res); 
+    }
+
+    /// <summary>
+    /// all notifs for signin
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("Dashboard/Notifs/NormalTable")]
+    public async Task<IActionResult> UpdateDashboardNormalTable()
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            return Forbid();
+        }
+        //TODO make times local
+        var res = await _notificationService.UpdateNormalTable(brokerTuple.Item1.Id);
         return Ok(res);
     }
 
@@ -41,8 +60,8 @@ public class NotificationsController : BaseApiController
     /// Notifs for dashboard table
     /// </summary>
     /// <returns></returns>
-    [HttpGet("Dashboard/Normal")]
-    public async Task<IActionResult> GetDashboardNormalTableEvents()
+    [HttpGet("Dashboard/Notifs/Priority")]
+    public async Task<IActionResult> UpdateDashboardPriorityTable()
     {
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
@@ -51,24 +70,8 @@ public class NotificationsController : BaseApiController
             _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
-        return Ok();
-    }
-
-    /// <summary>
-    /// Notifs for dashboard table
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("Dashboard/Priority")]
-    public async Task<IActionResult> GetDashboardPriorityTableEvents()
-    {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
-        if (!brokerTuple.Item2)
-        {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
-            return Forbid();
-        }
-        return Ok();
+        var res = await _notificationService.UpdatePriorityTable(id);
+        return Ok(res);
     }
 
     /// <summary>
@@ -85,6 +88,8 @@ public class NotificationsController : BaseApiController
             _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
+
+        var res = await _notificationService.GetPerLeadNewNotifs(id, LeadId, Normal, Priority);
         return Ok();
     }
 
@@ -92,18 +97,18 @@ public class NotificationsController : BaseApiController
     /// Notifs for dashboard table
     /// </summary>
     /// <returns></returns>
-    [HttpGet("Dashboard/Notifs/Other")]
-    public async Task<IActionResult> GetOtherNotifs()
-    {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
-        if (!brokerTuple.Item2)
-        {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
-            return Forbid();
-        }
-        return Ok();
-    }
+    //[HttpGet("Dashboard/Notifs/Other")]
+    //public async Task<IActionResult> GetOtherNotifs()
+    //{
+    //    var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    //    var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+    //    if (!brokerTuple.Item2)
+    //    {
+    //        _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+    //        return Forbid();
+    //    }
+    //    return Ok();
+    //}
     /// <summary>
     /// Notifs for dashboard table
     /// </summary>

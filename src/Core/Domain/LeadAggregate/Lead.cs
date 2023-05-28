@@ -33,6 +33,10 @@ public class Lead : Entity<int>
     /// </summary>
     public EventType EventsForActionPlans { get; set; } = EventType.None;
     public bool HasActionPlanToStop { get; set; } = false;
+
+    /// <summary>
+    /// THIS IS ONLY VALID WHEN lead is assigned to a broker, not when unassigned
+    /// </summary>
     public DateTime LastNotifsViewedAt { get; set; }
     public DateTimeOffset EntryDate { get; set; }
     public LeadSource source { get; set; }

@@ -1,6 +1,5 @@
 ﻿using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
-using System.Collections;
 
 namespace Core.DTOs.NotifsDTO;
 public class AppEventForNotifSelectedDTO
@@ -18,6 +17,7 @@ public class AppEventForNotifSelectedDTO
 }
 public class LeadForNotifsDTO
 {
+    public Guid? brokerId { get; set; }
     public int LeadId { get; set; }
     public string LeadfirstName { get; set; }
     public string LeadLastName { get; set; }
@@ -32,20 +32,11 @@ public class LeadForNotifsDTO
 //actual sent DTOs
 
 public class CompleteDashboardDTO
+
 {
     public List<DashboardPerLeadDTO> LeadRelatedNotifs { get; set; }
-    public List<AppEventsNonLeadDTO> OtherNotifs { get; set; }
+    public List<AppEventsNonLeadDTO>? OtherNotifs { get; set; }
 }
-
-/*public class DashboardNonLeadDTO
-{
-    public List<PriorityNonLeadDTOs> PriorityNonLeadDTOs { get; set; }
-    public List<AppEventsNonLeadDTO> appEventsNonLeadDTOs { get; set; }
-}*/
-/*public class PriorityNonLeadDTOs
-{
-
-}*/
 public class AppEventsNonLeadDTO
 {
     public int AppEventID { get; set; }
@@ -58,6 +49,7 @@ public class AppEventsNonLeadDTO
 public class DashboardPerLeadDTO
 {
     public int LeadId { get; set; }
+    public bool LeadUnAssigned { get; set; }
     public string LeadfirstName { get; set; }
     public string LeadLastName { get; set; }
     public string LeadPhone { get; set; }
@@ -66,10 +58,12 @@ public class DashboardPerLeadDTO
     /// </summary>
     public string LeadEmail { get; set; }
     public string LeadStatus { get; set; }
-    public DateTimeOffset LastTimeYouViewedLead { get; set; }
+    public DateTimeOffset? LastTimeYouViewedLead { get; set; }
+    public DateTimeOffset? MostRecentEventOrEmailTime { get; set; }
+    public byte? HighestPriority { get; set; }
     public IEnumerable<NormalTableLeadAppEventDTO>? AppEvents { get; set; }
-    public List<NormalTableLeadEmailEventDTO>? EmailEvents { get; set; }
-    public List<PriorityTableLeadNotifDTO>? PriorityNotifs { get; set; }
+    public IEnumerable<NormalTableLeadEmailEventDTO>? EmailEvents { get; set; }
+    public IEnumerable<PriorityTableLeadNotifDTO>? PriorityNotifs { get; set; }
 }
 public class NormalTableLeadAppEventDTO
 {

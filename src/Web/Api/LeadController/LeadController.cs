@@ -3,7 +3,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Web.ApiModels;
-using Web.ApiModels.APIResponses.Lead;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
@@ -141,27 +140,27 @@ public class LeadController : BaseApiController
     /// <param name="leadid"></param>
     /// <param name="lastid"></param>
     /// <returns></returns>
-    [HttpGet("Events/{leadid}/{lastid}")]
-    public async Task<IActionResult> GetLeadEvents(int leadid, int lastid)
-    {
-        var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-        var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
-        if (!brokerTuple.Item2)
-        {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
-            return Forbid();
-        }
+    //[HttpGet("Events/{leadid}/{lastid}")]
+    //public async Task<IActionResult> GetLeadEvents(int leadid, int lastid)
+    //{
+    //    var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+    //    var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
+    //    if (!brokerTuple.Item2)
+    //    {
+    //        _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
+    //        return Forbid();
+    //    }
 
-        var notifs = await _mediator.Send(new GetLeadEventsRequest
-        {
-            BrokerId = brokerid,
-            leadId = leadid,
-            lastNotifID = lastid
-        });
-        if (notifs == null || !notifs.Any()) return NotFound();
-        var res = new LeadEventsResponseDTO { events = notifs };
-        return Ok(res);
-    }
+    //    var notifs = await _mediator.Send(new GetLeadEventsRequest
+    //    {
+    //        BrokerId = brokerid,
+    //        leadId = leadid,
+    //        lastNotifID = lastid
+    //    });
+    //    if (notifs == null || !notifs.Any()) return NotFound();
+    //    var res = new LeadEventsResponseDTO { events = notifs };
+    //    return Ok(res);
+    //}
 
     /// <summary>
     /// for leads list, implements paging later, now will just return all leads
@@ -200,7 +199,7 @@ public class LeadController : BaseApiController
             return Forbid();
         }
 
-        var leads = await _leadQService.GetUnAssignedLeadsAsync(brokerid,brokerTuple.Item1.AgencyId);
+        var leads = await _leadQService.GetUnAssignedLeadsAsync(brokerid, brokerTuple.Item1.AgencyId);
         if (leads == null || !leads.Any()) return NotFound();
 
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);

@@ -21,7 +21,8 @@ public class AllahLeadDTO
     public Note? Note { get; set; }
     public IEnumerable<TagDTO>? Tags { get; set; }
     public IEnumerable<ActionPlanAssociationDTO>? ActionPlanAssociations { get; set; }
-    public List<NotifExpandedDTO>? LeadHistoryEvents { get; set; }
+    public IEnumerable<LeadAppEventAllahLeadDTO>? LeadAppEvents { get; set; }
+    public IEnumerable<LeadEmailEventAllahLeadDTO> leadEmailEvents{ get; set; }
     /// <summary>
     /// id of the 
     /// </summary>

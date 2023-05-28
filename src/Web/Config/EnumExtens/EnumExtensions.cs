@@ -1,8 +1,17 @@
-﻿namespace Web.Config.EnumExtens;
+﻿using Core.Domain.NotificationAggregate;
+
+namespace Web.Config.EnumExtens;
 
 public static class EnumExtensions
 {
     //TECH
+
+    public static string ConvertEnumFlagsToString(EventType eventType)
+    {
+        var res = eventType.HasFlag(EventType.LeadCreated) ? string.Join('&', eventType.GetIndividualFlags().Select(f => f.ToString())) : eventType.ToString();
+        return res;
+    }
+
     public static IEnumerable<Enum> GetFlags(this Enum value)
     {
         return GetFlags(value, Enum.GetValues(value.GetType()).Cast<Enum>().ToArray());
