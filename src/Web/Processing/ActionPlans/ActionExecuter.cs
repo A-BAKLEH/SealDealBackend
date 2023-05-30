@@ -7,6 +7,8 @@ using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph.Models;
+using System.Text;
+using System.Text.RegularExpressions;
 using Web.Constants;
 
 namespace Web.Processing.ActionPlans;
@@ -59,6 +61,37 @@ public class ActionExecuter
         return new Tuple<bool, AppEvent?>(true, StatusChangeEvent);
     }
 
+    public string ReplaceTemplateVariables(string input, Lead lead)
+    {
+        //string pattern = @"\$\w+\$"; // Pattern to match words between $$ signs
+        string pattern = @"\$(\w+)\$";
+        //MatchCollection matches = Regex.Matches(input, pattern);
+        //var builder = new StringBuilder(input);
+        var match = Regex.Match(input, pattern);
+        while (match.Success)
+        {
+            string word = match.Groups[1].Value;
+            var wordWithoutDollards = word.Replace("$", "");
+            var index  = match.Groups[1].Index;
+            var replacementValue = "";
+            switch (wordWithoutDollards)
+            {
+                case "firstname":
+                    replacementValue = lead.LeadFirstName;
+                    break;
+                case "lastname":
+                    replacementValue = lead.LeadLastName ?? "";
+                    break;
+                default:
+                    break;
+            }
+            input = input.Remove(index, word.Length);
+            input = input.Insert(index, replacementValue);
+
+            match = Regex.Match(input, pattern);
+        }
+        return input;
+    }
     /// <summary>
     /// Returns true if continue processing, false stop right away dont need to
     /// might need signalR and push Notif after
@@ -82,6 +115,8 @@ public class ActionExecuter
 
         _adGraphWrapper.CreateClient(connEmail.tenantId);
 
+        var replacedText = ReplaceTemplateVariables(template.templateText, lead);
+
         //TODO replace variables in template text
         var tag = ActionPlanAssociation.Id.ToString() + "x" + template.Id;
         var message = new Message
@@ -90,7 +125,7 @@ public class ActionExecuter
             Body = new ItemBody
             {
                 ContentType = BodyType.Text,
-                Content = template.templateText
+                Content = replacedText
             },
             ToRecipients = new List<Recipient>()
             {

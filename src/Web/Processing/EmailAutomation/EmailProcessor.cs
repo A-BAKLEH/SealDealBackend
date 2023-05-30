@@ -885,8 +885,8 @@ public class EmailProcessor
         var lead = new Lead
         {
             AgencyId = brokerDTO.AgencyId,
-            LeadFirstName = parsedContent.firstName ?? "-",
-            LeadLastName = parsedContent.lastName ?? "-",
+            LeadFirstName = parsedContent.firstName ?? "",
+            LeadLastName = parsedContent.lastName ?? "",
             PhoneNumber = parsedContent.phoneNumber,
             EntryDate = DateTime.UtcNow,
             leadType = LeadType.Unknown,

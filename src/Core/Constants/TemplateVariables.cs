@@ -5,9 +5,5 @@ public static class TemplateVariables
   {
     "firstname",
     "lastname",
-    "phone",
-    "budget",
-    "area",
-    "leademail"
   };
 }
