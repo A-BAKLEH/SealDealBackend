@@ -1,4 +1,5 @@
-﻿using Core.Domain.LeadAggregate;
+﻿using Core.Domain.ActionPlanAggregate;
+using Core.Domain.LeadAggregate;
 
 namespace Core.DTOs.ProcessingDTOs
 {
@@ -13,5 +14,6 @@ namespace Core.DTOs.ProcessingDTOs
         public bool AssignLeadsAuto { get; set; }
         public bool isAdmin { get; set; }
         public bool isSolo { get; set; }
+        public List<ActionPlan> brokerStartActionPlans { get; set; }
     }
 }

@@ -28,6 +28,9 @@ public class Agency : Entity<int>
     public int NumberOfBrokersInSubscription { get; set; }
     public StripeSubscriptionStatus StripeSubscriptionStatus { get; set; }
 
+    /// <summary>
+    /// only 1 tenant per agency for now
+    /// </summary>
     public bool HasAdminEmailConsent { get; set; } = false;
     public string? AzureTenantID { get; set; }
     /// <summary>
@@ -37,7 +40,6 @@ public class Agency : Entity<int>
     /// </summary>
     public string? LastCheckoutSessionID { get; set; }
     public int NumberOfBrokersInDatabase { get; set; }
-
     public List<Listing> AgencyListings { get; set; }
 
     public List<Broker> AgencyBrokers { get; set; }
@@ -45,6 +47,5 @@ public class Agency : Entity<int>
     public List<Area> Areas { get; set; }
 
     public List<Lead> Leads { get; set; }
-
 }
 

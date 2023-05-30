@@ -12,10 +12,7 @@ public class ActionPlanAssociation : Entity<int>
     public string? CustomDelay { get; set; }
     public int? ActionPlanId { get; set; }
     public ActionPlan ActionPlan { get; set; }
-    /// <summary>
-    /// null if triggered manually
-    /// </summary>
-    public int? TriggerNotificationId { get; set; }
+    public bool TriggeredManually { get; set; } = false; 
     public int LeadId { get; set; }
     public Lead lead { get; set; }
     /// <summary>
@@ -35,5 +32,5 @@ public class ActionPlanAssociation : Entity<int>
 }
 
 public enum ActionPlanStatus
-{ Cancelled, ErrorStopped, Paused, Running, Done }
+{ Cancelled, ErrorStopped, Running, Done, CancelledByLeadResponse }
 

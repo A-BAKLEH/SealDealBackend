@@ -144,13 +144,13 @@ public class AccountController : BaseApiController
     {
         //TODO redo this method
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
             _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to handle admin consented", TagConstants.Inactive, id);
             return Forbid();
         }
-        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id);
+        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id,brokerTuple.Item1.AgencyId);
 
         return Ok(resTuple);
     }

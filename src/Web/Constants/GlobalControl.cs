@@ -6,5 +6,14 @@
 public static class GlobalControl
 {
     //------------testing----------------
-    public static List<string> LeadProviderEmails = new() { "abdallah@hotmail.com", "abdallah@hotmail.com" };
+    //centris
+    //Point2 Homes
+    //realtor
+    public static List<string> LeadProviderEmails = new() { "noreply@point2.com",
+        "do-not-reply@centris.ca",
+        "Lead@realtor.ca",
+        "basharEskandar@hotmail.com",
+        "basharo9999@hotmail.com"};
+
+    public static TimeSpan EmailStartSyncingDelay = TimeSpan.FromSeconds(10);
 }

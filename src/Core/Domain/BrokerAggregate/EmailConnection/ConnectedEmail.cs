@@ -42,5 +42,4 @@ public class ConnectedEmail : EntityBase
     public DateTimeOffset? FirstSync { get; set; }
 
     public int OpenAITokensUsed { get; set; } = 0;
-
 }

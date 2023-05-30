@@ -22,9 +22,9 @@ public class AppEvent : Entity<int>
     /// </summary>
     public bool ReadByBroker { get; set; } = false;
     /// <summary>
-    /// default false. True when visibe to broker in the app and will be notified of. false if backend-event only
+    /// default true. True when visibe to broker in the app and will be notified of. false if backend-event only
     /// </summary>
-    public bool NotifyBroker { get; set; } = false;
+    public bool NotifyBroker { get; set; } = true;
     /// <summary>
     /// Delete if true after its processed
     /// </summary>
@@ -97,7 +97,6 @@ public enum EventType
     /// </summary>
     BrokerCreated = 1 << 8,
     StripeSubsChanged = 1 << 9,
-
 
     //Analyzer Notifs types-----------
 

@@ -5,8 +5,8 @@ using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
+using Microsoft.Graph.Models.ODataErrors;
 using SharedKernel.Exceptions;
-using System;
 using Web.Processing.EmailAutomation;
 
 namespace Web.ControllerServices.QuickServices;
@@ -23,27 +23,11 @@ public class MSFTEmailQService
         _emailProcessor = emailProcessor;
     }
 
-    public async Task<dynamic> DummyMethodHandleAdminConsentAsync( string tenantId, Guid brokerId)
-    {
-        var broker = await _appDbContext.Brokers
-          .Include(b => b.Agency)
-          .Include(b => b.ConnectedEmails.Where(e => e.tenantId == tenantId))
-          .FirstAsync(b => b.Id == brokerId);
-        foreach (var em in broker.ConnectedEmails)
-        {
-            em.isMSFT = true;
-            em.hasAdminConsent = true;
-            em.tenantId = tenantId;
-        }
-        broker.Agency.AzureTenantID = tenantId;
-        broker.Agency.HasAdminEmailConsent = true;
-        await _appDbContext.SaveChangesAsync();
-        return broker.ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent,e.isMSFT});
-    }
+
     public async Task<dynamic> GetConnectedEmails(Guid brokerId)
     {
         var connectedEmails = await _appDbContext.ConnectedEmails
-          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email,e.AssignLeadsAuto })
+          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email, e.AssignLeadsAuto })
           .Where(c => c.BrokerId == brokerId)
           .ToListAsync();
         return (dynamic)connectedEmails;
@@ -89,7 +73,7 @@ public class MSFTEmailQService
         {
             BrokerId = broker.Id,
             Email = email,
-            EmailNumber = (byte) emailNumber,
+            EmailNumber = (byte)emailNumber,
             tenantId = TenantId,
             hasAdminConsent = broker.Agency.HasAdminEmailConsent,
             isMSFT = true,
@@ -109,7 +93,7 @@ public class MSFTEmailQService
                 await _emailProcessor.CreateEmailSubscriptionAsync(connectedEmail);
                 await _emailProcessor.CreateOutlookEmailCategoriesAsync(connectedEmail);
             }
-            catch (ServiceException ex)
+            catch (ODataError ex)
             {
                 if (ex.ResponseStatusCode == 403)
                 {
@@ -121,7 +105,7 @@ public class MSFTEmailQService
                 }
             }
         }
-        return new { connectedEmail.Email, connectedEmail.hasAdminConsent,connectedEmail.AssignLeadsAuto };
+        return new { connectedEmail.Email, connectedEmail.hasAdminConsent, connectedEmail.AssignLeadsAuto };
     }
     /// <summary>
     /// To be primarily called by hangfire after a notif comes in
@@ -202,6 +186,44 @@ public class MSFTEmailQService
         //TODO log error
       }
     }*/
+    public async Task<dynamic> DummyMethodHandleAdminConsentAsync(string tenantId, Guid brokerId, int AgencyId)
+    {
+        var brokers = await _appDbContext.Brokers
+          .Include(b => b.ConnectedEmails.Where(e => e.tenantId == tenantId && e.isMSFT))
+          .Where(b => b.AgencyId == AgencyId)
+          .ToListAsync();
+        var agency = await _appDbContext.Agencies.FirstAsync(a => a.Id == AgencyId);
+
+        foreach (var b in brokers)
+        {
+            foreach (var em in b.ConnectedEmails)
+            {
+                em.hasAdminConsent = true;
+                try
+                {
+                    await _emailProcessor.CreateEmailSubscriptionAsync(em, false);
+                    await _emailProcessor.CreateOutlookEmailCategoriesAsync(em);
+                }
+                catch (ODataError ex)
+                {
+                    if (ex.ResponseStatusCode == 403)
+                    {
+                        throw;
+                    }
+                    else
+                    {
+                        _logger.LogCritical("error ba3abis");
+                    }
+                }
+            }
+        }
+        agency.AzureTenantID = tenantId;
+        agency.HasAdminEmailConsent = true;
+        await _appDbContext.SaveChangesAsync();
+        return brokers.First(b => b.Id == brokerId).ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent, e.isMSFT });
+    }
+
+
 
     /// <summary>
     /// for broker trying to refresh status: 

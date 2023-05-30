@@ -1,11 +1,13 @@
 ﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
+using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using SharedKernel.Exceptions;
 using Web.ApiModels.APIResponses.ActionPlans;
 using Web.ApiModels.RequestDTOs.ActionPlans;
@@ -25,12 +27,92 @@ public class ActionPQService
         _appDbContext = appDbContext;
     }
 
-    public async Task ToggleAutoTriggerAsync(Guid brokerId, bool Toggle, int ActionPlanId)
+    public async Task SetNewTriggerAsync(Guid brokerID, string NewTrigger, int ActionPlanId)
+    {
+        EventType trigger;
+        switch (NewTrigger)
+        {
+            case "LeadAssigned":
+                trigger = EventType.LeadAssignedToYou;
+                break;
+            case "Manual":
+                trigger = EventType.None;
+                break;
+            default:
+                throw new CustomBadRequestException("invalid trigger", ProblemDetailsTitles.InvalidInput);
+        };
+
+        var broker = await _appDbContext.Brokers
+            .Include(b => b.ActionPlans.Where(ap => ap.Id == ActionPlanId))
+            .FirstAsync(b => b.Id == brokerID);
+
+        broker.ActionPlans[0].Triggers = trigger;
+
+        if (!broker.ListenForActionPlans.HasFlag(trigger))
+        {
+            broker.ListenForActionPlans |= trigger;
+        }
+        await _appDbContext.SaveChangesAsync();
+    }
+    public async Task ToggleActiveTriggerAsync(Guid brokerId, bool Toggle, int ActionPlanId)
     {
         await _appDbContext.ActionPlans
             .Where(a => a.Id == ActionPlanId && a.BrokerId == brokerId)
             .ExecuteUpdateAsync(setters =>
         setters.SetProperty(a => a.isActive, Toggle));
+
+        if (Toggle == false)
+        {
+            var ActionPlanAssociations = await _appDbContext.ActionPlanAssociations
+          .Where(apa => apa.ActionPlanId == ActionPlanId && apa.ActionPlan.BrokerId == brokerId && apa.ThisActionPlanStatus == ActionPlanStatus.Running)
+          .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
+          .ToListAsync();
+
+            foreach (var apass in ActionPlanAssociations)
+            {
+                var APDoneEvent = new AppEvent
+                {
+                    LeadId = apass.LeadId,
+                    BrokerId = brokerId,
+                    EventTimeStamp = DateTimeOffset.UtcNow,
+                    EventType = EventType.ActionPlanFinished,
+                    ReadByBroker = true,
+                    IsActionPlanResult = true,
+                    ProcessingStatus = ProcessingStatus.NoNeed
+                };
+                APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
+                APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.CancelledByBroker;
+                _appDbContext.AppEvents.Add(APDoneEvent);
+
+                apass.ThisActionPlanStatus = ActionPlanStatus.Cancelled;
+                if (apass.ActionTrackers.Any())
+                {
+                    foreach (var ta in apass.ActionTrackers)
+                    {
+                        ta.ActionStatus = ActionStatus.Cancelled;
+                        var jobId = ta.HangfireJobId;
+                        if (jobId != null)
+                            try
+                            {
+                                BackgroundJob.Delete(jobId);
+                            }
+                            catch (Exception) { }
+                    }
+                }
+            }
+        }
+        else
+        {
+            var broker = await _appDbContext.Brokers
+            .Include(b => b.ActionPlans.Where(ap => ap.Id == ActionPlanId))
+            .FirstAsync(b => b.Id == brokerId);
+            if (!broker.ListenForActionPlans.HasFlag(broker.ActionPlans[0].Triggers))
+            {
+                broker.ListenForActionPlans |= broker.ActionPlans[0].Triggers;
+            }
+        }
+
+        await _appDbContext.SaveChangesAsync();
     }
     public async Task<List<ActionPlanDTO>> GetMyActionPlansAsync(Guid brokerId)
     {
@@ -209,11 +291,12 @@ public class ActionPQService
               ap.Id,
               ap.StopPlanOnInteraction,
               ap.FirstActionDelay,
-              ap.EventsToListenTo,
+              ap.isActive,
+              ap.EventsToListenTo, //fow now not used
               firstAction = ap.Actions.Select(fa => new { fa.ActionLevel, fa.Id }).First(a => a.ActionLevel == 1)
           })
           .FirstAsync(app => app.Id == dto.ActionPlanID);
-
+        if (!apProjection.isActive) throw new CustomBadRequestException("Action Plan Inactive", ProblemDetailsTitles.ActionPlanInactive);
         var FirstActionDelay = dto.customDelay ?? apProjection.FirstActionDelay;
         var delays = FirstActionDelay?.Split(':');
         TimeSpan timespan = TimeSpan.Zero;
@@ -236,7 +319,7 @@ public class ActionPQService
             {
                 CustomDelay = dto.customDelay,
                 ActionPlanId = dto.ActionPlanID,
-                TriggerNotificationId = null, //cuz triggered manually
+                TriggeredManually = true,
                 ActionPlanTriggeredAt = timeNow,
                 ThisActionPlanStatus = ActionPlanStatus.Running,
                 ActionTrackers = new() { actionTracker },
@@ -248,7 +331,7 @@ public class ActionPQService
             if (apProjection.StopPlanOnInteraction) lead.HasActionPlanToStop = true;
             if (apProjection.EventsToListenTo != EventType.None)
             {
-                lead.EventsForActionPlans |= apProjection.EventsToListenTo;
+                lead.EventsForActionPlans |= apProjection.EventsToListenTo; //for now not used
             }
             var APStartedEvent = new AppEvent
             {
@@ -257,7 +340,6 @@ public class ActionPQService
                 EventType = EventType.ActionPlanStarted,
                 IsActionPlanResult = true,
                 ReadByBroker = true,
-                NotifyBroker = false,
                 ProcessingStatus = ProcessingStatus.NoNeed,
             };
             APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = NotificationJSONKeys.TriggeredManually;

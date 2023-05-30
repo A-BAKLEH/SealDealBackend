@@ -168,7 +168,6 @@ public class ListingQService
                     EventTimeStamp = timestamp,
                     EventType = EventType.ListingAssigned,
                     ProcessingStatus = ProcessingStatus.Scheduled,
-                    NotifyBroker = true,
                     ReadByBroker = false
                 };
                 AppEvent.Props[NotificationJSONKeys.ListingId] = listing.Id.ToString();
@@ -263,7 +262,6 @@ public class ListingQService
                 EventTimeStamp = DateTime.UtcNow,
                 EventType = EventType.ListingAssigned,
                 ProcessingStatus = ProcessingStatus.Scheduled,
-                NotifyBroker = true,
                 ReadByBroker = false
             };
             appEvent.Props[NotificationJSONKeys.ListingId] = listingId.ToString();
@@ -306,7 +304,6 @@ public class ListingQService
                 EventTimeStamp = DateTime.UtcNow,
                 EventType = EventType.ListingUnAssigned,
                 ProcessingStatus = ProcessingStatus.NoNeed,
-                NotifyBroker = true,
                 ReadByBroker = false
             };
             appEvent.Props[NotificationJSONKeys.ListingId] = listingId.ToString();
@@ -331,7 +328,6 @@ public class ListingQService
                 EventTimeStamp = DateTime.UtcNow,
                 EventType = EventType.ListingUnAssigned,
                 ProcessingStatus = ProcessingStatus.NoNeed,
-                NotifyBroker = true,
                 ReadByBroker = false
             };
             appEvent.Props[NotificationJSONKeys.UserId] = userId.ToString();

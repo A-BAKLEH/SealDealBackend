@@ -90,7 +90,6 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             DeleteAfterProcessing = false,
 
             ProcessingStatus = ProcessingStatus.NoNeed,
-            NotifyBroker = true,
             ReadByBroker = true,
             BrokerId = request.BrokerWhoRequested.Id,
             EventType = EventType.LeadCreated
@@ -110,7 +109,6 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
                     EventTimeStamp = timestamp,
                     DeleteAfterProcessing = false,
                     ProcessingStatus = ProcessingStatus.Scheduled,
-                    NotifyBroker = true,
                     ReadByBroker = false,
                     BrokerId = (Guid)brokerToAssignToId,
                     EventType = EventType.LeadAssignedToYou

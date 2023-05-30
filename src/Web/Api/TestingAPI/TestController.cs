@@ -14,6 +14,7 @@ using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
+using Web.Processing.Analyzer;
 
 namespace Web.Api.TestingAPI;
 
@@ -65,6 +66,26 @@ public class TestController : ControllerBase
         //TECH
         found.Props.Remove("lol");
         _appDbContext.Entry(found).Property(f => f.Props).IsModified = true;
+        await _appDbContext.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpGet("StartAnalyzer")]
+    public async Task<IActionResult> StartAnalyzer()
+    {
+        var found = await _appDbContext.Brokers.FirstAsync(b => b.isAdmin);
+        Hangfire.BackgroundJob.Enqueue<NotifAnalyzer>(x => x.AnalyzeNotifsAsync(found.Id));
+        return Ok();
+    }
+
+
+    [HttpGet("addTestNotifs")]
+    public async Task<IActionResult> addTestNOtifs()
+    {
+        //admin  "EA14ECF1-FCDA-43C4-9325-197A953D58FA"
+        //broker "08BC58DE-1F82-4BED-B7AB-D33998CAD81A"
+
+
         await _appDbContext.SaveChangesAsync();
         return Ok();
     }
@@ -152,7 +173,7 @@ public class TestController : ControllerBase
         //    .Select(g => new {g.Key,  })
         //    .AsNoTracking()
         //    .ToListAsync();
-       // var lol = id;
+        // var lol = id;
         return Ok();
     }
 

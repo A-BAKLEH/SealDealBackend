@@ -1,4 +1,5 @@
 ﻿using Core.Constants;
+using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
@@ -16,6 +17,7 @@ using Microsoft.Graph.Models.ODataErrors;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
+using Web.Processing.ActionPlans;
 using Web.RealTimeNotifs;
 using EventType = Core.Domain.NotificationAggregate.EventType;
 
@@ -149,7 +151,7 @@ public class EmailProcessor
             string jobId = "";
             try
             {
-                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), TimeSpan.FromMinutes(1));
+                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), GlobalControl.EmailStartSyncingDelay);
             }
             catch (Exception ex)
             {
@@ -241,6 +243,13 @@ public class EmailProcessor
         var connEmail = await _appDbContext.ConnectedEmails
           .Select(e => new { e.SyncJobId, e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Language, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
           .FirstAsync(x => x.Email == email);
+
+        var brokerStartActionPlans = await _appDbContext.ActionPlans
+            .Include(ap => ap.Actions.Where(a => a.ActionLevel == 1))
+            .Where(ap => ap.BrokerId == connEmail.BrokerId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou))
+            .AsNoTracking()
+            .ToListAsync();
+
         _aDGraphWrapper.CreateClient(connEmail.tenantId);
 
         if (StaticEmailConcurrencyHandler.EmailParsingdict.TryGetValue((Guid)connEmail.GraphSubscriptionId, out var s))
@@ -260,10 +269,10 @@ public class EmailProcessor
         }
 
         var brokerDTO = new BrokerEmailProcessingDTO
-        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
+        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto, brokerStartActionPlans = brokerStartActionPlans };
 
         DateTimeOffset lastSync;
-        if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow;
+        if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow - TimeSpan.FromDays(2);
         else lastSync = (DateTimeOffset)connEmail.LastSync;
 
         //TODO deal with when lsatSync and FirstSync is null it means this is the first sync
@@ -442,6 +451,7 @@ public class EmailProcessor
     public async Task<int> ProcessMessagesAsync(List<Message> messages, BrokerEmailProcessingDTO brokerDTO, List<Message> ReprocessMessages)
     {
         using var localdbContext = _contextFactory.CreateDbContext();
+        var LeadIDsToStopActionPlan = new List<int>();
         int tokens = 0;
         var KnownLeadEmailEvents = new List<EmailEvent>();
         var KnownLeadTasks = new List<Tuple<Task<EmailEvent?>, Message>>();
@@ -470,11 +480,12 @@ public class EmailProcessor
 
             //TODO cache this
             var leadEmail = await localdbContext.LeadEmails
-                .AsNoTracking()
-                .FirstOrDefaultAsync(em => em.EmailAddress == fromEmailAddress && em.Lead.BrokerId == brokerDTO.Id);
+                .Select(le => new { le.EmailAddress, le.LeadId, le.Lead.HasActionPlanToStop, le.Lead.BrokerId })
+                .FirstOrDefaultAsync(em => em.EmailAddress == fromEmailAddress && em.BrokerId == brokerDTO.Id);
 
             if (leadEmail != null)
             {
+                if (leadEmail.HasActionPlanToStop) LeadIDsToStopActionPlan.Add(leadEmail.LeadId);
                 var groupedByConvo = messageGrp.GroupBy(m => m.ConversationId);
                 foreach (var convo in groupedByConvo)
                 {
@@ -600,8 +611,8 @@ public class EmailProcessor
 
         //TODO add events/emails that are not attached to lead to the dbcontext
 
-        Dictionary<int, int> listingIdToNewLeadCount = new();
-        leadsAdded.Where(l => l.Item1.Lead.ListingId != null).GroupBy(l => l.Item1.Lead.ListingId).ToList().ForEach(g => listingIdToNewLeadCount.Add((int)g.Key, g.Count()));
+        //Dictionary<int, int> listingIdToNewLeadCount = new();
+        //leadsAdded.Where(l => l.Item1.Lead.ListingId != null).GroupBy(l => l.Item1.Lead.ListingId).ToList().ForEach(g => listingIdToNewLeadCount.Add((int)g.Key, g.Count()));
 
         // TODO later increment LeadsGeneratedCount maybe periodically in a task at the end of the day
         //await Task.WhenAll(listingIdToNewLeadCount.Select(async (kv) =>
@@ -619,10 +630,45 @@ public class EmailProcessor
         //     }
         // }));
 
+        //Trigger Action plans start
+        if (leadsAdded.Any())
+        {
+            if (brokerDTO.brokerStartActionPlans.Any())
+            {
+                foreach (var leadT in leadsAdded)
+                {
+                    var lead = leadT.Item1.Lead;
+                    var LeadAssignmentEvent = lead.AppEvents.FirstOrDefault(e => e.EventType.HasFlag(EventType.LeadAssignedToYou));
+                    if (LeadAssignmentEvent != null)
+                    {
+                        TriggerActionPlanAsync(brokerDTO.brokerStartActionPlans, lead, brokerDTO.Id);
+                    }
+                }
+            }
+        }
+        var ActionPlanStoppedEvents = new List<AppEvent>();
+        //Stop action plans for leads that replied
+        if (LeadIDsToStopActionPlan.Any())
+        {
+            foreach (var leadId in LeadIDsToStopActionPlan)
+            {
+                var ActionPlanAssociations = await localdbContext.ActionPlanAssociations
+                    //.Include(apa => apa.ActionPlan)
+                    .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
+                    .Where(apa => apa.LeadId == leadId && apa.ThisActionPlanStatus == ActionPlanStatus.Running && apa.ActionPlan.StopPlanOnInteraction)
+                    .ToListAsync();
+                //will probably always be 1 at the beginning
+                foreach (var apass in ActionPlanAssociations)
+                {
+                    var APStopppedEvent = StopActionPlan(brokerDTO.Id, apass);
+                    ActionPlanStoppedEvents.Add(APStopppedEvent);                  
+                }
+            }
+            localdbContext.AppEvents.AddRange(ActionPlanStoppedEvents);
+        }
+
         await localdbContext.SaveChangesAsync();
 
-
-        //TODO test concurrency limit for graph api here
         //mark the messages that had a lead with "LeadExtracted"
         await Task.WhenAll(leadsAdded.Select(async (tup) =>
         {
@@ -662,10 +708,117 @@ public class EmailProcessor
         await transaction.CommitAsync();
         //transaction-------------------------------
         var appevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.AppEvents).ToList();
+        appevents.AddRange(ActionPlanStoppedEvents);
         var emailevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.EmailEvents).ToList();
         emailevents.AddRange(KnownLeadEmailEvents);
         await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true, appevents, emailevents);
         return tokens;
+    }
+
+    public AppEvent StopActionPlan(Guid brokerId, ActionPlanAssociation apass)
+    {
+        var APDoneEvent = new AppEvent
+        {
+            LeadId = apass.LeadId,
+            BrokerId = brokerId,
+            EventTimeStamp = DateTimeOffset.UtcNow,
+            EventType = EventType.ActionPlanFinished,
+            ReadByBroker = false,
+            IsActionPlanResult = true,
+            ProcessingStatus = ProcessingStatus.NoNeed
+        };
+        APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = apass.ActionPlanId.ToString();
+        APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.LeadResponded;
+
+        apass.ThisActionPlanStatus = ActionPlanStatus.CancelledByLeadResponse;
+        if (apass.ActionTrackers.Any())
+        {
+            foreach (var ta in apass.ActionTrackers)
+            {
+                ta.ActionStatus = ActionStatus.CancelledByLeadResponse;
+                var jobId = ta.HangfireJobId;
+                if (jobId != null)
+                    try
+                    {
+                        BackgroundJob.Delete(jobId);
+                    }
+                    catch (Exception) { }
+            }
+        }
+        return APDoneEvent;
+    }
+
+    public void TriggerActionPlanAsync(List<ActionPlan> actionPlans, Lead lead, Guid brokerId)
+    {
+        var timeNow = DateTime.UtcNow;
+        foreach (var ap in actionPlans)
+        {
+            var FirstActionDelay = ap.FirstActionDelay;
+            var delays = FirstActionDelay?.Split(':');
+            TimeSpan timespan = TimeSpan.Zero;
+            if (delays != null)
+            {
+                if (int.TryParse(delays[0], out var days)) timespan += TimeSpan.FromDays(days);
+                if (int.TryParse(delays[1], out var hours)) timespan += TimeSpan.FromHours(hours);
+                if (int.TryParse(delays[2], out var minutes)) timespan += TimeSpan.FromMinutes(minutes);
+            }
+            var firstAction = ap.Actions[0];
+            var actionTracker = new ActionTracker
+            {
+                TrackedActionId = firstAction.Id,
+                ActionStatus = ActionStatus.ScheduledToStart,
+                HangfireScheduledStartTime = timeNow + timespan,
+            };
+            var apAssociation = new ActionPlanAssociation
+            {
+                ActionPlanId = ap.Id,
+                ActionPlanTriggeredAt = timeNow,
+                ThisActionPlanStatus = ActionPlanStatus.Running,
+                ActionTrackers = new() { actionTracker },
+                currentTrackedActionId = firstAction.Id,
+            };
+            lead.ActionPlanAssociations.Add(apAssociation);
+
+            bool OldHasActionPlanToStop = lead.HasActionPlanToStop;
+            if (ap.StopPlanOnInteraction) lead.HasActionPlanToStop = true;
+            if (ap.EventsToListenTo != EventType.None)
+            {
+                lead.EventsForActionPlans |= ap.EventsToListenTo; //for now not used
+            }
+            var APStartedEvent = new AppEvent
+            {
+                BrokerId = brokerId,
+                EventTimeStamp = timeNow,
+                EventType = EventType.ActionPlanStarted,
+                IsActionPlanResult = true,
+                ReadByBroker = false,
+                ProcessingStatus = ProcessingStatus.NoNeed,
+            };
+            APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = EventType.LeadAssignedToYou.ToString();
+            APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = ap.Id.ToString();
+            lead.AppEvents = new() { APStartedEvent };
+            string HangfireJobId = "";
+            try
+            {
+                if (delays != null)
+                {
+                    HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null), timespan);
+                }
+                else
+                {
+                    HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
+                 " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor", ap.Id, lead.Id, ex.Message);
+                lead.ActionPlanAssociations.Remove(apAssociation);
+                lead.AppEvents.Remove(APStartedEvent);
+                lead.HasActionPlanToStop = OldHasActionPlanToStop;
+            }
+            actionTracker.HangfireJobId = HangfireJobId;
+        }
     }
     /// <summary>
     /// called on gpt result of lead providers and unknown leads
@@ -752,7 +905,6 @@ public class EmailProcessor
             EventTimeStamp = DateTime.UtcNow,
             DeleteAfterProcessing = false,
             ProcessingStatus = ProcessingStatus.NoNeed,
-            NotifyBroker = true,
             ReadByBroker = false,
             BrokerId = brokerDTO.Id,
             EventType = EventType.LeadCreated,
@@ -836,7 +988,6 @@ public class EmailProcessor
                             EventTimeStamp = DateTime.UtcNow,
                             DeleteAfterProcessing = false,
                             ProcessingStatus = ProcessingStatus.NoNeed,
-                            NotifyBroker = true,
                             ReadByBroker = false,
                             BrokerId = brokerToAssignToId,
                             EventType = EventType.LeadAssignedToYou

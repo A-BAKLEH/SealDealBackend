@@ -21,12 +21,6 @@ public class APProcessor
         _logger = logger;
         _actionExecuter = actionExecuter;
     }
-
-    public void testhangfirecontext(int firstParam, PerformContext performContext)
-    {
-        Console.WriteLine("SDfsdfsdf");
-        Console.WriteLine(performContext.BackgroundJob.Id);
-    }
     /// <summary>
     /// Executes Action Plan action for a given ActionPlanAssociation and ActionTracker
     /// executes signalR and push notif since called in background
@@ -144,7 +138,6 @@ public class APProcessor
                 EventTimeStamp = timeNow,
                 EventType = EventType.ActionPlanFinished,
                 ReadByBroker = false,
-                NotifyBroker = true,
                 IsActionPlanResult = true,
                 ProcessingStatus = ProcessingStatus.NoNeed
             };

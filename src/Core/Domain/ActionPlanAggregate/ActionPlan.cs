@@ -10,7 +10,9 @@ public class ActionPlan : Entity<int>
     public EventType Triggers { get; set; }
     /// <summary>
     /// Events Other than calls, Emails, SMS that can intract with action Plan, like stop it.
-    /// Depending on type of plan, for now would apply mostly to leads ListenToNotifs
+    /// Depending on type of plan, for now would apply mostly to leads ListenToNotifs.
+    /// FOR NOW NOT USED, just stop action plan when lead interacts. Later will have to add the logic 
+    /// to handle it
     /// </summary>
     public EventType EventsToListenTo { get; set; } = EventType.None;
     public bool StopPlanOnInteraction { get; set; }
@@ -22,7 +24,7 @@ public class ActionPlan : Entity<int>
     public DateTimeOffset TimeCreated { get; set; }
 
     /// <summary>
-    /// only relevant for action plans that have automatic triggering
+    /// means running
     /// </summary>
     public bool isActive { get; set; }
     public byte ActionsCount { get; set; }

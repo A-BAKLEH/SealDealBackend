@@ -35,5 +35,5 @@ public class ActionTracker : EntityBase
 }
 public enum ActionStatus
 {
-    Done, Failed, ScheduledToStart, Overdue, CancelledByLeadResponse
+    Done, Failed, ScheduledToStart, CancelledByLeadResponse, Cancelled
 }

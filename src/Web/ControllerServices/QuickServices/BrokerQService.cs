@@ -111,7 +111,6 @@ public class BrokerQService
             BrokerId = userId,
             EventTimeStamp = DateTimeOffset.UtcNow,
             EventType = EventType.StripeSubsChanged,
-            NotifyBroker = true,
             ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = true,
         };

@@ -19,8 +19,6 @@ public class ActionPlansController : BaseApiController
         _logger = logger;
         _actionPQService = actionPQService;
     }
-
-
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateActionPlanDTO dto)
     {
@@ -31,7 +29,6 @@ public class ActionPlansController : BaseApiController
             _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
             return Forbid();
         }
-
         var result = await _actionPQService.CreateActionPlanAsync(dto, id);
 
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
@@ -97,8 +94,8 @@ public class ActionPlansController : BaseApiController
         return Ok(res);
     }
 
-    [HttpPatch("ToggleAutoTrigger")]
-    public async Task<IActionResult> ToggleAutoTrigger([FromBody] PatchActionPlanTriggerDTO dto)
+    [HttpPatch("ToggleActive")]
+    public async Task<IActionResult> ToggleActive([FromBody] PatchActionPlanTriggerDTO dto)
     {
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
@@ -107,7 +104,21 @@ public class ActionPlansController : BaseApiController
             _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
             return Forbid();
         }
-        await _actionPQService.ToggleAutoTriggerAsync(id, dto.Toggle, dto.ActionPlanId);
+        await _actionPQService.ToggleActiveTriggerAsync(id, dto.Toggle, dto.ActionPlanId);
+        return Ok();
+    }
+
+    [HttpPatch("SetTrigger")]
+    public async Task<IActionResult> SetTrigger([FromBody] ChangeTriggerDTO dto)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        await _actionPQService.SetNewTriggerAsync(id, dto.NewTrigger, dto.ActionPlanId);
         return Ok();
     }
 }

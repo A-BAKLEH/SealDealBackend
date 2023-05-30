@@ -46,7 +46,6 @@ public class ActionExecuter
             EventTimeStamp = timeNow,
             EventType = Core.Domain.NotificationAggregate.EventType.LeadStatusChange,
             ReadByBroker = false,
-            NotifyBroker = true,
             IsActionPlanResult = true,
             ProcessingStatus = ProcessingStatus.NoNeed,
         };
@@ -131,7 +130,6 @@ public class ActionExecuter
             EventTimeStamp = timeNow,
             EventType = Core.Domain.NotificationAggregate.EventType.ActionPlanEmailSent,
             ReadByBroker = false,
-            NotifyBroker = true,
             IsActionPlanResult = true,
             ProcessingStatus = ProcessingStatus.NoNeed
         };
@@ -167,7 +165,6 @@ public class ActionExecuter
             EventTimeStamp = timeNow,
            //EventType = Core.Domain.NotificationAggregate.EventType.SmsEvent,
             ReadByBroker = false,
-            NotifyBroker = true,
             IsActionPlanResult = true,
             ProcessingStatus = ProcessingStatus.NoNeed
         };

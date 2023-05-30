@@ -253,10 +253,8 @@ public class LeadQService
             LeadId = LeadId,
             EventType = EventType.LeadAssignedToYou,
             EventTimeStamp = DateTimeOffset.UtcNow,
-            NotifyBroker = true,
             ProcessingStatus = ProcessingStatus.Scheduled,
             ReadByBroker = false,
-            IsActionPlanResult = false
         };
         AssignedToYouEvent.Props[NotificationJSONKeys.AssignedById] = adminId.ToString();
         AssignedToYouEvent.Props[NotificationJSONKeys.AssignedByFullName] = $"{adminBroker.FirstName} {adminBroker.LastName}";
@@ -268,10 +266,8 @@ public class LeadQService
             LeadId = LeadId,
             EventType = EventType.YouAssignedtoBroker,
             EventTimeStamp = DateTimeOffset.UtcNow,
-            NotifyBroker = true,
             ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = true,
-            IsActionPlanResult = false
         };
         YouAssignedToBrokerEvent.Props[NotificationJSONKeys.AssignedToId] = broker.Id.ToString();
         YouAssignedToBrokerEvent.Props[NotificationJSONKeys.AssignedToFullName] = $"{broker.FirstName} {broker.LastName}";

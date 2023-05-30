@@ -60,7 +60,6 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
                     {
                         EventTimeStamp = timestamp,
                         EventType = EventType.BrokerCreated,
-                        NotifyBroker = true,
                         ProcessingStatus = ProcessingStatus.Scheduled, //to send password
                         ReadByBroker = true,
                     };
@@ -81,7 +80,6 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
         {
             EventTimeStamp = timestamp,
             EventType = EventType.StripeSubsChanged,
-            NotifyBroker = true,
             ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = true,
         };
