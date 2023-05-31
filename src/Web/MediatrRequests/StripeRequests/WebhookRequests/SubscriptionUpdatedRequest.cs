@@ -30,7 +30,7 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
 
     for (var i = 0; i < 3; i++)
     {
-      agency = await _appDbContext.Agencies.Include(a => a.AgencyBrokers.Take(1)).FirstOrDefaultAsync(a => a.StripeSubscriptionId == request.SubscriptionId);
+      agency = await _appDbContext.Agencies.Include(a => a.AgencyBrokers).FirstOrDefaultAsync(a => a.StripeSubscriptionId == request.SubscriptionId);
       if (agency != null) break;
       else if (i < 2)
       {
@@ -45,7 +45,7 @@ public class SubscriptionUpdatedRequestHandler : IRequestHandler<SubscriptionUpd
       if (request.SubsStatus == "active") agency.StripeSubscriptionStatus = StripeSubscriptionStatus.Active;
       //TODO: create DomainEvent On Agency when subscription status changes: it will maybe send an email and 
       //check numberofBrokers, enable broker accounts, etc
-      var admin = agency.AgencyBrokers.Single();
+      var admin = agency.AgencyBrokers.First(b => b.isAdmin);
       admin.AccountActive = true;
       agency.NumberOfBrokersInSubscription = (int)request.quantity;
       agency.SubscriptionLastValidDate = request.currPeriodEnd;
