@@ -52,7 +52,7 @@ public class EmailProcessor
     /// <param name="brokerId"></param>
     /// <param name="EmailNumber"></param>
     /// <param name="tenantId"></param>
-    public async void RenewSubscriptionAsync(string email)
+    public async Task RenewSubscriptionAsync(string email)
     {
         var connEmail = _appDbContext.ConnectedEmails.FirstOrDefault(x => x.Email == email);
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
@@ -122,6 +122,14 @@ public class EmailProcessor
 
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         //will validate through the webhook before returning the subscription here
+        try
+        {
+
+        }
+        catch(ODataError er)
+        {
+            _logger.LogError("{mess} and {details} and {targaet}", er.Error.Message, er.Error.Details, er.Error.Target);
+        }
         var CreatedSubs = await _aDGraphWrapper._graphClient.Subscriptions.PostAsync(subs);
 
         //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work

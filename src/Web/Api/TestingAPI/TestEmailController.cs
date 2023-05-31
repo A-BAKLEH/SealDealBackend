@@ -480,8 +480,8 @@ public class TestEmailController : ControllerBase
     }
 
 
-    [HttpDelete("UpdateSubsURL/{SubsId}")]
-    public async Task<IActionResult> DeleteSubsURL(string SubsId)
+    [HttpDelete("DeleteSubsNow")]
+    public async Task<IActionResult> DeleteSubsURL()
     {
 
         var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
@@ -490,7 +490,20 @@ public class TestEmailController : ControllerBase
 
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
-        await _adGraphWrapper._graphClient.Subscriptions[SubsId].DeleteAsync();
+        var Subs = await _adGraphWrapper._graphClient.Subscriptions.GetAsync();
+        var subs1 = Subs.Value;
+
+
+        //var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+        //DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
+        //string emailBash = "bashar.eskandar@sealDeal.ca";
+
+        //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
+        _adGraphWrapper.CreateClient(tenantId);
+        foreach (var sub3 in subs1)
+        {
+            await _adGraphWrapper._graphClient.Subscriptions[sub3.Id].DeleteAsync();
+        }     
         return Ok();
     }
 
