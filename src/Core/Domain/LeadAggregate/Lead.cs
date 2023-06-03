@@ -21,6 +21,7 @@ public class Lead : Entity<int>
 {
     public int AgencyId { get; set; }
     public Agency Agency { get; set; }
+    public bool verifyEmailAddress { get; set; } = false;
     public string LeadFirstName { get; set; }
     public string? LeadLastName { get; set; }
     public string? PhoneNumber { get; set; }

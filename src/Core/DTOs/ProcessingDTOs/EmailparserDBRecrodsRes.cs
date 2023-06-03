@@ -8,4 +8,5 @@ public class EmailparserDBRecrodsRes
     public Lead Lead { get; set; }
     public List<AppEvent> appEvents { get; set; }
     public List<EmailEvent> emailEvents { get; set; }
+    public bool LeadEmailUnsure { get; set; }
 }

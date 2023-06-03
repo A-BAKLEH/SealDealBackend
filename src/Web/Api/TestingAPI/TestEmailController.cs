@@ -1,14 +1,19 @@
 ﻿using Core.Constants;
 using HtmlAgilityPack;
+using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
+using Microsoft.Kiota.Abstractions;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Web.Constants;
+using Web.ControllerServices.QuickServices;
 using Web.HTTPClients;
 
 namespace Web.Api.TestingAPI;
@@ -20,10 +25,15 @@ public class TestEmailController : ControllerBase
     private readonly ADGraphWrapper _adGraphWrapper;
     private readonly ILogger<TestEmailController> _logger;
     public string santaBro = "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";
-    public TestEmailController(ADGraphWrapper aDGraphWrapper, ILogger<TestEmailController> logger)
+    private readonly AppDbContext appDbContext1;
+    public readonly MSFTEmailQService _mSFTEmailQService;
+    public TestEmailController(ADGraphWrapper aDGraphWrapper,
+        MSFTEmailQService mSFTEmailQService, AppDbContext appDbContext, ILogger<TestEmailController> logger)
     {
         _logger = logger;
         _adGraphWrapper = aDGraphWrapper;
+        appDbContext1 = appDbContext;
+        _mSFTEmailQService = mSFTEmailQService;
     }
 
     [HttpGet("testemailprops")]
@@ -207,7 +217,7 @@ public class TestEmailController : ControllerBase
 
         var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(360);
         var date = date1.ToString("o");
-        int pagesize = 5;
+        int pagesize = 4;
 
         _adGraphWrapper.CreateClient(tenantId);
         var messages = await _adGraphWrapper._graphClient
@@ -223,41 +233,76 @@ public class TestEmailController : ControllerBase
               config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
           }
           );
-        int count = 0;
-        int pauseAfter = pagesize;
-        List<Message> messagesList = new(pagesize);
+        bool first = true;
 
-        var pageIterator = PageIterator<Message, MessageCollectionResponse>
-            .CreatePageIterator(
-            _adGraphWrapper._graphClient,
-            messages,
-                (m) =>
-                {
-                    messagesList.Add(m);
-                    count++;
-                    // If we've iterated over the limit,
-                    // stop the iteration by returning false
-                    return count < pauseAfter;
-                },
-                (req) =>
-                {
-                    // Re-add the header to subsequent requests
-                    req.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-                    return req;
-                }
-            );
-        await pageIterator.IterateAsync();
-
-        while (pageIterator.State != PagingState.Complete)
+        do
         {
-            //process the messages
-            var lol = messagesList;
+            if (!first)
+            {
+                var nextPageRequestInformation = new RequestInformation
+                {
+                    HttpMethod = Method.GET,
+                    UrlTemplate = messages.OdataNextLink,
+                };
+                nextPageRequestInformation.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+                messages = await _adGraphWrapper._graphClient.RequestAdapter.SendAsync(nextPageRequestInformation, (parseNode) => new MessageCollectionResponse());
+            }
+            first = false;
 
-            // Reset count and list
-            count = 0;
-            messagesList = new(pagesize);
-            await pageIterator.ResumeAsync();
-        }
+            //process messages
+            var messs = messages.Value;
+
+        } while (messages.OdataNextLink != null);
+
+
+        //--------
+        //int count = 0;
+        //int pauseAfter = pagesize;
+        //List<Message> messagesList = new(pagesize);
+
+        //var pageIterator = PageIterator<Message, MessageCollectionResponse>
+        //    .CreatePageIterator(
+        //    _adGraphWrapper._graphClient,
+        //    messages,
+        //        (m) =>
+        //        {
+        //            messagesList.Add(m);
+        //            count++;
+        //            // If we've iterated over the limit,
+        //            // stop the iteration by returning false
+        //            return count < pauseAfter;
+        //        },
+        //        (req) =>
+        //        {
+        //            // Re-add the header to subsequent requests
+        //            req.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+        //            return req;
+        //        }
+        //    );
+        //await pageIterator.IterateAsync();
+
+        //do
+        //{
+        //    var lol = messagesList;
+
+        //    // Reset count and list
+        //    count = 0;
+        //    messagesList = new(pagesize);
+        //    await pageIterator.ResumeAsync();
+        //} while (pageIterator.State != PagingState.Complete);
+
+
+        //-------------
+        //while (pageIterator.State != PagingState.Complete)
+        //{
+        //    //process the messages
+        //    var lol = messagesList;
+
+        //    // Reset count and list
+        //    count = 0;
+        //    messagesList = new(pagesize);
+        //    await pageIterator.ResumeAsync();
+        //}
         return Ok();
     }
 
@@ -310,33 +355,61 @@ public class TestEmailController : ControllerBase
           {
               config.QueryParameters.Orderby = new string[] { "receivedDateTime desc" };
               config.QueryParameters.Top = 4;
+              config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
           });
         var messages = messages1.Value;
-        var firstMessageContent = messages[index].Body.Content;
+        var text = messages[index].Body.Content;
 
-        HtmlDocument doc = new HtmlDocument();
-        doc.LoadHtml(firstMessageContent);
-        string text = doc.DocumentNode.InnerText; // copy paste stripped text
+        //HtmlDocument doc = new HtmlDocument();
+        //doc.LoadHtml(firstMessageContent);
+        //string text = doc.DocumentNode.InnerText; // copy paste stripped text
 
         var lenggg = text.Length;
 
         //var prompt = APIConstants.ParseLeadPrompt + text;
-        var prompt = APIConstants.ParseLeadPrompt + text;
-        if (isNo) prompt = APIConstants.ParseLeadPrompt + "Hello, my name is abdul, are you interested in our new lead tracking software? let me know thank you! ---Lead provider---- abdul: abdul@hotmail.com, 514 522 5142";
+        //var prompt = APIConstants.ParseLeadPrompt + text;
+        //if (isNo) prompt = APIConstants.ParseLeadPrompt + "Hello, my name is abdul, are you interested in our new lead tracking software? let me know thank you! ---Lead provider---- abdul: abdul@hotmail.com, 514 522 5142";
 
-        var httpClient = new HttpClient()
-        {
-            BaseAddress = new Uri("https://api.openai.com/v1/chat/completions")
-            //BaseAddress = new Uri("https://api.openai.com/v1/completions")
-        };
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", santaBro);
-        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        //var httpClient = new HttpClient()
+        //{
+        //    BaseAddress = new Uri("https://api.openai.com/v1/chat/completions")
+        //    //BaseAddress = new Uri("https://api.openai.com/v1/completions")
+        //};
+        //httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", santaBro);
+        //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        //StringContent jsonContent = new(
+        //JsonSerializer.Serialize(new
+        //{
+        //    model = "gpt-3.5-turbo",
+        //    //model = "text-curie-001",
+        //    //prompt = prompt,
+        //    messages = new List<GPTRequest>
+        //    {
+        //        new GPTRequest{role = "user", content = prompt},
+        //    },
+        //    temperature = 0,
+        //}),
+        //Encoding.UTF8,
+        //"application/json");
+
+        //HttpResponseMessage response = await httpClient.PostAsync("", content: jsonContent);
+        //response.EnsureSuccessStatusCode();
+        ////check if answer is no before deserialising
+        //var jsonResponse = await response.Content.ReadAsStringAsync();
+
+        //var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
+
+        //var cleanedGOAT = rawResponse.choices[0].message.content.Replace("\n", "");
+        //var GOATpart = JsonSerializer.Deserialize<LeadParsingContent>(cleanedGOAT); ;
+        //var resWithTime = new { jsonResponse, GOATpart };
+
+
+        string prompt = APIConstants.ParseLeadPrompt2 + text;
+
         StringContent jsonContent = new(
         JsonSerializer.Serialize(new
         {
             model = "gpt-3.5-turbo",
-            //model = "text-curie-001",
-            //prompt = prompt,
             messages = new List<GPTRequest>
             {
                 new GPTRequest{role = "user", content = prompt},
@@ -345,20 +418,21 @@ public class TestEmailController : ControllerBase
         }),
         Encoding.UTF8,
         "application/json");
+        var _httpClient = new HttpClient();
+        _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
 
-        HttpResponseMessage response = await httpClient.PostAsync("", content: jsonContent);
+        //TODO handle API error 
         response.EnsureSuccessStatusCode();
-        //check if answer is no before deserialising
+
         var jsonResponse = await response.Content.ReadAsStringAsync();
-
         var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
+        var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
+        var LeadParsed = JsonSerializer.Deserialize<LeadParsingContent>(GPTCompletionJSON);
 
-        var cleanedGOAT = rawResponse.choices[0].message.content.Replace("\n", "");
-        var GOATpart = JsonSerializer.Deserialize<LeadParsingContent>(cleanedGOAT); ;
-        var resWithTime = new { jsonResponse, GOATpart };
-
-
-        return Ok(resWithTime);
+        return Ok();
     }
 
     [HttpGet("testsupportmail")]
@@ -407,11 +481,11 @@ public class TestEmailController : ControllerBase
             await _adGraphWrapper._graphClient.Users["support@sealdeal.ca"]
             .SendMail.PostAsync(requestBody);
         }
-        catch(ODataError ex)
+        catch (ODataError ex)
         {
             var err = ex;
         }
-        
+
         var sent = await _adGraphWrapper._graphClient.Users["support@sealdeal.ca"]
             .MailFolders["SentItems"]
             .Messages
@@ -503,7 +577,34 @@ public class TestEmailController : ControllerBase
         foreach (var sub3 in subs1)
         {
             await _adGraphWrapper._graphClient.Subscriptions[sub3.Id].DeleteAsync();
-        }     
+        }
+
+        var connectedEmails = await appDbContext1.ConnectedEmails
+            .Where(e => e.BrokerId == Guid.Parse("6AB56C6E-5F28-4E60-B9B2-D01C3A8FC314"))
+            .ToListAsync();
+        foreach (var e in connectedEmails)
+        {
+            e.SubsExpiryDate = null;
+            e.FirstSync = null;
+            e.LastSync = null;
+            e.SubsExpiryDate = null;
+            e.SyncScheduled = false;
+            e.SyncJobId = null;
+        }
+        await appDbContext1.SaveChangesAsync();
+        return Ok();
+
+
+
+    }
+
+    [HttpGet("ResetConnectedEmailSubs")]
+    public async Task<IActionResult> ResetConnectedEmailSubs()
+    {
+        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+        DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
+
+        await _mSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, Guid.Parse("6AB56C6E-5F28-4E60-B9B2-D01C3A8FC314"), 56);
         return Ok();
     }
 

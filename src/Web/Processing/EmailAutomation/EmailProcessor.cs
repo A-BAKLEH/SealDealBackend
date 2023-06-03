@@ -11,9 +11,10 @@ using Hangfire.Server;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph;
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
+using Microsoft.Kiota.Abstractions;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
@@ -80,7 +81,7 @@ public class EmailProcessor
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         var categs = await _aDGraphWrapper._graphClient.Users[connectedEmail.Email].Outlook.MasterCategories.GetAsync();
         List<OutlookCategory> categories = categs.Value;
-        var cats = new List<string>() { APIConstants.NewLeadCreated, APIConstants.SeenOnSealDeal, APIConstants.SentBySealDeal };
+        var cats = new List<string>() { APIConstants.NewLeadCreated, APIConstants.SeenOnSealDeal,APIConstants.VerifyEmailAddress,  APIConstants.SentBySealDeal };
         foreach (var cat in cats)
         {
             if (!categories.Any(x => x.DisplayName == cat))
@@ -96,6 +97,10 @@ public class EmailProcessor
                 else if (cat == APIConstants.SeenOnSealDeal)
                 {
                     newCat.Color = CategoryColor.Preset4;
+                }
+                else if(cat == APIConstants.VerifyEmailAddress)
+                {
+                    newCat.Color = CategoryColor.Preset3;
                 }
                 else //SentBySealDeal
                 {
@@ -126,7 +131,7 @@ public class EmailProcessor
         {
 
         }
-        catch(ODataError er)
+        catch (ODataError er)
         {
             _logger.LogError("{mess} and {details} and {targaet}", er.Error.Message, er.Error.Details, er.Error.Target);
         }
@@ -160,6 +165,7 @@ public class EmailProcessor
             try
             {
                 jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), GlobalControl.EmailStartSyncingDelay);
+                _logger.LogInformation("{place} scheduled email parsing with", "ScheduleEmailParseing", "ScheduleEmailParseing");
             }
             catch (Exception ex)
             {
@@ -172,6 +178,7 @@ public class EmailProcessor
                 connEmail.SyncScheduled = true;
                 connEmail.SyncJobId = jobId;
                 await _appDbContext.SaveChangesAsync();
+                _logger.LogInformation("{place} scheduled email parsing with", "savingEmailParseing");
             }
             catch (Exception ex)
             {
@@ -245,7 +252,7 @@ public class EmailProcessor
     /// </summary>
     /// <param name="connEmailId"></param>
     /// <param name="tenantId"></param>
-    public async void SyncEmailAsync(string email, PerformContext performContext)
+    public async Task SyncEmailAsync(string email, PerformContext performContext)
     {
         //TODO Cache
         var connEmail = await _appDbContext.ConnectedEmails
@@ -299,54 +306,82 @@ public class EmailProcessor
         try
         {
             var messages = await _aDGraphWrapper._graphClient
-          .Users[connEmail.Email]
-          .MailFolders["Inbox"]
-          .Messages
-          .GetAsync(config =>
-          {
-              config.QueryParameters.Top = pageSize;
-              config.QueryParameters.Select = new string[] { "id", "from", "subject", "isRead", "conversationId", "receivedDateTime", "body" };
-              config.QueryParameters.Filter = $"receivedDateTime gt {date}";
-              config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
-              config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-          }
-          );
-            int count = 0;
-            int pauseAfter = pageSize;
-            List<Message> messagesList = new(pageSize);
-
-            var pageIterator = PageIterator<Message, MessageCollectionResponse>
-                .CreatePageIterator(
-                _aDGraphWrapper._graphClient,
-                messages,
-                    (m) =>
-                    {
-                        messagesList.Add(m);
-                        count++;
-                        // If we've iterated over the limit,
-                        // stop the iteration by returning false
-                        return count < pauseAfter;
-                    },
-                (req) =>
-                {
-                    // Re-add the header to subsequent requests
-                    req.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-                    return req;
-                }
-                );
-            await pageIterator.IterateAsync();
-
-            while (pageIterator.State != PagingState.Complete)
+            .Users[connEmail.Email]
+            .MailFolders["Inbox"]
+            .Messages
+            .GetAsync(config =>
             {
-                //process the messages
-                var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
-                totaltokens += toks1;
-                LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
-                // Reset count and list
-                count = 0;
-                messagesList = new(pageSize);
-                await pageIterator.ResumeAsync();
+                config.QueryParameters.Top = pageSize;
+                config.QueryParameters.Select = new string[] { "id", "from", "subject", "isRead", "conversationId", "receivedDateTime", "replyTo", "body", "categories" };
+                config.QueryParameters.Filter = $"receivedDateTime gt {date}";
+                config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+                config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+            });
+
+            if (messages.Value.Any())
+            {
+                bool first = true;
+                do
+                {
+                    if (!first)
+                    {
+                        var nextPageRequestInformation = new RequestInformation
+                        {
+                            HttpMethod = Method.GET,
+                            UrlTemplate = messages.OdataNextLink,
+                        };
+                        nextPageRequestInformation.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+                        messages = await _aDGraphWrapper._graphClient.RequestAdapter.SendAsync(nextPageRequestInformation, (parseNode) => new MessageCollectionResponse());
+                    }
+                    first = false;
+                    //process messages
+                    var messagesList = messages.Value;
+
+                    var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
+                    totaltokens += toks1;
+                    LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
+
+                } while (messages.OdataNextLink != null);
             }
+            else LastProcessedTimestamp = DateTimeOffset.UtcNow;
+
+            //int count = 0;
+            //int pauseAfter = pageSize;
+            //List<Message> messagesList = new(pageSize);
+
+            //var pageIterator = PageIterator<Message, MessageCollectionResponse>
+            //    .CreatePageIterator(
+            //    _aDGraphWrapper._graphClient,
+            //    messages,
+            //        (m) =>
+            //        {
+            //            messagesList.Add(m);
+            //            count++;
+            //            // If we've iterated over the limit,
+            //            // stop the iteration by returning false
+            //            return count < pauseAfter;
+            //        },
+            //    (req) =>
+            //    {
+            //        // Re-add the header to subsequent requests
+            //        req.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+            //        return req;
+            //    }
+            //    );
+            //await pageIterator.IterateAsync();
+
+            //while (pageIterator.State != PagingState.Complete)
+            //{
+            //    //process the messages
+            //    var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
+            //    totaltokens += toks1;
+            //    LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
+            //    // Reset count and list
+            //    count = 0;
+            //    messagesList = new(pageSize);
+            //    await pageIterator.ResumeAsync();
+            //}
+
             ReachedFailedMessages = true;
             //failed messages
 
@@ -645,6 +680,7 @@ public class EmailProcessor
             {
                 foreach (var leadT in leadsAdded)
                 {
+                    if(leadT.Item1.LeadEmailUnsure) continue;
                     var lead = leadT.Item1.Lead;
                     var LeadAssignmentEvent = lead.AppEvents.FirstOrDefault(e => e.EventType.HasFlag(EventType.LeadAssignedToYou));
                     if (LeadAssignmentEvent != null)
@@ -669,7 +705,7 @@ public class EmailProcessor
                 foreach (var apass in ActionPlanAssociations)
                 {
                     var APStopppedEvent = StopActionPlan(brokerDTO.Id, apass);
-                    ActionPlanStoppedEvents.Add(APStopppedEvent);                  
+                    ActionPlanStoppedEvents.Add(APStopppedEvent);
                 }
             }
             localdbContext.AppEvents.AddRange(ActionPlanStoppedEvents);
@@ -682,9 +718,14 @@ public class EmailProcessor
         {
             try
             {
-                tup.Item2.Categories.Add(APIConstants.NewLeadCreated);
-                await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[tup.Item2.Id]
-                .PatchAsync(tup.Item2);
+                if (tup.Item2.Categories == null) tup.Item2.Categories = new();
+                if (!tup.Item2.Categories.Any(c => c == APIConstants.NewLeadCreated))
+                {
+                    tup.Item2.Categories.Add(APIConstants.NewLeadCreated);
+                    if(tup.Item1.LeadEmailUnsure) tup.Item2.Categories.Add(APIConstants.VerifyEmailAddress);
+                    await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[tup.Item2.Id]
+                    .PatchAsync(tup.Item2);
+                }                         
             }
             catch (Exception ex)
             {
@@ -844,6 +885,36 @@ public class EmailProcessor
         using var context = _contextFactory.CreateDbContext();
 
         var result = new EmailparserDBRecrodsRes();
+        string LeadEmail = "";
+        if(FromLeadProvider)
+        {
+            LeadEmail = message.ReplyTo?.FirstOrDefault()?.EmailAddress?.Address;
+            if (LeadEmail == null)
+            {
+                if (!string.IsNullOrEmpty(parsedContent.emailAddress))
+                {
+                    LeadEmail = parsedContent.emailAddress;
+                }
+                else
+                {
+                    LeadEmail = message.From.EmailAddress.Address;
+                    result.LeadEmailUnsure = true;
+                }
+            }
+        }
+        else
+        {
+            LeadEmail = message.From.EmailAddress.Address;
+            if(!string.IsNullOrEmpty(parsedContent.emailAddress))
+            {
+                if (parsedContent.emailAddress != LeadEmail)
+                {
+                    //TODO log proper message
+                    _logger.LogWarning("Not lead provider, parsed email doesnt correspond to from");
+                }
+            }
+        }
+
         bool listingFound = false;
         bool multipleListingsMatch = false;
         (int ListingId, Address? address, string? gptAddress, List<BrokerListingAssignment>? brokersAssigned) MatchingListingTuple = (0, null, null, null);
@@ -900,12 +971,12 @@ public class EmailProcessor
             leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.New,
-            LeadEmails = new() { new LeadEmail { EmailAddress = message.Sender.EmailAddress.Address } },
+            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail} },
             Language = lang,
         };
         lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = brokerDTO.brokerFirstName + " " + brokerDTO.brokerLastName;
         lead.SourceDetails[NotificationJSONKeys.CreatedById] = brokerDTO.Id.ToString();
-
+        if(result.LeadEmailUnsure) lead.verifyEmailAddress = true;
         result.Lead = lead;
 
         AppEvent LeadCreationNotif = new()

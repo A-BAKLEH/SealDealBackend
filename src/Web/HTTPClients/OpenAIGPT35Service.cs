@@ -14,7 +14,7 @@ namespace Web.HTTPClients
         {
             _httpClient = httpClient;
             _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _logger = logger;
         }
@@ -36,7 +36,7 @@ namespace Web.HTTPClients
                 //string EmailText = doc.DocumentNode.InnerText;
                 var length = message.Body.Content.Length;
 
-                string prompt = APIConstants.ParseLeadPrompt + message.Body.Content;
+                string prompt = APIConstants.ParseLeadPrompt2 + message.Body.Content;
 
                 StringContent jsonContent = new(
                 JsonSerializer.Serialize(new
