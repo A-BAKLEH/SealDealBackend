@@ -77,6 +77,7 @@ public class LeadQService
         }
         if (dto.leadNote != null)
         {
+            if (lead.Note == null) lead.Note = new();
             lead.Note.NotesText = dto.leadNote;
         }
 
