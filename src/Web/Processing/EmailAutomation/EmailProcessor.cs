@@ -917,23 +917,27 @@ public class EmailProcessor
 
         bool listingFound = false;
         bool multipleListingsMatch = false;
-        (int ListingId, Address? address, string? gptAddress, List<BrokerListingAssignment>? brokersAssigned) MatchingListingTuple = (0, null, null, null);
+
+        int ListingId = 0;
+        Address? address = null;
+        List<BrokerListingAssignment>? brokersAssigned = null;
+        //(int ListingId, Address? address, string? gptAddress, List<BrokerListingAssignment>? brokersAssigned) MatchingListingTuple = (0, null, null, null);
         if (!string.IsNullOrEmpty(parsedContent.PropertyAddress) && !string.IsNullOrEmpty(parsedContent.StreetAddress))
         {
             //get listing
             var streetAddressFormatted = parsedContent.StreetAddress.FormatStreetAddress();
             var listings = await context.Listings
                 .Where(x => x.AgencyId == brokerDTO.AgencyId && EF.Functions.Like(x.FormattedStreetAddress, $"{streetAddressFormatted}%"))
-                .Select(x => new { x.Id, x.FormattedStreetAddress, x.Address, x.BrokersAssigned })
+                .AsNoTracking()
                 .ToListAsync();
             //TODO if doesnt work try searching only with building number and then asking gpt like exlpained in 'complicated way'
             //in the text file, for now this is the simple way
 
             if (listings != null && listings.Count == 1) //1 listing matches, bingo!
             {
-                MatchingListingTuple.ListingId = listings[0].Id;
-                MatchingListingTuple.address = listings[0].Address;
-                MatchingListingTuple.brokersAssigned = listings[0].BrokersAssigned;
+                ListingId = listings[0].Id;
+                address = listings[0].Address;
+                brokersAssigned = listings[0].BrokersAssigned;
                 listingFound = true;
             }
             else if (listings.Count > 1) //more than 1 match
@@ -943,9 +947,9 @@ public class EmailProcessor
                     var lis = listings.FirstOrDefault(a => a.Address.apt == parsedContent.Apartment);
                     if (lis != null)
                     {
-                        MatchingListingTuple.ListingId = lis.Id;
-                        MatchingListingTuple.address = lis.Address;
-                        MatchingListingTuple.brokersAssigned = lis.BrokersAssigned;
+                        ListingId = lis.Id;
+                        address = lis.Address;
+                        brokersAssigned = lis.BrokersAssigned;
                         listingFound = true;
                     }
                 }
@@ -971,7 +975,7 @@ public class EmailProcessor
             leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.New,
-            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail} },
+            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true} },
             Language = lang,
         };
         lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = brokerDTO.brokerFirstName + " " + brokerDTO.brokerLastName;
@@ -1014,8 +1018,8 @@ public class EmailProcessor
             lead.BrokerId = brokerDTO.Id;
             if (listingFound)
             {
-                if (brokerDTO.isSolo || (!brokerDTO.isAdmin && MatchingListingTuple.brokersAssigned.Any(x => x.BrokerId == brokerDTO.Id)))
-                { lead.ListingId = MatchingListingTuple.ListingId; }
+                if (brokerDTO.isSolo || (!brokerDTO.isAdmin && brokersAssigned.Any(x => x.BrokerId == brokerDTO.Id)))
+                { lead.ListingId = ListingId; }
                 else
                 {
                     //non-solo non-admin broker, listing found but not assigned to him
@@ -1037,10 +1041,10 @@ public class EmailProcessor
             if (listingFound)
             {
                 //assign to broker if 1 broker linked with listing AND autoAssign on OR self, else dont assign.
-                lead.ListingId = MatchingListingTuple.ListingId;
-                if (MatchingListingTuple.brokersAssigned != null && MatchingListingTuple.brokersAssigned.Count == 1)
+                lead.ListingId = ListingId;
+                if (brokersAssigned != null && brokersAssigned.Count == 1)
                 {
-                    var brokerToAssignToId = MatchingListingTuple.brokersAssigned[0].BrokerId;
+                    var brokerToAssignToId = brokersAssigned[0].BrokerId;
                     string brokerToAssignToFullName = "";
                     if (brokerToAssignToId != brokerDTO.Id)
                     {

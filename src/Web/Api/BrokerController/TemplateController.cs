@@ -65,7 +65,6 @@ public class TemplateController : BaseApiController
             return Forbid();
         }
 
-
         var template = await _templatesQService.CreateTemplateAsync(dto, id);
 
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);

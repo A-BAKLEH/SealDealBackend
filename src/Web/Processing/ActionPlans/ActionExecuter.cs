@@ -64,14 +64,14 @@ public class ActionExecuter
     public string ReplaceTemplateVariables(string input, Lead lead)
     {
         //string pattern = @"\$\w+\$"; // Pattern to match words between $$ signs
-        string pattern = @"\$(\w+)\$";
+        string pattern = @"%(\w+)%";
         //MatchCollection matches = Regex.Matches(input, pattern);
         //var builder = new StringBuilder(input);
         var match = Regex.Match(input, pattern);
         while (match.Success)
         {
             string word = match.Groups[1].Value;
-            var wordWithoutDollards = word.Replace("$", "");
+            var wordWithoutDollards = word.Replace("%", "");
             var index  = match.Groups[1].Index;
             var replacementValue = "";
             switch (wordWithoutDollards)

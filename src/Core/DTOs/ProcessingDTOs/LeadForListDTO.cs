@@ -6,6 +6,7 @@ public class LeadForListDTO
     public string? LeadLastName { get; set; }
     public string language { get; set; }
     public string? PhoneNumber { get; set; }
+    public bool? verifyEmailAddress { get; set; }
     public List<LeadEmailDTO> Emails { get; set; }
     public int? Budget { get; set; }
     public DateTime EntryDate { get; set; }

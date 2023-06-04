@@ -29,6 +29,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
           .Select(l => new AllahLeadDTO
           {
               LeadId = l.Id,
+              verifyEmailAddress = l.verifyEmailAddress,
               brokerId = l.BrokerId,
               Budget = l.Budget,
               Emails = l.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain }).ToList(),
@@ -60,6 +61,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
           .Select(l => new AllahLeadDTO
           {
               LeadId = l.Id,
+              verifyEmailAddress = l.verifyEmailAddress,
               brokerId = l.BrokerId,
               Budget = l.Budget,
               Emails = l.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain }).ToList(),

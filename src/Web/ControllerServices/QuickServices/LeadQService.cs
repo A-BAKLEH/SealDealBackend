@@ -30,6 +30,7 @@ public class LeadQService
           .Include(l => l.Note)
           .Include(l => l.LeadEmails)
           .FirstAsync(l => l.Id == LeadId && l.BrokerId == brokerID);
+        if (dto.VerifyEmailAddress != null) lead.verifyEmailAddress = (bool)dto.VerifyEmailAddress;
         if (dto.LeadFirstName != null) lead.LeadFirstName = dto.LeadFirstName;
         if (dto.LeadLastName != null) lead.LeadLastName = dto.LeadLastName;
         if (dto.Areas != null) lead.Areas = dto.Areas;
@@ -85,6 +86,7 @@ public class LeadQService
         var response = new LeadForListDTO
         {
             Budget = lead.Budget,
+            verifyEmailAddress = lead.verifyEmailAddress,
             Emails = lead.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain }).ToList(),
             EntryDate = lead.EntryDate.UtcDateTime,
             LeadFirstName = lead.LeadFirstName,
@@ -168,6 +170,7 @@ public class LeadQService
           .Select(l => new LeadForListDTO
           {
               Budget = l.Budget,
+              verifyEmailAddress = l.verifyEmailAddress,
               Emails = l.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain }).ToList(),
               EntryDate = l.EntryDate.UtcDateTime,
               LeadFirstName = l.LeadFirstName,
@@ -199,6 +202,7 @@ public class LeadQService
           .Select(l => new LeadForListDTO
           {
               Budget = l.Budget,
+              verifyEmailAddress = l.verifyEmailAddress,
               Emails = l.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain }).ToList(),
               EntryDate = l.EntryDate.UtcDateTime,
               LeadFirstName = l.LeadFirstName,

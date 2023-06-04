@@ -4,6 +4,7 @@ namespace Core.DTOs.ProcessingDTOs;
 public class AllahLeadDTO
 {
     public int LeadId { get; set; }
+    public bool verifyEmailAddress { get; set; }
     public Guid? brokerId { get; set; }
     public string LeadFirstName { get; set; }
     public string? LeadLastName { get; set; }

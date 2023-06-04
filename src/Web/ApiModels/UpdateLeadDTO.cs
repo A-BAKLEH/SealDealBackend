@@ -2,6 +2,7 @@
 
 public class UpdateLeadDTO
 {
+    public bool? VerifyEmailAddress { get; set; }
     public string? LeadFirstName { get; set; }
     public string? LeadLastName { get; set; }
     public string? PhoneNumber { get; set; }

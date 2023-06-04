@@ -52,21 +52,14 @@ public class TestController : ControllerBase
         _actionPQService = actionPQService;
     }
 
-    [HttpGet("testdictRemove")]
-    public async Task<IActionResult> testdictRemove()
+    [HttpGet("testaddress")]
+    public async Task<IActionResult> testaddress()
     {
-        //var appEvent = new AppEvent
-        //{
-        //    BrokerId = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA"),
-        //    LeadId = null,
-        //};
-        //appEvent.Props["lol"] = "lol";
-        var found = await _appDbContext.AppEvents.FindAsync(25);
-
-        //TECH
-        found.Props.Remove("lol");
-        _appDbContext.Entry(found).Property(f => f.Props).IsModified = true;
-        await _appDbContext.SaveChangesAsync();
+        var addres = "chalet gatineau";
+        var listings = await _appDbContext.Listings
+                .Where(x => x.AgencyId == 56 && EF.Functions.Like(x.FormattedStreetAddress, $"{addres}%"))
+                .AsNoTracking()
+                .ToListAsync();
         return Ok();
     }
 
