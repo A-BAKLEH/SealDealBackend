@@ -4,6 +4,7 @@ using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces;
+using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using MediatR;
@@ -12,9 +13,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
+using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
 using Web.Processing.Analyzer;
+using Web.Processing.EmailAutomation;
 
 namespace Web.Api.TestingAPI;
 
@@ -52,6 +55,43 @@ public class TestController : ControllerBase
         _actionPQService = actionPQService;
     }
 
+    [HttpGet("startmailprocessor")]
+    public async Task<IActionResult> startmailprocessor()
+    {
+        var SubsId = Guid.Parse("149CFB0A-0B0D-423A-B5E9-0F99E143EF07");
+        if (StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
+        {
+            var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
+            //'lock' obtained by putting subsID as key in dictionary
+            string jobId = "";
+            try
+            {
+                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), GlobalControl.EmailStartSyncingDelay);
+                _logger.LogInformation("{place} scheduled email parsing with", "ScheduleEmailParseing", "ScheduleEmailParseing");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("{place} error scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
+                return Ok();
+            }
+            try
+            {
+                connEmail.SyncScheduled = true;
+                connEmail.SyncJobId = jobId;
+                await _appDbContext.SaveChangesAsync();
+                _logger.LogInformation("{place} scheduled email parsing with", "savingEmailParseing");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("{place} error saving db after scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+
+                BackgroundJob.Delete(jobId);
+                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
+            }
+        }
+        return Ok();
+    }
     [HttpGet("testaddress")]
     public async Task<IActionResult> testaddress()
     {

@@ -15,5 +15,5 @@ public static class GlobalControl
         "basharEskandar@hotmail.com",
         "basharo9999@hotmail.com"};
 
-    public static TimeSpan EmailStartSyncingDelay = TimeSpan.FromSeconds(10);
+    public static TimeSpan EmailStartSyncingDelay = TimeSpan.FromSeconds(5);
 }

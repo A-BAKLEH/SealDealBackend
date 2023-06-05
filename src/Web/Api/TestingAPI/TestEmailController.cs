@@ -208,7 +208,48 @@ public class TestEmailController : ControllerBase
         return Ok();
     }
 
-
+    [HttpGet("testCConvo")]
+    public async Task<IActionResult> testCCCONvo()
+    {
+        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+        _adGraphWrapper.CreateClient(tenantId);
+        var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
+        var date = date1.ToString("o");
+        var messages1 = await _adGraphWrapper._graphClient
+          .Users["bashar.eskandar@sealdeal.ca"]
+          .MailFolders["Inbox"]
+          .Messages
+          .GetAsync(config =>
+          {
+              config.QueryParameters.Top = 5;
+              config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "receivedDateTime" };
+              config.QueryParameters.Filter = $"receivedDateTime gt {date}";
+              config.QueryParameters.Orderby = new string[] { "receivedDateTime Desc" };
+              config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+          }
+          );
+        var convId = messages1.Value.First().ConversationId;
+        try
+        {
+            var messages2 = await _adGraphWrapper._graphClient
+          .Users["bashar.eskandar@sealdeal.ca"]
+          .Messages
+          .GetAsync(config =>
+          {
+              config.QueryParameters.Top = 3;
+              config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "receivedDateTime" };
+              config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq '{convId}'";
+              config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+              config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+          }
+          );
+        }
+        catch (ODataError er)
+        {
+            var eri = er;
+        }
+        return Ok();
+    }
 
     [HttpGet("convotest")]
     public async Task<IActionResult> convotestg()

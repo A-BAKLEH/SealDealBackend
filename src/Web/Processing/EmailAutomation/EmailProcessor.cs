@@ -288,7 +288,7 @@ public class EmailProcessor
 
         DateTimeOffset lastSync;
         if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow - TimeSpan.FromDays(2);
-        else lastSync = (DateTimeOffset)connEmail.LastSync;
+        else lastSync = (DateTimeOffset)connEmail.LastSync + TimeSpan.FromSeconds(1);
 
         //TODO deal with when lsatSync and FirstSync is null it means this is the first sync
 
@@ -320,6 +320,10 @@ public class EmailProcessor
 
             if (messages.Value.Any())
             {
+                //if (messages.Value[0].ReceivedDateTime == lastSync)
+                //{
+
+                //}
                 bool first = true;
                 do
                 {
@@ -455,7 +459,7 @@ public class EmailProcessor
           {
               config.QueryParameters.Top = 3;
               config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "receivedDateTime" };
-              config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq {message.ConversationId}";
+              config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq '{message.ConversationId}'";
               config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
               config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
           }
@@ -672,24 +676,7 @@ public class EmailProcessor
         //         catch { counter--; await Task.Delay((4 - counter + 1) * 200); }
         //     }
         // }));
-
-        //Trigger Action plans start
-        if (leadsAdded.Any())
-        {
-            if (brokerDTO.brokerStartActionPlans.Any())
-            {
-                foreach (var leadT in leadsAdded)
-                {
-                    if(leadT.Item1.LeadEmailUnsure) continue;
-                    var lead = leadT.Item1.Lead;
-                    var LeadAssignmentEvent = lead.AppEvents.FirstOrDefault(e => e.EventType.HasFlag(EventType.LeadAssignedToYou));
-                    if (LeadAssignmentEvent != null)
-                    {
-                        TriggerActionPlanAsync(brokerDTO.brokerStartActionPlans, lead, brokerDTO.Id);
-                    }
-                }
-            }
-        }
+       
         var ActionPlanStoppedEvents = new List<AppEvent>();
         //Stop action plans for leads that replied
         if (LeadIDsToStopActionPlan.Any())
@@ -710,8 +697,26 @@ public class EmailProcessor
             }
             localdbContext.AppEvents.AddRange(ActionPlanStoppedEvents);
         }
-
-        await localdbContext.SaveChangesAsync();
+      
+        //Trigger Action plans start
+        if (leadsAdded.Any())
+        {
+            await localdbContext.SaveChangesAsync(); //necessary to get added leads IDs
+            if (brokerDTO.brokerStartActionPlans.Any())
+            {
+                foreach (var leadT in leadsAdded)
+                {
+                    if (leadT.Item1.LeadEmailUnsure) continue;
+                    var lead = leadT.Item1.Lead;
+                    var LeadAssignmentEvent = lead.AppEvents.FirstOrDefault(e => e.EventType.HasFlag(EventType.LeadAssignedToYou));
+                    if (LeadAssignmentEvent != null)
+                    {
+                        TriggerActionPlan(brokerDTO.brokerStartActionPlans, lead, brokerDTO.Id);
+                        localdbContext.Entry(lead).State = EntityState.Modified;
+                    }
+                }
+            }
+        }
 
         //mark the messages that had a lead with "LeadExtracted"
         await Task.WhenAll(leadsAdded.Select(async (tup) =>
@@ -753,7 +758,7 @@ public class EmailProcessor
                 _logger.LogError("{Category} assigning reprocess prop on emails after processing error: {Error}", "GraphSDK", ex.Message);
             }
         }));
-
+        await localdbContext.SaveChangesAsync();
         await transaction.CommitAsync();
         //transaction-------------------------------
         var appevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.AppEvents).ToList();
@@ -797,7 +802,7 @@ public class EmailProcessor
         return APDoneEvent;
     }
 
-    public void TriggerActionPlanAsync(List<ActionPlan> actionPlans, Lead lead, Guid brokerId)
+    public void TriggerActionPlan(List<ActionPlan> actionPlans, Lead lead, Guid brokerId)
     {
         var timeNow = DateTime.UtcNow;
         foreach (var ap in actionPlans)
@@ -826,7 +831,9 @@ public class EmailProcessor
                 ActionTrackers = new() { actionTracker },
                 currentTrackedActionId = firstAction.Id,
             };
+            if (lead.ActionPlanAssociations == null) lead.ActionPlanAssociations = new();
             lead.ActionPlanAssociations.Add(apAssociation);
+
 
             bool OldHasActionPlanToStop = lead.HasActionPlanToStop;
             if (ap.StopPlanOnInteraction) lead.HasActionPlanToStop = true;
@@ -927,6 +934,7 @@ public class EmailProcessor
             //get listing
             var streetAddressFormatted = parsedContent.StreetAddress.FormatStreetAddress();
             var listings = await context.Listings
+                .Include(l => l.BrokersAssigned)
                 .Where(x => x.AgencyId == brokerDTO.AgencyId && EF.Functions.Like(x.FormattedStreetAddress, $"{streetAddressFormatted}%"))
                 .AsNoTracking()
                 .ToListAsync();
