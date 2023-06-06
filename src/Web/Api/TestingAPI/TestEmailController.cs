@@ -1,5 +1,4 @@
 ﻿using Core.Constants;
-using HtmlAgilityPack;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +7,6 @@ using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;

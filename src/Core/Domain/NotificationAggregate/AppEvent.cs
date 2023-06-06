@@ -95,8 +95,8 @@ public enum EventType
     /// <summary>
     /// data: UserId who createed it ,TempPassword, EmailSent?
     /// </summary>
-    BrokerCreated = 1 << 8,
-    StripeSubsChanged = 1 << 9,
+    BrokerCreated = 1 << 9,
+    StripeSubsChanged = 1 << 10,
 
     //Analyzer Notifs types-----------
 

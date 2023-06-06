@@ -11,7 +11,6 @@ using Hangfire.Server;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
@@ -55,7 +54,7 @@ public class EmailProcessor
     /// <param name="tenantId"></param>
     public async Task RenewSubscriptionAsync(string email)
     {
-        var connEmail = _appDbContext.ConnectedEmails.FirstOrDefault(x => x.Email == email);
+        var connEmail = await  _appDbContext.ConnectedEmails.FirstOrDefaultAsync(x => x.Email == email);
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
 
         var subs = new Subscription
@@ -65,9 +64,20 @@ public class EmailProcessor
 
         _aDGraphWrapper.CreateClient(connEmail.tenantId);
 
-        var UpdatedSubs = await _aDGraphWrapper._graphClient
-          .Subscriptions[connEmail.GraphSubscriptionId.ToString()]
-          .PatchAsync(subs);
+        try
+        {
+            var UpdatedSubs = await _aDGraphWrapper._graphClient
+                .Subscriptions[connEmail.GraphSubscriptionId.ToString()]
+                .PatchAsync(subs);
+        }
+        catch (ODataError err)
+        {
+            if(err.ResponseStatusCode == 404)
+            {
+                await CreateEmailSubscriptionAsync(connEmail, true);
+                return;
+            }
+        }
 
         connEmail.SubsExpiryDate = SubsEnds;
         var nextRenewalDate = SubsEnds - TimeSpan.FromMinutes(60);
@@ -81,7 +91,7 @@ public class EmailProcessor
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         var categs = await _aDGraphWrapper._graphClient.Users[connectedEmail.Email].Outlook.MasterCategories.GetAsync();
         List<OutlookCategory> categories = categs.Value;
-        var cats = new List<string>() { APIConstants.NewLeadCreated, APIConstants.SeenOnSealDeal,APIConstants.VerifyEmailAddress,  APIConstants.SentBySealDeal };
+        var cats = new List<string>() { APIConstants.NewLeadCreated, APIConstants.SeenOnSealDeal, APIConstants.VerifyEmailAddress, APIConstants.SentBySealDeal };
         foreach (var cat in cats)
         {
             if (!categories.Any(x => x.DisplayName == cat))
@@ -98,7 +108,7 @@ public class EmailProcessor
                 {
                     newCat.Color = CategoryColor.Preset4;
                 }
-                else if(cat == APIConstants.VerifyEmailAddress)
+                else if (cat == APIConstants.VerifyEmailAddress)
                 {
                     newCat.Color = CategoryColor.Preset3;
                 }
@@ -127,14 +137,7 @@ public class EmailProcessor
 
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         //will validate through the webhook before returning the subscription here
-        try
-        {
 
-        }
-        catch (ODataError er)
-        {
-            _logger.LogError("{mess} and {details} and {targaet}", er.Error.Message, er.Error.Details, er.Error.Target);
-        }
         var CreatedSubs = await _aDGraphWrapper._graphClient.Subscriptions.PostAsync(subs);
 
         //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work
@@ -676,7 +679,7 @@ public class EmailProcessor
         //         catch { counter--; await Task.Delay((4 - counter + 1) * 200); }
         //     }
         // }));
-       
+
         var ActionPlanStoppedEvents = new List<AppEvent>();
         //Stop action plans for leads that replied
         if (LeadIDsToStopActionPlan.Any())
@@ -697,7 +700,7 @@ public class EmailProcessor
             }
             localdbContext.AppEvents.AddRange(ActionPlanStoppedEvents);
         }
-      
+
         //Trigger Action plans start
         if (leadsAdded.Any())
         {
@@ -727,10 +730,10 @@ public class EmailProcessor
                 if (!tup.Item2.Categories.Any(c => c == APIConstants.NewLeadCreated))
                 {
                     tup.Item2.Categories.Add(APIConstants.NewLeadCreated);
-                    if(tup.Item1.LeadEmailUnsure) tup.Item2.Categories.Add(APIConstants.VerifyEmailAddress);
+                    if (tup.Item1.LeadEmailUnsure) tup.Item2.Categories.Add(APIConstants.VerifyEmailAddress);
                     await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[tup.Item2.Id]
                     .PatchAsync(tup.Item2);
-                }                         
+                }
             }
             catch (Exception ex)
             {
@@ -893,7 +896,7 @@ public class EmailProcessor
 
         var result = new EmailparserDBRecrodsRes();
         string LeadEmail = "";
-        if(FromLeadProvider)
+        if (FromLeadProvider)
         {
             LeadEmail = message.ReplyTo?.FirstOrDefault()?.EmailAddress?.Address;
             if (LeadEmail == null)
@@ -912,7 +915,7 @@ public class EmailProcessor
         else
         {
             LeadEmail = message.From.EmailAddress.Address;
-            if(!string.IsNullOrEmpty(parsedContent.emailAddress))
+            if (!string.IsNullOrEmpty(parsedContent.emailAddress))
             {
                 if (parsedContent.emailAddress != LeadEmail)
                 {
@@ -983,12 +986,12 @@ public class EmailProcessor
             leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.New,
-            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true} },
+            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true } },
             Language = lang,
         };
         lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = brokerDTO.brokerFirstName + " " + brokerDTO.brokerLastName;
         lead.SourceDetails[NotificationJSONKeys.CreatedById] = brokerDTO.Id.ToString();
-        if(result.LeadEmailUnsure) lead.verifyEmailAddress = true;
+        if (result.LeadEmailUnsure) lead.verifyEmailAddress = true;
         result.Lead = lead;
 
         AppEvent LeadCreationNotif = new()
