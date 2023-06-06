@@ -31,6 +31,7 @@ public static class NotificationJSONKeys
     public const string TriggeredManually = "Triggered Manually";
 
     public const string ActionPlanId = "ActionPlanId";
+    public const string ActionPlanName = "ActionPlanName";
     public const string OldLeadStatus = "OldLeadStatus";
     public const string NewLeadStatus = "NewLeadStatus";
     public const string ActionId = "ActionId";

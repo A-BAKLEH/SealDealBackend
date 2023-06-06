@@ -571,25 +571,43 @@ public class TestEmailController : ControllerBase
     {
 
         var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-        DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
+
+        var connEmail = await appDbContext1.ConnectedEmails.Where(e => e.tenantId == tenantId).FirstAsync();
         string emailBash = "bashar.eskandar@sealDeal.ca";
         var Newsubs = new Subscription
         {
-            NotificationUrl = url
+            NotificationUrl = VariousCons.MainAPIURL,
+            ExpirationDateTime = connEmail.SubsExpiryDate
+            
         };
-        VariousCons.MainAPIURL = url;
+        //VariousCons.MainAPIURL = url;
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
-        var Subs = await _adGraphWrapper._graphClient.Subscriptions[SubsId].PatchAsync(Newsubs);
-        return Ok(Subs);
+        try
+        {
+            var Subs = await _adGraphWrapper._graphClient.Subscriptions[SubsId].PatchAsync(Newsubs);
+        }
+        catch(ODataError err)
+        {
+            var sdf = err;
+        }
+        
+        return Ok();
     }
 
-    [HttpGet("CurrentMainAPIURL")]
-    public async Task<IActionResult> GetURL()
+    [HttpGet("setconnectedEmailLastSyncdate")]
+    public async Task<IActionResult> setconnectedEmailLastSyncdate()
     {
-
-        var url = VariousCons.MainAPIURL;
-        return Ok(url);
+        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+        var connectedEmails = await appDbContext1.ConnectedEmails
+            .Where(e => e.tenantId == tenantId)
+            .ToListAsync();
+        foreach (var em in connectedEmails)
+        {
+            em.LastSync = DateTimeOffset.UtcNow;
+        }
+        await appDbContext1.SaveChangesAsync();
+        return Ok();
     }
 
 
@@ -612,14 +630,13 @@ public class TestEmailController : ControllerBase
         //string emailBash = "bashar.eskandar@sealDeal.ca";
 
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
-        _adGraphWrapper.CreateClient(tenantId);
         foreach (var sub3 in subs1)
         {
             await _adGraphWrapper._graphClient.Subscriptions[sub3.Id].DeleteAsync();
         }
 
         var connectedEmails = await appDbContext1.ConnectedEmails
-            .Where(e => e.BrokerId == Guid.Parse("6AB56C6E-5F28-4E60-B9B2-D01C3A8FC314"))
+            .Where(e => e.tenantId == tenantId)
             .ToListAsync();
         foreach (var e in connectedEmails)
         {
@@ -629,12 +646,10 @@ public class TestEmailController : ControllerBase
             e.SubsExpiryDate = null;
             e.SyncScheduled = false;
             e.SyncJobId = null;
+            e.GraphSubscriptionId = null;
         }
         await appDbContext1.SaveChangesAsync();
         return Ok();
-
-
-
     }
 
     [HttpGet("ResetConnectedEmailSubs")]
@@ -643,7 +658,7 @@ public class TestEmailController : ControllerBase
         var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
 
-        await _mSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, Guid.Parse("6AB56C6E-5F28-4E60-B9B2-D01C3A8FC314"), 56);
+        await _mSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, Guid.Parse("F723997C-75C7-4D9C-82B0-D51034028EFA"), 57);
         return Ok();
     }
 

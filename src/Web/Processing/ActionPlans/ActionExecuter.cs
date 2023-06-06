@@ -51,6 +51,7 @@ public class ActionExecuter
             IsActionPlanResult = true,
             ProcessingStatus = ProcessingStatus.NoNeed,
         };
+        StatusChangeEvent.Props[NotificationJSONKeys.ActionPlanName] = ActionPlanAssociation.ActionPlan.Name;
         StatusChangeEvent.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
         StatusChangeEvent.Props[NotificationJSONKeys.ActionId] = currentActionDTO.Id.ToString();
         StatusChangeEvent.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
@@ -170,6 +171,7 @@ public class ActionExecuter
         };
         EmailSentNotif.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanAssociation.ActionPlanId.ToString();
         EmailSentNotif.Props[NotificationJSONKeys.ActionId] = currentActionDTO.Id.ToString();
+        EmailSentNotif.Props[NotificationJSONKeys.ActionPlanName] = ActionPlanAssociation.ActionPlan.Name;
         EmailSentNotif.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
         _appDbContext.AppEvents.Add(EmailSentNotif);
         return new Tuple<bool, AppEvent?>(true, EmailSentNotif);

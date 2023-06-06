@@ -32,10 +32,11 @@ public class APProcessor
     public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId, PerformContext performContext)
     {
         var ActionPlanAssociation = await _appDbContext.ActionPlanAssociations
-          .Include(ass => ass.ActionTrackers.Where(a => a.TrackedActionId == ActionId))
-          .Include(ass => ass.lead)
-          .ThenInclude(l => l.LeadEmails.Where(em => em.IsMain))
-          .FirstAsync(ass => ass.LeadId == LeadId && ass.ActionPlanId == ActionPlanId);
+            .Include(ass => ass.ActionPlan)
+            .Include(ass => ass.ActionTrackers.Where(a => a.TrackedActionId == ActionId))
+            .Include(ass => ass.lead)
+            .ThenInclude(l => l.LeadEmails.Where(em => em.IsMain))
+            .FirstAsync(ass => ass.LeadId == LeadId && ass.ActionPlanId == ActionPlanId);
 
         if (ActionPlanAssociation == null || !ActionPlanAssociation.ActionTrackers.Any() || ActionPlanAssociation.lead == null)
         {
@@ -142,8 +143,9 @@ public class APProcessor
                 ProcessingStatus = ProcessingStatus.NoNeed
             };
             APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
+            APDoneEvent.Props[NotificationJSONKeys.ActionPlanName] = ActionPlanAssociation.ActionPlan.Name;
             APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.AllActionsCompleted;
-            _appDbContext.AppEvents.Add(APDoneEvent);
+            _appDbContext.AppEvents.Add(APDoneEvent); 
             RTEvents.Add(APDoneEvent);
         }
 

@@ -44,49 +44,50 @@ public enum EventType
 {
     None = 0,
     /// <summary>
-    /// data: old status, new status, if IsActionPlanResult:  ActionPlanId, ActionId,APAssID
+    /// data: old status, new status, if IsActionPlanResult:  ActionPlanId,ActionPlanName, ActionId,APAssID
     /// process: signalR/push notif
     /// </summary>                                           
-    LeadStatusChange = 1 << 0,
+    LeadStatusChange = 1 << 0, //1
     /// <summary>                                         
     /// data: listing Id, name or Id of actor who did it 
     /// </summary>
-    ListingAssigned = 1 << 1,
+    ListingAssigned = 1 << 1, //2
 
     /// <summary>
     /// listing Id, name or Id of actor who did it
     /// </summary>
-    ListingUnAssigned = 1 << 2,
+    ListingUnAssigned = 1 << 2, //4
 
     /// <summary>
-    /// whenever UNASSIGNED Lead enters the system no matter how. BrokerId is the Id of person who created the Lead,.
-    /// data: 
+    /// whenever UNASSIGNED Lead enters the system no matter how. BrokerId is the Id of person who created the Lead.
+    /// 
+    /// data: if automatically created, EmailId 
     /// </summary>
-    LeadCreated = 1 << 3,
+    LeadCreated = 1 << 3, // 8
 
     /// <summary>
     /// whenever an association between lead and me as a broker is created, BrokerId is the Id of Broker
     /// It is assigned to.
     /// data: UserId who did it, message/comment from person who assigned it if not broker to himself.
     /// </summary>
-    LeadAssignedToYou = 1 << 4,
+    LeadAssignedToYou = 1 << 4, // 16
 
     /// <summary>
     /// for admin: when admin assigns a lead to someone else
     /// </summary>
-    YouAssignedtoBroker = 1 << 5,
+    YouAssignedtoBroker = 1 << 5, // 32
     /// <summary>
     /// will only be possible after admin manually assigns lead to a broker
     /// </summary> ******DELETED NOT USED ************
     //LeadUnAssigned = 1 << 5,
 
     /// <summary>
-    /// data: props : APTriggerType, ActionPlanId
+    /// data: props : APTriggerType, ActionPlanId, ActionPlanName
     /// </summary>
-    ActionPlanStarted = 1 << 6,
+    ActionPlanStarted = 1 << 6, //64
 
     /// <summary>
-    /// data: props :  ActionPlanId, APFinishedReason
+    /// data: props :  ActionPlanId, APFinishedReason, ActionPlanName
     /// </summary>
     ActionPlanFinished = 1 << 7,
 
@@ -95,8 +96,8 @@ public enum EventType
     /// <summary>
     /// data: UserId who createed it ,TempPassword, EmailSent?
     /// </summary>
-    BrokerCreated = 1 << 9,
-    StripeSubsChanged = 1 << 10,
+    BrokerCreated = 1 << 9, //512
+    StripeSubsChanged = 1 << 10, //1024
 
     //Analyzer Notifs types-----------
 

@@ -96,6 +96,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                             };
                             APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = appEvent.EventType.ToString();
                             APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = ap.Id.ToString();
+                            APStartedEvent.Props[NotificationJSONKeys.ActionPlanName] = ap.Name;
                             lead.AppEvents = new() { APStartedEvent };
                             string HangfireJobId = "";
                             try

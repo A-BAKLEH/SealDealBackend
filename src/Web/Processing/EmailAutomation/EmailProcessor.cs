@@ -54,7 +54,7 @@ public class EmailProcessor
     /// <param name="tenantId"></param>
     public async Task RenewSubscriptionAsync(string email)
     {
-        var connEmail = await  _appDbContext.ConnectedEmails.FirstOrDefaultAsync(x => x.Email == email);
+        var connEmail = await _appDbContext.ConnectedEmails.FirstOrDefaultAsync(x => x.Email == email);
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
 
         var subs = new Subscription
@@ -72,7 +72,7 @@ public class EmailProcessor
         }
         catch (ODataError err)
         {
-            if(err.ResponseStatusCode == 404)
+            if (err.ResponseStatusCode == 404)
             {
                 await CreateEmailSubscriptionAsync(connEmail, true);
                 return;
@@ -344,76 +344,61 @@ public class EmailProcessor
                     //process messages
                     var messagesList = messages.Value;
 
+                    LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
                     var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
                     totaltokens += toks1;
-                    LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
-
+                    
                 } while (messages.OdataNextLink != null);
             }
             else LastProcessedTimestamp = DateTimeOffset.UtcNow;
 
-            //int count = 0;
-            //int pauseAfter = pageSize;
-            //List<Message> messagesList = new(pageSize);
-
-            //var pageIterator = PageIterator<Message, MessageCollectionResponse>
-            //    .CreatePageIterator(
-            //    _aDGraphWrapper._graphClient,
-            //    messages,
-            //        (m) =>
-            //        {
-            //            messagesList.Add(m);
-            //            count++;
-            //            // If we've iterated over the limit,
-            //            // stop the iteration by returning false
-            //            return count < pauseAfter;
-            //        },
-            //    (req) =>
-            //    {
-            //        // Re-add the header to subsequent requests
-            //        req.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-            //        return req;
-            //    }
-            //    );
-            //await pageIterator.IterateAsync();
-
-            //while (pageIterator.State != PagingState.Complete)
-            //{
-            //    //process the messages
-            //    var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
-            //    totaltokens += toks1;
-            //    LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
-            //    // Reset count and list
-            //    count = 0;
-            //    messagesList = new(pageSize);
-            //    await pageIterator.ResumeAsync();
-            //}
-
             ReachedFailedMessages = true;
             //failed messages
-
+            bool processFailed = false;
             var failedMessages = await GetFailedMessages(email);
-            if (failedMessages != null && failedMessages.Count > 0)
+            if (failedMessages != null && failedMessages.Count > 0 && processFailed)
             {
-                var faultedReprocess = new List<Message>();
-                var toks = await ProcessMessagesAsync(failedMessages, brokerDTO, faultedReprocess);
-                totaltokens += toks;
-                var success = failedMessages.Where(m => !faultedReprocess.Contains(m));
-                foreach (var markSuccessMessage in success)
+                if (processFailed)
                 {
-                    await _aDGraphWrapper._graphClient.Users[email]
-                    .Messages[markSuccessMessage.Id]
-                    .PatchAsync(new Message
+                    var faultedReprocess = new List<Message>();
+                    var toks = await ProcessMessagesAsync(failedMessages, brokerDTO, faultedReprocess);
+                    totaltokens += toks;
+                    var success = failedMessages.Where(m => !faultedReprocess.Contains(m));
+                    foreach (var markSuccessMessage in success)
                     {
-                        SingleValueExtendedProperties = new()
+                        await _aDGraphWrapper._graphClient.Users[email]
+                        .Messages[markSuccessMessage.Id]
+                        .PatchAsync(new Message
                         {
-                      new SingleValueLegacyExtendedProperty
-                      {
-                        Id = APIConstants.ReprocessMessExtendedPropId,
-                        Value = "0"
-                      }
-                        }
-                    });
+                            SingleValueExtendedProperties = new()
+                            {
+                                new SingleValueLegacyExtendedProperty
+                                {
+                                    Id = APIConstants.ReprocessMessExtendedPropId,
+                                    Value = "0"
+                                }
+                            }
+                        });
+                    }
+                }
+                else
+                {
+                    foreach (var markSuccessMessage in failedMessages)
+                    {
+                        await _aDGraphWrapper._graphClient.Users[email]
+                        .Messages[markSuccessMessage.Id]
+                        .PatchAsync(new Message
+                        {
+                            SingleValueExtendedProperties = new()
+                            {
+                                new SingleValueLegacyExtendedProperty
+                                {
+                                    Id = APIConstants.ReprocessMessExtendedPropId,
+                                    Value = "0"
+                                }
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -687,7 +672,7 @@ public class EmailProcessor
             foreach (var leadId in LeadIDsToStopActionPlan)
             {
                 var ActionPlanAssociations = await localdbContext.ActionPlanAssociations
-                    //.Include(apa => apa.ActionPlan)
+                    .Include(apa => apa.ActionPlan)
                     .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
                     .Where(apa => apa.LeadId == leadId && apa.ThisActionPlanStatus == ActionPlanStatus.Running && apa.ActionPlan.StopPlanOnInteraction)
                     .ToListAsync();
@@ -701,10 +686,12 @@ public class EmailProcessor
             localdbContext.AppEvents.AddRange(ActionPlanStoppedEvents);
         }
 
+        await localdbContext.SaveChangesAsync();
+
         //Trigger Action plans start
         if (leadsAdded.Any())
         {
-            await localdbContext.SaveChangesAsync(); //necessary to get added leads IDs
+            //localdbContext.Leads.AddRange(leadsAdded.Select(l => l.Item1.Lead));            
             if (brokerDTO.brokerStartActionPlans.Any())
             {
                 foreach (var leadT in leadsAdded)
@@ -716,8 +703,11 @@ public class EmailProcessor
                     {
                         TriggerActionPlan(brokerDTO.brokerStartActionPlans, lead, brokerDTO.Id);
                         localdbContext.Entry(lead).State = EntityState.Modified;
+                        //has new ActionPlanAssociation
+                        //and appEVent
                     }
                 }
+                await localdbContext.SaveChangesAsync();
             }
         }
 
@@ -761,7 +751,6 @@ public class EmailProcessor
                 _logger.LogError("{Category} assigning reprocess prop on emails after processing error: {Error}", "GraphSDK", ex.Message);
             }
         }));
-        await localdbContext.SaveChangesAsync();
         await transaction.CommitAsync();
         //transaction-------------------------------
         var appevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.AppEvents).ToList();
@@ -786,6 +775,7 @@ public class EmailProcessor
         };
         APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = apass.ActionPlanId.ToString();
         APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.LeadResponded;
+        APDoneEvent.Props[NotificationJSONKeys.ActionPlanName] = apass.ActionPlan.Name;
 
         apass.ThisActionPlanStatus = ActionPlanStatus.CancelledByLeadResponse;
         if (apass.ActionTrackers.Any())
@@ -828,6 +818,7 @@ public class EmailProcessor
             };
             var apAssociation = new ActionPlanAssociation
             {
+                //LeadId = lead.Id,
                 ActionPlanId = ap.Id,
                 ActionPlanTriggeredAt = timeNow,
                 ThisActionPlanStatus = ActionPlanStatus.Running,
@@ -837,9 +828,8 @@ public class EmailProcessor
             if (lead.ActionPlanAssociations == null) lead.ActionPlanAssociations = new();
             lead.ActionPlanAssociations.Add(apAssociation);
 
-
             bool OldHasActionPlanToStop = lead.HasActionPlanToStop;
-            if (ap.StopPlanOnInteraction) lead.HasActionPlanToStop = true;
+            if (ap.StopPlanOnInteraction && !OldHasActionPlanToStop) lead.HasActionPlanToStop = true;
             if (ap.EventsToListenTo != EventType.None)
             {
                 lead.EventsForActionPlans |= ap.EventsToListenTo; //for now not used
@@ -855,7 +845,9 @@ public class EmailProcessor
             };
             APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = EventType.LeadAssignedToYou.ToString();
             APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = ap.Id.ToString();
-            lead.AppEvents = new() { APStartedEvent };
+            APStartedEvent.Props[NotificationJSONKeys.ActionPlanName] = ap.Name;
+
+            lead.AppEvents.Add(APStartedEvent); //never null cuz this lead is newly created so it has that notif
             string HangfireJobId = "";
             try
             {

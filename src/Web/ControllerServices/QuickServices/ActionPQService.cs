@@ -64,9 +64,13 @@ public class ActionPQService
         if (Toggle == false)
         {
             var ActionPlanAssociations = await _appDbContext.ActionPlanAssociations
-          .Where(apa => apa.ActionPlanId == ActionPlanId && apa.ActionPlan.BrokerId == brokerId && apa.ThisActionPlanStatus == ActionPlanStatus.Running)
-          .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
-          .ToListAsync();
+                .Where(apa => apa.ActionPlanId == ActionPlanId && apa.ActionPlan.BrokerId == brokerId && apa.ThisActionPlanStatus == ActionPlanStatus.Running)
+                .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
+                .ToListAsync();
+
+            var actionPlanName = await _appDbContext.ActionPlans
+                .Select(a => new { a.Name, a.Id })
+                .FirstAsync(a => a.Id == ActionPlanId);
 
             foreach (var apass in ActionPlanAssociations)
             {
@@ -81,6 +85,7 @@ public class ActionPQService
                     ProcessingStatus = ProcessingStatus.NoNeed
                 };
                 APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
+                APDoneEvent.Props[NotificationJSONKeys.ActionPlanName] = actionPlanName.Name;
                 APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.CancelledByBroker;
                 _appDbContext.AppEvents.Add(APDoneEvent);
 
@@ -289,6 +294,7 @@ public class ActionPQService
           Select(ap => new
           {
               ap.Id,
+              ap.Name,
               ap.StopPlanOnInteraction,
               ap.FirstActionDelay,
               ap.isActive,
@@ -344,6 +350,7 @@ public class ActionPQService
             };
             APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = NotificationJSONKeys.TriggeredManually;
             APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = dto.ActionPlanID.ToString();
+            APStartedEvent.Props[NotificationJSONKeys.ActionPlanName] = apProjection.Name;
             lead.AppEvents = new() { APStartedEvent };
             string HangfireJobId = "";
             try
