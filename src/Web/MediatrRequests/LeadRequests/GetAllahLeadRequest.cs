@@ -89,6 +89,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
               .Where(e => e.BrokerId == request.BrokerId && e.NotifyBroker)
               .Select(e => new LeadAppEventAllahLeadDTO
               {
+                  id = e.Id,
                   IsActionPlanResult = e.IsActionPlanResult,
                   EventTimeStamp = e.EventTimeStamp,
                   EventType = EnumExtensions.ConvertEnumFlagsToString(e.EventType),

@@ -5,6 +5,7 @@ using Core.ExternalServiceInterfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace Infrastructure.ExternalServices;
 public class B2CGraphService : IB2CGraphService
@@ -46,7 +47,7 @@ public class B2CGraphService : IB2CGraphService
     }
     public async Task<Tuple<string, string>> createB2CUser(Broker broker)
     {
-        var password = PasswordGenerator.GenerateTempBrokerPasswd(5);
+        var password = PasswordGenerator.GenerateTempBrokerPasswd(8);
 
         var user = new User
         {
@@ -68,8 +69,18 @@ public class B2CGraphService : IB2CGraphService
             },
             PasswordPolicies = "DisablePasswordExpiration",
         };
-
-        var created = await _graphClient.Users.PostAsync(user);
+        User created = null;
+        try
+        {
+            created = await _graphClient.Users.PostAsync(user);
+        }
+        catch(ODataError err)
+        {
+            var error = err;
+            Console.WriteLine(error.AdditionalData);
+            Console.WriteLine(error.Error.Message);
+        }
+        
         return Tuple.Create(created.Id, password);
     }
 
