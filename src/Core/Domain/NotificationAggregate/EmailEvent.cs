@@ -19,6 +19,7 @@ public class EmailEvent : Entity<string>
     public int? LeadId { get; set; }
     public Lead? lead { get; set; }
     public DateTimeOffset TimeReceived { get; set; }
+    public byte TimesReplyNeededReminded { get; set; } = 0;
     /// <summary>
     /// ID of conversation in MSFT or Thread in gmail. useful to see if broker replied to email
     /// </summary>

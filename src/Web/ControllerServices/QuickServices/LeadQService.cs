@@ -8,9 +8,11 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using Web.ApiModels;
+using Web.ApiModels.APIResponses;
 using Web.Constants;
-using Web.Outbox.Config;
+using Web.ControllerServices.StaticMethods;
 using Web.Outbox;
+using Web.Outbox.Config;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -184,7 +186,7 @@ public class LeadQService
               source = l.source.ToString(),
               language = l.Language.ToString(),
               Tags = l.Tags.Select(t => new TagDTO { id = t.Id, name = t.TagName }),
-              RunningWorkflows = l.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Select(apa => new RunningLeadActionPlanDTO { ActionPlanId = (int) apa.ActionPlanId, ActionPlanName = apa.ActionPlan.Name })
+              RunningWorkflows = l.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Select(apa => new RunningLeadActionPlanDTO { ActionPlanId = (int)apa.ActionPlanId, ActionPlanName = apa.ActionPlan.Name })
           })
           .OrderByDescending(l => l.LeadId)
           .ToListAsync();
@@ -229,6 +231,47 @@ public class LeadQService
         return leads;
     }
 
+    public async Task<DsahboardLeadStatusdto> GetDsahboardLeadStatsAsync(Guid brokerId)
+    {
+        var leads = await _appDbContext.Leads
+            .Where(l => l.BrokerId == brokerId)
+            .OrderByDescending(l => l.EntryDate)
+            .Select(l => new { l.LeadStatus, l.EntryDate })
+            .ToListAsync();
+        var broker = await _appDbContext.Brokers
+            .Where(b => b.Id == brokerId)
+            .Select(b => new { b.TimeZoneId })
+            .FirstOrDefaultAsync();
+
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(broker.TimeZoneId);
+        var todaydate = TimeZoneInfo.ConvertTime(DateTimeOffset.Now, timeZoneInfo).Date;
+        var todayStart = todaydate.AddMinutes(0);
+
+        var UTCstartDay = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, todayStart);
+        var UTCStartYesterday = UTCstartDay.AddDays(-1);
+
+        
+        var newLeadsToday = leads
+            .Where(l => l.EntryDate >= UTCstartDay).Count();
+        var newLeadsYesterday = leads.Where(l => l.EntryDate >= UTCStartYesterday && l.EntryDate < UTCstartDay).Count();
+
+        var newLeads = 0;
+        var activeLeads = 0;
+        var clientLeads = 0;
+        var deadLeads = 0;
+
+        leads.ForEach(l =>
+        {
+            if (l.LeadStatus == LeadStatus.New) newLeads++;
+            else if (l.LeadStatus == LeadStatus.Active) activeLeads++;
+            else if (l.LeadStatus == LeadStatus.Client) clientLeads++;
+            else deadLeads++;
+        });
+        var res = new DsahboardLeadStatusdto { NewLeadsTotal = newLeads, newLeadsToday = newLeadsToday,
+         newLeadsYesterday = newLeadsYesterday, activeLeads = activeLeads, clientLeads = clientLeads, deadLeads = deadLeads };
+        return res;
+    }
+
 
     public async Task AssignLeadToBroker(Guid adminId, Guid AssignToId, int LeadId)
     {
@@ -239,9 +282,9 @@ public class LeadQService
 
         creationEvent.lead.BrokerId = AssignToId;
 
-        var brokerIds = new List<Guid> {adminId, AssignToId };
+        var brokerIds = new List<Guid> { adminId, AssignToId };
         var brokers = await _appDbContext.Brokers
-            .Select(b => new { b.Id, b.isAdmin, b.FirstName, b.LastName})
+            .Select(b => new { b.Id, b.isAdmin, b.FirstName, b.LastName })
             .Where(b => brokerIds.Contains(b.Id))
             .AsNoTracking()
             .ToListAsync();

@@ -1,13 +1,11 @@
 ﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
-using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using SharedKernel.Exceptions;
 using Web.ApiModels.APIResponses.ActionPlans;
 using Web.ApiModels.RequestDTOs.ActionPlans;
@@ -117,6 +115,50 @@ public class ActionPQService
             }
         }
 
+        await _appDbContext.SaveChangesAsync();
+    }
+
+    public async Task StopActionPlansOnALead(Guid brokerId, int LeadId)
+    {
+        var ActionPlanAssociations = await _appDbContext.ActionPlanAssociations
+            .Include(apa => apa.ActionPlan)
+            .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
+            .Where(apa => apa.LeadId == LeadId && apa.ActionPlan.BrokerId == brokerId && apa.ThisActionPlanStatus == ActionPlanStatus.Running)
+            .ToListAsync();
+
+        foreach (var apass in ActionPlanAssociations)
+        {
+            var APDoneEvent = new AppEvent
+            {
+                LeadId = apass.LeadId,
+                BrokerId = brokerId,
+                EventTimeStamp = DateTimeOffset.UtcNow,
+                EventType = EventType.ActionPlanFinished,
+                ReadByBroker = true,
+                IsActionPlanResult = true,
+                ProcessingStatus = ProcessingStatus.NoNeed
+            };
+            APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = apass.ActionPlanId.ToString();
+            APDoneEvent.Props[NotificationJSONKeys.ActionPlanName] = apass.ActionPlan.Name;
+            APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.CancelledByBroker;
+            _appDbContext.AppEvents.Add(APDoneEvent);
+
+            apass.ThisActionPlanStatus = ActionPlanStatus.Cancelled;
+            if (apass.ActionTrackers.Any())
+            {
+                foreach (var ta in apass.ActionTrackers)
+                {
+                    ta.ActionStatus = ActionStatus.Cancelled;
+                    var jobId = ta.HangfireJobId;
+                    if (jobId != null)
+                        try
+                        {
+                            BackgroundJob.Delete(jobId);
+                        }
+                        catch (Exception) { }
+                }
+            }
+        }
         await _appDbContext.SaveChangesAsync();
     }
     public async Task<List<ActionPlanDTO>> GetMyActionPlansAsync(Guid brokerId)

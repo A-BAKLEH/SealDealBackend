@@ -1,12 +1,8 @@
 ﻿using Core.Domain.ActionPlanAggregate;
-using Core.Domain.BrokerAggregate;
-using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Hangfire;
-using Humanizer;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Pipelines.Sockets.Unofficial.Arenas;
 using Web.Constants;
 using Web.Outbox.Config;
 using Web.Processing.ActionPlans;
@@ -41,16 +37,17 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                 .FirstOrDefault(x => x.Id == LeadAssignedEvent.AppEventId);
             if (appEvent == null) { _logger.LogError("No appEvent with Id {AppEventId}", LeadAssignedEvent.AppEventId); return; }
 
+            List<AppEvent> appEvents = new();
             if (appEvent.ProcessingStatus != ProcessingStatus.Done)
             {
-                //Handle possible actionPlan for broker on lead Assignment
-                if(appEvent.Broker.ActionPlans.Any())
+                //Handle possible actionPlan for broker on lead Assignment FOR NOW NO AUTOMATIC ACTION PLAN
+                if (appEvent.Broker.ActionPlans.Any())
                 {
                     var timeNow = DateTime.UtcNow;
                     var lead = appEvent.lead;
                     foreach (var ap in appEvent.Broker.ActionPlans)
                     {
-                        if(!lead.ActionPlanAssociations.Any(apa => apa.ActionPlanId == ap.Id))
+                        if (!lead.ActionPlanAssociations.Any(apa => apa.ActionPlanId == ap.Id))
                         {
                             var FirstActionDelay = ap.FirstActionDelay;
                             var delays = FirstActionDelay?.Split(':');
@@ -98,6 +95,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                             APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = ap.Id.ToString();
                             APStartedEvent.Props[NotificationJSONKeys.ActionPlanName] = ap.Name;
                             lead.AppEvents = new() { APStartedEvent };
+                            appEvents.Add(APStartedEvent);
                             string HangfireJobId = "";
                             try
                             {
@@ -122,8 +120,9 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                         }
                     }
                 }
+                appEvents.Add(appEvent);
                 //TODO notify broker now if he's online and send PushNotif
-                await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger,appEvent.BrokerId,true, true, new List<AppEvent>(1) { appEvent }, null);
+                await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, appEvent.BrokerId, true, true, null, appEvents, null); ;
             }
             await this.FinishProcessing(appEvent);
         }

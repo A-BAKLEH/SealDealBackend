@@ -197,6 +197,6 @@ public class APProcessor
         // END---- Handle Next Action DONE--------
 
         // SignalR and push notifs for action-result event + endofActionPlan event
-        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger,brokerId, true, true, RTEvents, null);  
+        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger,brokerId, true, true, null, RTEvents, null);  
     }
 }

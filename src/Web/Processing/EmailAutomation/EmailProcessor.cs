@@ -132,7 +132,7 @@ public class EmailProcessor
             ClientState = VariousCons.MSFtWebhookSecret,
             ExpirationDateTime = SubsEnds,
             NotificationUrl = _configurationSection["MainAPI"] + "/MsftWebhook/Webhook",
-            Resource = $"users/{connectedEmail.Email}/messages"
+            Resource = $"users/{connectedEmail.Email}/mailFolders/inbox/messages"
         };
 
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
@@ -665,7 +665,7 @@ public class EmailProcessor
         //     }
         // }));
 
-        var ActionPlanStoppedEvents = new List<AppEvent>();
+        var ActionPlanEvents = new List<AppEvent>();
         //Stop action plans for leads that replied
         if (LeadIDsToStopActionPlan.Any())
         {
@@ -680,10 +680,10 @@ public class EmailProcessor
                 foreach (var apass in ActionPlanAssociations)
                 {
                     var APStopppedEvent = StopActionPlan(brokerDTO.Id, apass);
-                    ActionPlanStoppedEvents.Add(APStopppedEvent);
+                    ActionPlanEvents.Add(APStopppedEvent);
                 }
             }
-            localdbContext.AppEvents.AddRange(ActionPlanStoppedEvents);
+            localdbContext.AppEvents.AddRange(ActionPlanEvents);
         }
 
         await localdbContext.SaveChangesAsync();
@@ -701,8 +701,9 @@ public class EmailProcessor
                     var LeadAssignmentEvent = lead.AppEvents.FirstOrDefault(e => e.EventType.HasFlag(EventType.LeadAssignedToYou));
                     if (LeadAssignmentEvent != null)
                     {
-                        TriggerActionPlan(brokerDTO.brokerStartActionPlans, lead, brokerDTO.Id);
+                        var added = TriggerActionPlan(brokerDTO.brokerStartActionPlans, lead, brokerDTO.Id);
                         localdbContext.Entry(lead).State = EntityState.Modified;
+                        ActionPlanEvents.AddRange(added);
                         //has new ActionPlanAssociation
                         //and appEVent
                     }
@@ -754,10 +755,10 @@ public class EmailProcessor
         await transaction.CommitAsync();
         //transaction-------------------------------
         var appevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.AppEvents).ToList();
-        appevents.AddRange(ActionPlanStoppedEvents);
+        appevents.AddRange(ActionPlanEvents);
         var emailevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.EmailEvents).ToList();
         emailevents.AddRange(KnownLeadEmailEvents);
-        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true, appevents, emailevents);
+        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true,null, appevents, emailevents);
         return tokens;
     }
 
@@ -795,9 +796,10 @@ public class EmailProcessor
         return APDoneEvent;
     }
 
-    public void TriggerActionPlan(List<ActionPlan> actionPlans, Lead lead, Guid brokerId)
+    public List<AppEvent> TriggerActionPlan(List<ActionPlan> actionPlans, Lead lead, Guid brokerId)
     {
         var timeNow = DateTime.UtcNow;
+        List<AppEvent> events = new(actionPlans.Count);
         foreach (var ap in actionPlans)
         {
             var FirstActionDelay = ap.FirstActionDelay;
@@ -846,7 +848,7 @@ public class EmailProcessor
             APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = EventType.LeadAssignedToYou.ToString();
             APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = ap.Id.ToString();
             APStartedEvent.Props[NotificationJSONKeys.ActionPlanName] = ap.Name;
-
+            events.Add(APStartedEvent);
             lead.AppEvents.Add(APStartedEvent); //never null cuz this lead is newly created so it has that notif
             string HangfireJobId = "";
             try
@@ -870,6 +872,7 @@ public class EmailProcessor
             }
             actionTracker.HangfireJobId = HangfireJobId;
         }
+        return events;
     }
     /// <summary>
     /// called on gpt result of lead providers and unknown leads

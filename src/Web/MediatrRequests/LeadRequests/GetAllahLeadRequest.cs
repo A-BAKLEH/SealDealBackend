@@ -22,6 +22,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
     }
     public async Task<AllahLeadDTO> Handle(GetAllahLeadRequest request, CancellationToken cancellationToken)
     {
+        var timeNow = DateTimeOffset.UtcNow;
         var lead = new AllahLeadDTO();
         if (!request.includeNotifs)
         {
@@ -100,7 +101,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
               .Where(e => e.BrokerId == request.BrokerId && (!e.Seen || (e.NeedsAction && !e.RepliedTo)))
               .Select(e => new LeadEmailEventAllahLeadDTO
               {
-                  EmailId  = e.Id,
+                  EmailId = e.Id,
                   NeedsAction = e.NeedsAction,
                   BrokerEmail = e.BrokerEmail,
                   RepliedTo = e.RepliedTo,
@@ -108,7 +109,7 @@ public class GetAllahLeadRequestHandler : IRequestHandler<GetAllahLeadRequest, A
               })
           }).FirstOrDefaultAsync(l => l.LeadId == request.leadId && l.brokerId == request.BrokerId);
         }
-
+      
         var first = lead.Emails.First(e => e.isMain);
         lead.Emails.Remove(first);
         lead.Emails.Insert(0, first);

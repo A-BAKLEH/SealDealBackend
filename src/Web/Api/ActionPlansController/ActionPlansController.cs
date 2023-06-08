@@ -108,6 +108,21 @@ public class ActionPlansController : BaseApiController
         return Ok();
     }
 
+    [HttpPatch("Lead/StopActionPlans")]
+    public async Task<IActionResult> StopActionPlansOnLead([FromBody] StopActionPlanLeadDTO dto)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        await _actionPQService.StopActionPlansOnALead(id, dto.LeadId);
+        return Ok();
+    }
+
+
     [HttpPatch("SetTrigger")]
     public async Task<IActionResult> SetTrigger([FromBody] ChangeTriggerDTO dto)
     {

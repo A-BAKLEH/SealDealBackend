@@ -12,6 +12,33 @@ public class NotificationService
     {
         _contextFactory = contextFactory;
     }
+    public async Task MarkLeadNotifsRead(int LeadId, Guid brokerId)
+    {
+        var timeNow = DateTimeOffset.UtcNow;
+        using var AppEventsContext = _contextFactory.CreateDbContext();
+        using var EmailEventsContext = _contextFactory.CreateDbContext();
+        using var NotifContext = _contextFactory.CreateDbContext();
+
+        var task1 = AppEventsContext.AppEvents
+            .Where(e => e.LeadId == LeadId && e.BrokerId == brokerId && !e.ReadByBroker && e.EventTimeStamp < timeNow)
+                .ExecuteUpdateAsync(setters => setters
+                .SetProperty(e => e.ReadByBroker, true));
+
+        var task2 = EmailEventsContext.EmailEvents
+            .Where(e => e.LeadId == LeadId && e.BrokerId == brokerId && !e.Seen && e.TimeReceived < timeNow)
+                .ExecuteUpdateAsync(setters => setters
+                               .SetProperty(e => e.Seen, true));
+        var task3 = NotifContext.Notifs
+            .Where(n => n.LeadId == LeadId && n.BrokerId == brokerId && !n.isSeen && n.CreatedTimeStamp < timeNow)
+                .ExecuteUpdateAsync(setters => setters
+                                              .SetProperty(n => n.isSeen, true));
+        await task1;
+        await task2;
+        await task3;
+        await AppEventsContext.Leads.Where(l => l.Id == LeadId && l.BrokerId == brokerId)
+            .ExecuteUpdateAsync(setters => setters
+                           .SetProperty(l => l.LastNotifsViewedAt, timeNow));
+    }
     public async Task<DashboardPerLeadDTO> GetPerLeadNewNotifs(Guid brokerId, int LeadId, bool NormalTable, bool PriorityTable)
     {
         using var AppEventsContext = _contextFactory.CreateDbContext();

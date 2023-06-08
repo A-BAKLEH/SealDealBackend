@@ -1,4 +1,5 @@
 ﻿using Core.Config.Constants.LoggingConstants;
+using Infrastructure.Data;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -93,6 +94,25 @@ public class NotificationsController : BaseApiController
         return Ok();
     }
 
+
+    /// <summary>
+    /// Notifs for dashboard table
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("Lead/MarkRead/{LeadId}")]
+    public async Task<IActionResult> MarkLeadNotifsRead(int LeadId)
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            return Forbid();
+        }
+
+        await _notificationService.MarkLeadNotifsRead(LeadId, id);
+        return Ok();
+    }
     /// <summary>
     /// Notifs for dashboard table
     /// </summary>
@@ -125,6 +145,5 @@ public class NotificationsController : BaseApiController
     //    }
     //    return Ok();
     //}
-
 
 }

@@ -3,6 +3,7 @@ using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
+using Web.RealTimeNotifs;
 
 namespace Web.Processing.Analyzer;
 
@@ -55,7 +56,7 @@ public class NotifAnalyzer
                   {
                       config.QueryParameters.Top = 5;
                       config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "isRead", "toRecipients", "receivedDateTime" };
-                      config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq {convoId}";
+                      config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq '{convoId}'";
                       config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
                       config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
                   });
@@ -130,7 +131,7 @@ public class NotifAnalyzer
 
         if (emailEvents.Count > 0)
         {
-            var newEmailEventAnalyzerLastTimestamp = emailEvents[0].TimeReceived;
+            var newEmailEventAnalyzerLastTimestamp = broker.EmailEventAnalyzerLastTimestamp;
             var tasks = emailEvents.Select(async (e) =>
             {
                 if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromHours(1))
@@ -175,6 +176,7 @@ public class NotifAnalyzer
                                 EventId = e.Id,
                                 priority = 2
                             };
+                            if (resT.Item1) e.TimesReplyNeededReminded++;
                             return notif;
                         }
                         return null;
@@ -198,6 +200,7 @@ public class NotifAnalyzer
                             EventId = e.Id,
                             priority = 2
                         };
+                        e.TimesReplyNeededReminded++;
                         return notif;
                     }
                     return null;
@@ -232,21 +235,29 @@ public class NotifAnalyzer
                 if (resT.Item2)
                 {
                     unrepliedEmail.RepliedTo = true;
-                    if(existingNotif != null) existingNotif.isSeen = true;
+                    if (existingNotif != null) existingNotif.isSeen = true;
                 }
                 //still unreplied to
                 else if (existingNotif != null)
                 {
-                    notifs.Add(new Notif
+                    if (unrepliedEmail.TimesReplyNeededReminded >= 2)
                     {
-                        BrokerId = brokerId,
-                        LeadId = unrepliedEmail.LeadId,
-                        NotifType = EventType.UnrepliedEmail,
-                        CreatedTimeStamp = DateTimeOffset.UtcNow,
-                        isSeen = false,
-                        EventId = unrepliedEmail.Id,
-                        priority = 2
-                    });
+                        unrepliedEmail.RepliedTo = true;
+                    }
+                    else
+                    {
+                        notifs.Add(new Notif
+                        {
+                            BrokerId = brokerId,
+                            LeadId = unrepliedEmail.LeadId,
+                            NotifType = EventType.UnrepliedEmail,
+                            CreatedTimeStamp = DateTimeOffset.UtcNow,
+                            isSeen = false,
+                            EventId = unrepliedEmail.Id,
+                            priority = 2
+                        });
+                        unrepliedEmail.TimesReplyNeededReminded++;
+                    }
                 }
             }
         }
@@ -317,8 +328,9 @@ public class NotifAnalyzer
 
         broker.LastSeenAppEventId = NewLastSeenAppEventId;
         broker.AppEventAnalyzerLastId = currHighestAnalyzedAppEventId;
-
+        dbcontext.Notifs.AddRange(notifs);
         await dbcontext.SaveChangesAsync();
         //TODO real time notifs, check that email parsing running correctly
+        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger,brokerId,true,true, notifs, null,null);
     }
 }
