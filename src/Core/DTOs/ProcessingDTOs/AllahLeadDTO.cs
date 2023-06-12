@@ -12,8 +12,8 @@ public class AllahLeadDTO
     public string? PhoneNumber { get; set; }
     public List<LeadEmailDTO> Emails { get; set; }
     public int? Budget { get; set; }
-    public DateTime EntryDate { get; set; }
-    public DateTime LastNotifsViewedAt { get; set; }
+    public DateTime EntryDate { get; set; } // local
+    public DateTime LastNotifsViewedAt { get; set; } // local
     public LeadSource leadSource { get; set; }
     public string leadType { get; set; }
     public Dictionary<string, string> leadSourceDetails { get; set; }

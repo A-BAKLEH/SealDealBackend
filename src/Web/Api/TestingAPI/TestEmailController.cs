@@ -604,7 +604,7 @@ public class TestEmailController : ControllerBase
             .ToListAsync();
         foreach (var em in connectedEmails)
         {
-            em.LastSync = DateTimeOffset.UtcNow;
+            em.LastSync = DateTime.UtcNow;
         }
         await appDbContext1.SaveChangesAsync();
         return Ok();

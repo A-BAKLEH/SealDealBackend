@@ -28,7 +28,7 @@ public class Broker : Entity<Guid>
     public Boolean AccountActive { get; set; }
     public string? PhoneNumber { get; set; }
     public string LoginEmail { get; set; }
-    public DateTimeOffset Created { get; set; } = DateTimeOffset.Now;
+    public DateTime Created { get; set; } = DateTime.UtcNow;
     /// <summary>
     /// AppEvent triggers to Broker's active Action Plans OR for action plans
     /// that listen to notifs that ARE NOT RELATED DIRECTLY TO LEADS
@@ -61,7 +61,7 @@ public class Broker : Entity<Guid>
     /// <summary>
     /// last timestamp analyzed from emailEvents for this broker
     /// </summary>
-    public DateTimeOffset EmailEventAnalyzerLastTimestamp { get; set; }
+    public DateTime EmailEventAnalyzerLastTimestamp { get; set; }
 
     public List<ConnectedEmail>? ConnectedEmails { get; set; }
     public List<Lead>? Leads { get; set; }

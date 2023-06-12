@@ -1,10 +1,12 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Infrastructure.Data;
+using Core.Domain.NotificationAggregate;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
+using Web.ControllerServices.StaticMethods;
 
 namespace Web.Api.NotificationsController;
 
@@ -33,9 +35,41 @@ public class NotificationsController : BaseApiController
             _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
-        //TODO make times local
+        
         var res = await _notificationService.GetAllDashboardNotifs(brokerTuple.Item1.Id);
-        return Ok(res); 
+
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+
+        foreach (var leadDTO in res.LeadRelatedNotifs)
+        {
+            if (leadDTO.LastTimeYouViewedLead != null)
+                leadDTO.LastTimeYouViewedLead = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.LastTimeYouViewedLead);
+            if (leadDTO.MostRecentEventOrEmailTime != null)
+                leadDTO.MostRecentEventOrEmailTime = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.MostRecentEventOrEmailTime);
+            if (leadDTO.AppEvents != null)
+                foreach (var appEvent in leadDTO.AppEvents)
+                {
+                    appEvent.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, appEvent.EventTimeStamp);
+                }
+            if(leadDTO.EmailEvents != null)
+                foreach (var emailEvent in leadDTO.EmailEvents)
+                {
+                    emailEvent.Received = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, emailEvent.Received);
+                }
+            if(leadDTO.PriorityNotifs != null)
+                foreach (var p in leadDTO.PriorityNotifs)
+                {
+                    p.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, p.EventTimeStamp);
+                }
+        }
+        if(res.OtherNotifs != null)
+        {
+            foreach (var e in res.OtherNotifs)
+            {
+                e.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, e.EventTimeStamp);
+            }
+        }
+        return Ok(res);
     }
 
     /// <summary>
@@ -52,8 +86,26 @@ public class NotificationsController : BaseApiController
             _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
-        //TODO make times local
+        
         var res = await _notificationService.UpdateNormalTable(brokerTuple.Item1.Id);
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+        foreach (var leadDTO in res.LeadRelatedNotifs)
+        {
+            if (leadDTO.LastTimeYouViewedLead != null)
+                leadDTO.LastTimeYouViewedLead = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.LastTimeYouViewedLead);
+            if (leadDTO.MostRecentEventOrEmailTime != null)
+                leadDTO.MostRecentEventOrEmailTime = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.MostRecentEventOrEmailTime);
+            if (leadDTO.AppEvents != null)
+                foreach (var appEvent in leadDTO.AppEvents)
+                {
+                    appEvent.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, appEvent.EventTimeStamp);
+                }
+            if (leadDTO.EmailEvents != null)
+                foreach (var emailEvent in leadDTO.EmailEvents)
+                {
+                    emailEvent.Received = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, emailEvent.Received);
+                }
+        }
         return Ok(res);
     }
 
@@ -72,6 +124,19 @@ public class NotificationsController : BaseApiController
             return Forbid();
         }
         var res = await _notificationService.UpdatePriorityTable(id);
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+        foreach (var leadDTO in res.LeadRelatedNotifs)
+        {
+            if (leadDTO.LastTimeYouViewedLead != null)
+                leadDTO.LastTimeYouViewedLead = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.LastTimeYouViewedLead);
+            if (leadDTO.MostRecentEventOrEmailTime != null)
+                leadDTO.MostRecentEventOrEmailTime = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.MostRecentEventOrEmailTime);         
+            if (leadDTO.PriorityNotifs != null)
+                foreach (var p in leadDTO.PriorityNotifs)
+                {
+                    p.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, p.EventTimeStamp);
+                }
+        }
         return Ok(res);
     }
 
@@ -89,8 +154,28 @@ public class NotificationsController : BaseApiController
             _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
-
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
         var res = await _notificationService.GetPerLeadNewNotifs(id, LeadId, Normal, Priority);
+
+        if (res.LastTimeYouViewedLead != null)
+            res.LastTimeYouViewedLead = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)res.LastTimeYouViewedLead);
+        if (res.MostRecentEventOrEmailTime != null)
+            res.MostRecentEventOrEmailTime = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)res.MostRecentEventOrEmailTime);
+        if (res.AppEvents != null)
+            foreach (var appEvent in res.AppEvents)
+            {
+                appEvent.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, appEvent.EventTimeStamp);
+            }
+        if (res.EmailEvents != null)
+            foreach (var emailEvent in res.EmailEvents)
+            {
+                emailEvent.Received = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, emailEvent.Received);
+            }
+        if (res.PriorityNotifs != null)
+            foreach (var p in res.PriorityNotifs)
+            {
+                p.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, p.EventTimeStamp);
+            }
         return Ok();
     }
 

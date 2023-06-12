@@ -131,6 +131,13 @@ public class LeadController : BaseApiController
 
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
         lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
+        if(lead.LeadAppEvents != null)
+        {
+            foreach (var e in lead.LeadAppEvents)
+            {
+                e.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, e.EventTimeStamp);
+            }
+        }
         return Ok(lead);
     }
 

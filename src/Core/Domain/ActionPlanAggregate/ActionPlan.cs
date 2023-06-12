@@ -21,7 +21,7 @@ public class ActionPlan : Entity<int>
     /// <summary>
     /// client timeZ
     /// </summary>
-    public DateTimeOffset TimeCreated { get; set; }
+    public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// means running

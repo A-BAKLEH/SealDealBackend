@@ -91,7 +91,7 @@ public class LeadQService
             Budget = lead.Budget,
             verifyEmailAddress = lead.verifyEmailAddress,
             Emails = lead.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain }).ToList(),
-            EntryDate = lead.EntryDate.UtcDateTime,
+            EntryDate = lead.EntryDate,
             LeadFirstName = lead.LeadFirstName,
             LeadId = lead.Id,
             LeadLastName = lead.LeadLastName,
@@ -157,10 +157,10 @@ public class LeadQService
         // Notifs will be deleted automatically. TODO see if u wanna move them to cold storage
         //the outbox handlers u dont have to do anything for now they are enqued on short term failure will be rare
         await _appDbContext.Database.ExecuteSqlRawAsync
-          ($"DELETE FROM [dbo].[ToDoTasks] WHERE LeadId = {leadId};" +
-          $"DELETE FROM [dbo].[Notifs] WHERE LeadId = {leadId};" +
-          $"DELETE FROM [dbo].[AppEvents] WHERE LeadId = {leadId};" +
-          $"DELETE FROM [dbo].[EmailEvents] WHERE LeadId = {leadId};");
+          ($"DELETE FROM \"ToDoTasks\" WHERE \"LeadId\" = {leadId};" +
+          $"DELETE FROM \"Notifs\" WHERE \"LeadId\" = {leadId};" +
+          $"DELETE FROM \"AppEvents\" WHERE \"LeadId\" = {leadId};" +
+          $"DELETE FROM \"EmailEvents\" WHERE \"LeadId\" = {leadId};");
 
         var leadToDelete = new Lead { Id = leadId };
         _appDbContext.Remove(leadToDelete);
@@ -175,7 +175,7 @@ public class LeadQService
               Budget = l.Budget,
               verifyEmailAddress = l.verifyEmailAddress,
               Emails = l.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain }).ToList(),
-              EntryDate = l.EntryDate.UtcDateTime,
+              EntryDate = l.EntryDate,
               LeadFirstName = l.LeadFirstName,
               LeadId = l.Id,
               LeadLastName = l.LeadLastName,
@@ -207,7 +207,7 @@ public class LeadQService
               Budget = l.Budget,
               verifyEmailAddress = l.verifyEmailAddress,
               Emails = l.LeadEmails.Select(e => new LeadEmailDTO { email = e.EmailAddress, isMain = e.IsMain }).ToList(),
-              EntryDate = l.EntryDate.UtcDateTime,
+              EntryDate = l.EntryDate,
               LeadFirstName = l.LeadFirstName,
               LeadId = l.Id,
               LeadLastName = l.LeadLastName,
@@ -250,7 +250,7 @@ public class LeadQService
         var UTCstartDay = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, todayStart);
         var UTCStartYesterday = UTCstartDay.AddDays(-1);
 
-        
+
         var newLeadsToday = leads
             .Where(l => l.EntryDate >= UTCstartDay).Count();
         var newLeadsYesterday = leads.Where(l => l.EntryDate >= UTCStartYesterday && l.EntryDate < UTCstartDay).Count();
@@ -267,8 +267,15 @@ public class LeadQService
             else if (l.LeadStatus == LeadStatus.Client) clientLeads++;
             else deadLeads++;
         });
-        var res = new DsahboardLeadStatusdto { NewLeadsTotal = newLeads, newLeadsToday = newLeadsToday,
-         newLeadsYesterday = newLeadsYesterday, activeLeads = activeLeads, clientLeads = clientLeads, deadLeads = deadLeads };
+        var res = new DsahboardLeadStatusdto
+        {
+            NewLeadsTotal = newLeads,
+            newLeadsToday = newLeadsToday,
+            newLeadsYesterday = newLeadsYesterday,
+            activeLeads = activeLeads,
+            clientLeads = clientLeads,
+            deadLeads = deadLeads
+        };
         return res;
     }
 
@@ -300,7 +307,7 @@ public class LeadQService
             BrokerId = AssignToId,
             LeadId = LeadId,
             EventType = EventType.LeadAssignedToYou,
-            EventTimeStamp = DateTimeOffset.UtcNow,
+            EventTimeStamp = DateTime.UtcNow,
             ProcessingStatus = ProcessingStatus.Scheduled,
             ReadByBroker = false,
         };
@@ -313,7 +320,7 @@ public class LeadQService
             BrokerId = adminId,
             LeadId = LeadId,
             EventType = EventType.YouAssignedtoBroker,
-            EventTimeStamp = DateTimeOffset.UtcNow,
+            EventTimeStamp = DateTime.UtcNow,
             ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = true,
         };

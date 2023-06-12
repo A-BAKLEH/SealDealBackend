@@ -3,35 +3,35 @@ using System;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230506181301_wlakdammer")]
-    partial class wlakdammer
+    [Migration("20230610194426_dammer")]
+    partial class dammer
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.0")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("ProductVersion", "7.0.5")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("AreaLead", b =>
                 {
                     b.Property<int>("AreasOfInterestId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("InterestedLeadsId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("AreasOfInterestId", "InterestedLeadsId");
 
@@ -44,42 +44,42 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<byte>("ActionsCount")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
                     b.Property<bool>("AssignToLead")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EventsToListenTo")
+                        .HasColumnType("integer");
 
                     b.Property<string>("FirstActionDelay")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<int>("NotifsToListenTo")
-                        .HasColumnType("int");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool>("StopPlanOnInteraction")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
-                    b.Property<DateTimeOffset>("TimeCreated")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("TimeCreated")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Triggers")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("isActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -88,35 +88,69 @@ namespace Infrastructure.Migrations
                     b.ToTable("ActionPlans");
                 });
 
+            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<byte>("ActionLevel")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("ActionPlanId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ActionProperties")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DataTemplateId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NextActionDelay")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionPlanId");
+
+                    b.ToTable("Actions");
+                });
+
             modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("ActionPlanId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("ActionPlanTriggeredAt")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("ActionPlanTriggeredAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CustomDelay")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<int>("LeadId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ThisActionPlanStatus")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    b.Property<int?>("TriggerNotificationId")
-                        .HasColumnType("int");
+                    b.Property<bool>("TriggeredManually")
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("currentTrackedActionId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -130,25 +164,25 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionTracker", b =>
                 {
                     b.Property<int>("ActionPlanAssociationId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("TrackedActionId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ActionResultId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("ActionStatus")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset?>("ExecutionCompletedTime")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("ExecutionCompletedTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("HangfireJobId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
-                    b.Property<DateTimeOffset?>("HangfireScheduledStartTime")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("HangfireScheduledStartTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("ActionPlanAssociationId", "TrackedActionId");
 
@@ -157,92 +191,53 @@ namespace Infrastructure.Migrations
                     b.ToTable("ActionTrackers");
                 });
 
-            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.Actions.ActionBase", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<byte>("ActionLevel")
-                        .HasColumnType("tinyint");
-
-                    b.Property<int>("ActionPlanId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ActionProperties")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("DataId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NextActionDelay")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActionPlanId");
-
-                    b.ToTable("Actions");
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("ActionBase");
-
-                    b.UseTphMappingStrategy();
-                });
-
             modelBuilder.Entity("Core.Domain.AgencyAggregate.Agency", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AdminStripeId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("AgencyName")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("AzureTenantID")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("HasAdminEmailConsent")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LastCheckoutSessionID")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("NumberOfBrokersInDatabase")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("NumberOfBrokersInSubscription")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
-                    b.Property<DateTimeOffset>("SignupDateTime")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("SignupDateTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("StripeSubscriptionId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("StripeSubscriptionStatus")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
-                    b.Property<DateTimeOffset?>("SubscriptionLastValidDate")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("SubscriptionLastValidDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -253,20 +248,20 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AgencyId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("PostalCode")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -279,35 +274,35 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AgencyId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<byte>("AssignedBrokersCount")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
-                    b.Property<DateTimeOffset>("DateOfListing")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("DateOfListing")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FormattedStreetAddress")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("LeadsGeneratedCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Price")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Status")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("URL")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -319,58 +314,70 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Domain.BrokerAggregate.Broker", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("AccountActive")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("AgencyId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<int>("AppEventAnalyzerLastId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EmailEventAnalyzerLastTimestamp")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
-                    b.Property<int>("Languge")
-                        .HasColumnType("int");
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
 
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("LastSeenAppEventId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LastUnassignedLeadIdAnalyzed")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ListenForActionPlans")
+                        .HasColumnType("integer");
 
                     b.Property<string>("LoginEmail")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool>("MarkEmailsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("NotifsForActionPlans")
-                        .HasColumnType("int");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("TempTimeZone")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("TimeZoneId")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<bool>("isAdmin")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("isSolo")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -382,16 +389,19 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Domain.BrokerAggregate.BrokerListingAssignment", b =>
                 {
                     b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("ListingId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("assignmentDate")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("assignmentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("isSeen")
+                        .HasColumnType("boolean");
 
                     b.HasKey("BrokerId", "ListingId");
 
@@ -403,50 +413,50 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Core.Domain.BrokerAggregate.EmailConnection.ConnectedEmail", b =>
                 {
                     b.Property<string>("Email")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("AssignLeadsAuto")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<byte>("EmailNumber")
-                        .HasColumnType("tinyint");
+                        .HasColumnType("smallint");
 
-                    b.Property<DateTimeOffset?>("FirstSync")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("FirstSync")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("GraphSubscriptionId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset?>("LastSync")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("LastSync")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("OpenAITokensUsed")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset?>("SubsExpiryDate")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("SubsExpiryDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SubsRenewalJobId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("SyncJobId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("SyncScheduled")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("hasAdminConsent")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("isMSFT")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("tenantId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Email");
 
@@ -461,17 +471,17 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("TagName")
                         .IsRequired()
                         .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)");
+                        .HasColumnType("character varying(25)");
 
                     b.HasKey("Id");
 
@@ -484,32 +494,32 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Discriminator")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
-                    b.Property<DateTimeOffset>("Modified")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("Modified")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("TimesUsed")
                         .IsConcurrencyToken()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("templateText")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -526,33 +536,33 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Description")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("HangfireReminderId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDone")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("LeadId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("TaskDueDate")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("TaskDueDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("TaskName")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
+                        .HasColumnType("character varying(40)");
 
                     b.HasKey("Id");
 
@@ -563,108 +573,73 @@ namespace Infrastructure.Migrations
                     b.ToTable("ToDoTasks");
                 });
 
-            modelBuilder.Entity("Core.Domain.LeadAggregate.Interactions.LeadInteraction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("LeadId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("Timestamp")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("data")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("isRead")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("isReceived")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("type")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LeadId");
-
-                    b.ToTable("LeadInteractions");
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("LeadInteraction");
-
-                    b.UseTphMappingStrategy();
-                });
-
             modelBuilder.Entity("Core.Domain.LeadAggregate.Lead", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("AgencyId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Areas")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<int?>("Budget")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    b.Property<DateTimeOffset>("EntryDate")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("EntryDate")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Languge")
-                        .HasColumnType("int");
+                    b.Property<int>("EventsForActionPlans")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("HasActionPlanToStop")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Language")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("LastNotifsViewedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LeadFirstName")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("LeadLastName")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("LeadStatus")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int?>("ListingId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NotifsForActionPlans")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("SourceDetails")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("leadType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("source")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("verifyEmailAddress")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -679,17 +654,19 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Domain.LeadAggregate.LeadEmail", b =>
                 {
-                    b.Property<int>("LeadId")
-                        .HasColumnType("int");
-
                     b.Property<string>("EmailAddress")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<int>("LeadId")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsMain")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
-                    b.HasKey("LeadId", "EmailAddress");
+                    b.HasKey("EmailAddress", "LeadId");
+
+                    b.HasIndex("LeadId");
 
                     b.ToTable("LeadEmails");
                 });
@@ -698,16 +675,16 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("LeadId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("NotesText")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -717,50 +694,44 @@ namespace Infrastructure.Migrations
                     b.ToTable("Notes");
                 });
 
-            modelBuilder.Entity("Core.Domain.NotificationAggregate.Notification", b =>
+            modelBuilder.Entity("Core.Domain.NotificationAggregate.AppEvent", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("APHandlingStatus")
-                        .HasColumnType("int");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("DeleteAfterProcessing")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
-                    b.Property<DateTimeOffset>("EventTimeStamp")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime>("EventTimeStamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActionPlanResult")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("IsRecevied")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("LeadId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NotifProps")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("NotifType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("NotifyBroker")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("ProcessingStatus")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Props")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<bool>("ReadByBroker")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -768,32 +739,119 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LeadId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("AppEvents");
+                });
+
+            modelBuilder.Entity("Core.Domain.NotificationAggregate.EmailEvent", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BrokerEmail")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("BrokerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConversationId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("LeadId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("LeadParsedFromEmail")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LeadProviderEmail")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("NeedsAction")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("RepliedTo")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Seen")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("TimeReceived")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte>("TimesReplyNeededReminded")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrokerId");
+
+                    b.HasIndex("LeadId");
+
+                    b.ToTable("EmailEvents");
+                });
+
+            modelBuilder.Entity("Core.Domain.NotificationAggregate.Notif", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("BrokerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedTimeStamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("LeadId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NotifType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("isSeen")
+                        .HasColumnType("boolean");
+
+                    b.Property<byte>("priority")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrokerId");
+
+                    b.HasIndex("LeadId");
+
+                    b.ToTable("Notifs");
                 });
 
             modelBuilder.Entity("Core.Domain.TasksAggregate.RecurrentTaskBase", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("BrokerId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<Guid?>("BrokerId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Discriminator")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("HangfireTaskId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
-                    b.Property<DateTimeOffset?>("NextScheduledTime")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("NextScheduledTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("taskStatus")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -806,37 +864,13 @@ namespace Infrastructure.Migrations
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("Core.Domain.TestAggregate.TestBase", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NextActionDelay")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TestBase");
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("TestBase");
-
-                    b.UseTphMappingStrategy();
-                });
-
             modelBuilder.Entity("LeadTag", b =>
                 {
                     b.Property<int>("LeadsId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("TagsId")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("LeadsId", "TagsId");
 
@@ -845,27 +879,13 @@ namespace Infrastructure.Migrations
                     b.ToTable("LeadTag");
                 });
 
-            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.Actions.ChangeLeadStatus", b =>
-                {
-                    b.HasBaseType("Core.Domain.ActionPlanAggregate.Actions.ActionBase");
-
-                    b.HasDiscriminator().HasValue("ChangeLeadStatus");
-                });
-
-            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.Actions.SendEmail", b =>
-                {
-                    b.HasBaseType("Core.Domain.ActionPlanAggregate.Actions.ActionBase");
-
-                    b.HasDiscriminator().HasValue("SendEmail");
-                });
-
             modelBuilder.Entity("Core.Domain.BrokerAggregate.Templates.EmailTemplate", b =>
                 {
                     b.HasBaseType("Core.Domain.BrokerAggregate.Templates.Template");
 
                     b.Property<string>("EmailTemplateSubject")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasDiscriminator().HasValue("EmailTemplate");
                 });
@@ -877,42 +897,18 @@ namespace Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("SmsTemplate");
                 });
 
-            modelBuilder.Entity("Core.Domain.LeadAggregate.Interactions.CallInteraction", b =>
-                {
-                    b.HasBaseType("Core.Domain.LeadAggregate.Interactions.LeadInteraction");
-
-                    b.HasDiscriminator().HasValue("CallInteraction");
-                });
-
-            modelBuilder.Entity("Core.Domain.LeadAggregate.Interactions.EmailInteraction", b =>
-                {
-                    b.HasBaseType("Core.Domain.LeadAggregate.Interactions.LeadInteraction");
-
-                    b.HasDiscriminator().HasValue("EmailInteraction");
-                });
-
-            modelBuilder.Entity("Core.Domain.LeadAggregate.Interactions.SmsInteraction", b =>
-                {
-                    b.HasBaseType("Core.Domain.LeadAggregate.Interactions.LeadInteraction");
-
-                    b.HasDiscriminator().HasValue("SmsInteraction");
-                });
-
-            modelBuilder.Entity("Core.Domain.TasksAggregate.FetchEmailsTask", b =>
+            modelBuilder.Entity("Core.Domain.TasksAggregate.BrokerCleanupTask", b =>
                 {
                     b.HasBaseType("Core.Domain.TasksAggregate.RecurrentTaskBase");
 
-                    b.Property<string>("LastEmailToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasDiscriminator().HasValue("FetchEmailsTask");
+                    b.HasDiscriminator().HasValue("BrokerCleanupTask");
                 });
 
-            modelBuilder.Entity("Core.Domain.TasksAggregate.FetchSmsTask", b =>
+            modelBuilder.Entity("Core.Domain.TasksAggregate.BrokerNotifAnalyzerTask", b =>
                 {
                     b.HasBaseType("Core.Domain.TasksAggregate.RecurrentTaskBase");
 
-                    b.HasDiscriminator().HasValue("FetchSmsTask");
+                    b.HasDiscriminator().HasValue("BrokerNotifAnalyzerTask");
                 });
 
             modelBuilder.Entity("Core.Domain.TasksAggregate.OutboxDictsTask", b =>
@@ -920,20 +916,6 @@ namespace Infrastructure.Migrations
                     b.HasBaseType("Core.Domain.TasksAggregate.RecurrentTaskBase");
 
                     b.HasDiscriminator().HasValue("OutboxDictsTask");
-                });
-
-            modelBuilder.Entity("Core.Domain.TestAggregate.TestEntity1", b =>
-                {
-                    b.HasBaseType("Core.Domain.TestAggregate.TestBase");
-
-                    b.HasDiscriminator().HasValue("TestEntity1");
-                });
-
-            modelBuilder.Entity("Core.Domain.TestAggregate.TestEntity2", b =>
-                {
-                    b.HasBaseType("Core.Domain.TestAggregate.TestBase");
-
-                    b.HasDiscriminator().HasValue("TestEntity2");
                 });
 
             modelBuilder.Entity("AreaLead", b =>
@@ -962,6 +944,17 @@ namespace Infrastructure.Migrations
                     b.Navigation("broker");
                 });
 
+            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAction", b =>
+                {
+                    b.HasOne("Core.Domain.ActionPlanAggregate.ActionPlan", "ActionPlan")
+                        .WithMany("Actions")
+                        .HasForeignKey("ActionPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionPlan");
+                });
+
             modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
                 {
                     b.HasOne("Core.Domain.ActionPlanAggregate.ActionPlan", "ActionPlan")
@@ -987,7 +980,7 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Core.Domain.ActionPlanAggregate.Actions.ActionBase", "TrackedAction")
+                    b.HasOne("Core.Domain.ActionPlanAggregate.ActionPlanAction", "TrackedAction")
                         .WithMany("ActionTrackers")
                         .HasForeignKey("TrackedActionId")
                         .OnDelete(DeleteBehavior.ClientCascade)
@@ -998,53 +991,40 @@ namespace Infrastructure.Migrations
                     b.Navigation("TrackedAction");
                 });
 
-            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.Actions.ActionBase", b =>
-                {
-                    b.HasOne("Core.Domain.ActionPlanAggregate.ActionPlan", "ActionPlan")
-                        .WithMany("Actions")
-                        .HasForeignKey("ActionPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ActionPlan");
-                });
-
             modelBuilder.Entity("Core.Domain.AgencyAggregate.Agency", b =>
                 {
                     b.OwnsOne("Core.Domain.AgencyAggregate.Address", "Address", b1 =>
                         {
                             b1.Property<int>("AgencyId")
-                                .HasColumnType("int");
+                                .HasColumnType("integer");
 
                             b1.Property<string>("City")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Country")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("PostalCode")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("ProvinceState")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("StreetAddress")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("apt")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.HasKey("AgencyId");
 
                             b1.ToTable("Agencies");
-
-                            b1.ToJson("Address");
 
                             b1.WithOwner()
                                 .HasForeignKey("AgencyId");
@@ -1075,37 +1055,35 @@ namespace Infrastructure.Migrations
                     b.OwnsOne("Core.Domain.AgencyAggregate.Address", "Address", b1 =>
                         {
                             b1.Property<int>("ListingId")
-                                .HasColumnType("int");
+                                .HasColumnType("integer");
 
                             b1.Property<string>("City")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("Country")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("PostalCode")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("ProvinceState")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("StreetAddress")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.Property<string>("apt")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                                .HasColumnType("text");
 
                             b1.HasKey("ListingId");
 
                             b1.ToTable("Listings");
-
-                            b1.ToJson("Address");
 
                             b1.WithOwner()
                                 .HasForeignKey("ListingId");
@@ -1198,15 +1176,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Lead");
                 });
 
-            modelBuilder.Entity("Core.Domain.LeadAggregate.Interactions.LeadInteraction", b =>
-                {
-                    b.HasOne("Core.Domain.LeadAggregate.Lead", null)
-                        .WithMany("LeadInteractions")
-                        .HasForeignKey("LeadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Core.Domain.LeadAggregate.Lead", b =>
                 {
                     b.HasOne("Core.Domain.AgencyAggregate.Agency", "Agency")
@@ -1252,7 +1221,41 @@ namespace Infrastructure.Migrations
                     b.Navigation("Lead");
                 });
 
-            modelBuilder.Entity("Core.Domain.NotificationAggregate.Notification", b =>
+            modelBuilder.Entity("Core.Domain.NotificationAggregate.AppEvent", b =>
+                {
+                    b.HasOne("Core.Domain.BrokerAggregate.Broker", "Broker")
+                        .WithMany("AppEvents")
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Domain.LeadAggregate.Lead", "lead")
+                        .WithMany("AppEvents")
+                        .HasForeignKey("LeadId");
+
+                    b.Navigation("Broker");
+
+                    b.Navigation("lead");
+                });
+
+            modelBuilder.Entity("Core.Domain.NotificationAggregate.EmailEvent", b =>
+                {
+                    b.HasOne("Core.Domain.BrokerAggregate.Broker", "Broker")
+                        .WithMany("EmailEvents")
+                        .HasForeignKey("BrokerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Domain.LeadAggregate.Lead", "lead")
+                        .WithMany("EmailEvents")
+                        .HasForeignKey("LeadId");
+
+                    b.Navigation("Broker");
+
+                    b.Navigation("lead");
+                });
+
+            modelBuilder.Entity("Core.Domain.NotificationAggregate.Notif", b =>
                 {
                     b.HasOne("Core.Domain.BrokerAggregate.Broker", "Broker")
                         .WithMany("Notifs")
@@ -1261,9 +1264,8 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.HasOne("Core.Domain.LeadAggregate.Lead", "lead")
-                        .WithMany("LeadHistoryEvents")
-                        .HasForeignKey("LeadId")
-                        .OnDelete(DeleteBehavior.ClientCascade);
+                        .WithMany("Notifs")
+                        .HasForeignKey("LeadId");
 
                     b.Navigation("Broker");
 
@@ -1274,78 +1276,9 @@ namespace Infrastructure.Migrations
                 {
                     b.HasOne("Core.Domain.BrokerAggregate.Broker", "Broker")
                         .WithMany("RecurrentTasks")
-                        .HasForeignKey("BrokerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("BrokerId");
 
                     b.Navigation("Broker");
-                });
-
-            modelBuilder.Entity("Core.Domain.TestAggregate.TestBase", b =>
-                {
-                    b.OwnsOne("Core.Domain.TestAggregate.TestJSON", "testJSON", b1 =>
-                        {
-                            b1.Property<int>("TestBaseId")
-                                .HasColumnType("int");
-
-                            b1.HasKey("TestBaseId");
-
-                            b1.ToTable("TestBase");
-
-                            b1.ToJson("testJSON");
-
-                            b1.WithOwner()
-                                .HasForeignKey("TestBaseId");
-
-                            b1.OwnsOne("Core.Domain.TestAggregate.Test1Props", "one", b2 =>
-                                {
-                                    b2.Property<int>("TestJSONTestBaseId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("prop1")
-                                        .IsRequired()
-                                        .HasColumnType("nvarchar(max)");
-
-                                    b2.Property<string>("prop2")
-                                        .IsRequired()
-                                        .HasColumnType("nvarchar(max)");
-
-                                    b2.HasKey("TestJSONTestBaseId");
-
-                                    b2.ToTable("TestBase");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("TestJSONTestBaseId");
-                                });
-
-                            b1.OwnsOne("Core.Domain.TestAggregate.Test2Props", "two", b2 =>
-                                {
-                                    b2.Property<int>("TestJSONTestBaseId")
-                                        .HasColumnType("int");
-
-                                    b2.Property<string>("prop_2_1")
-                                        .IsRequired()
-                                        .HasColumnType("nvarchar(max)");
-
-                                    b2.Property<string>("prop_2_2")
-                                        .IsRequired()
-                                        .HasColumnType("nvarchar(max)");
-
-                                    b2.HasKey("TestJSONTestBaseId");
-
-                                    b2.ToTable("TestBase");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("TestJSONTestBaseId");
-                                });
-
-                            b1.Navigation("one");
-
-                            b1.Navigation("two");
-                        });
-
-                    b.Navigation("testJSON")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("LeadTag", b =>
@@ -1370,12 +1303,12 @@ namespace Infrastructure.Migrations
                     b.Navigation("Actions");
                 });
 
-            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
+            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAction", b =>
                 {
                     b.Navigation("ActionTrackers");
                 });
 
-            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.Actions.ActionBase", b =>
+            modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
                 {
                     b.Navigation("ActionTrackers");
                 });
@@ -1402,11 +1335,15 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("ActionPlans");
 
+                    b.Navigation("AppEvents");
+
                     b.Navigation("AssignedListings");
 
                     b.Navigation("BrokerTags");
 
                     b.Navigation("ConnectedEmails");
+
+                    b.Navigation("EmailEvents");
 
                     b.Navigation("Leads");
 
@@ -1423,13 +1360,15 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("ActionPlanAssociations");
 
+                    b.Navigation("AppEvents");
+
+                    b.Navigation("EmailEvents");
+
                     b.Navigation("LeadEmails");
 
-                    b.Navigation("LeadHistoryEvents");
-
-                    b.Navigation("LeadInteractions");
-
                     b.Navigation("Note");
+
+                    b.Navigation("Notifs");
 
                     b.Navigation("ToDoTasks");
                 });

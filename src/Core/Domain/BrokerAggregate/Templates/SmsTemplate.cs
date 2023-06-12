@@ -10,7 +10,7 @@ public class SmsTemplate : Template
     var dto = new TemplateDTO
     {
       id = Id,
-      Modified = Modified.UtcDateTime,
+      Modified = Modified,
       templateText = templateText,
       TimesUsed = TimesUsed,
       Title = Title,

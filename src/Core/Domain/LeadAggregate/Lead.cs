@@ -39,7 +39,7 @@ public class Lead : Entity<int>
     /// THIS IS ONLY VALID WHEN lead is assigned to a broker, not when unassigned
     /// </summary>
     public DateTime LastNotifsViewedAt { get; set; }
-    public DateTimeOffset EntryDate { get; set; }
+    public DateTime EntryDate { get; set; }
     public LeadSource source { get; set; }
     public LeadType leadType { get; set; }
     /// <summary>

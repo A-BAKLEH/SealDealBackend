@@ -10,9 +10,10 @@ public class ListingConfig : IEntityTypeConfiguration<Listing>
     {
         builder.Property(a => a.FormattedStreetAddress).HasMaxLength(50);
         builder.HasIndex(a => new { a.AgencyId,a.FormattedStreetAddress });
-        builder.OwnsOne(listing => listing.Address, ownedNavigationBuilder =>
-        {
-            ownedNavigationBuilder.ToJson();
-        });
+        //builder.OwnsOne(listing => listing.Address, ownedNavigationBuilder =>
+        //{
+        //    ownedNavigationBuilder.ToJson();
+        //});
+        builder.OwnsOne(listing => listing.Address);
     }
 }

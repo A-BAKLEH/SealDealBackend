@@ -78,7 +78,7 @@ public class NotifAnalyzer
     public async Task AnalyzeNotifsAsync(Guid brokerId)
     {
         using var dbcontext = _contextFactory.CreateDbContext();
-        var TimeNow = DateTimeOffset.UtcNow;
+        var TimeNow = DateTime.UtcNow;
         /*
     1)   Any New lead events that are still unseen since > 15 mins, ordered by time since created, (priority 1)
 	2)   Unseen emails from leads for 1 > hours (priority 2)
@@ -149,7 +149,7 @@ public class NotifAnalyzer
                                 BrokerId = brokerId,
                                 LeadId = e.LeadId,
                                 NotifType = EventType.UnSeenEmail,
-                                CreatedTimeStamp = DateTimeOffset.UtcNow,
+                                CreatedTimeStamp = DateTime.UtcNow,
                                 isSeen = false,
                                 EventId = e.Id,
                                 priority = 2
@@ -171,7 +171,7 @@ public class NotifAnalyzer
                                 BrokerId = brokerId,
                                 LeadId = e.LeadId,
                                 NotifType = !resT.Item1 ? EventType.UnSeenEmail : EventType.UnrepliedEmail,
-                                CreatedTimeStamp = DateTimeOffset.UtcNow,
+                                CreatedTimeStamp = DateTime.UtcNow,
                                 isSeen = false,
                                 EventId = e.Id,
                                 priority = 2
@@ -195,7 +195,7 @@ public class NotifAnalyzer
                             BrokerId = brokerId,
                             LeadId = e.LeadId,
                             NotifType = EventType.UnrepliedEmail,
-                            CreatedTimeStamp = DateTimeOffset.UtcNow,
+                            CreatedTimeStamp = DateTime.UtcNow,
                             isSeen = false,
                             EventId = e.Id,
                             priority = 2
@@ -251,7 +251,7 @@ public class NotifAnalyzer
                             BrokerId = brokerId,
                             LeadId = unrepliedEmail.LeadId,
                             NotifType = EventType.UnrepliedEmail,
-                            CreatedTimeStamp = DateTimeOffset.UtcNow,
+                            CreatedTimeStamp = DateTime.UtcNow,
                             isSeen = false,
                             EventId = unrepliedEmail.Id,
                             priority = 2

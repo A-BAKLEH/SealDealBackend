@@ -15,7 +15,7 @@ public class AppEvent : Entity<int>
     public Broker Broker { get; set; }
     public int? LeadId { get; set; }
     public Lead? lead { get; set; }
-    public DateTimeOffset EventTimeStamp { get; set; }
+    public DateTime EventTimeStamp { get; set; }
     public EventType EventType { get; set; }
     /// <summary>
     /// default false
@@ -89,9 +89,9 @@ public enum EventType
     /// <summary>
     /// data: props :  ActionPlanId, APFinishedReason, ActionPlanName
     /// </summary>
-    ActionPlanFinished = 1 << 7,
+    ActionPlanFinished = 1 << 7, //128
 
-    ActionPlanEmailSent = 1 << 8,
+    ActionPlanEmailSent = 1 << 8, //256
 
     /// <summary>
     /// data: UserId who createed it ,TempPassword, EmailSent?

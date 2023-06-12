@@ -23,7 +23,7 @@ public class ConnectedEmail : EntityBase
     public string Email { get; set; }
     public bool isMSFT { get; set; }
     public Guid? GraphSubscriptionId { get; set; }
-    public DateTimeOffset? SubsExpiryDate { get; set; }
+    public DateTime? SubsExpiryDate { get; set; }
     public string? SubsRenewalJobId { get; set; }
 
     /// <summary>
@@ -34,12 +34,12 @@ public class ConnectedEmail : EntityBase
     /// <summary>
     /// received property of last email fetched
     /// </summary>
-    public DateTimeOffset? LastSync { get; set; }
+    public DateTime? LastSync { get; set; }
 
     /// <summary>
     /// DateTime of first email connection
     /// </summary>
-    public DateTimeOffset? FirstSync { get; set; }
+    public DateTime? FirstSync { get; set; }
 
     public int OpenAITokensUsed { get; set; } = 0;
 }

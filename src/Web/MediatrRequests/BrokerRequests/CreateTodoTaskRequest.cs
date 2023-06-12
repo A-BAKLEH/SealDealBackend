@@ -47,7 +47,7 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
         {
             Description = todo.Description,
             Id = todo.Id,
-            TaskDueDate = todo.TaskDueDate.UtcDateTime,
+            TaskDueDate = todo.TaskDueDate,
             TaskName = todo.TaskName
         };
         if (todo.LeadId != null)

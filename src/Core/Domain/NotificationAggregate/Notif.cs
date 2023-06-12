@@ -14,7 +14,7 @@ public class Notif : Entity<int>
     public Broker Broker { get; set; }
     public int? LeadId { get; set; }
     public Lead? lead { get; set; }
-    public DateTimeOffset CreatedTimeStamp { get; set; }
+    public DateTime CreatedTimeStamp { get; set; }
     public EventType NotifType { get; set; }
     /// <summary>
     /// when isSeen,dont show to user and its marked for deletion in nightly task.

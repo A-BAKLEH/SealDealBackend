@@ -18,11 +18,11 @@ public static class InfrastructureSetup
 {
     public static void AddDbContext(this IServiceCollection services, string connectionString) =>
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString), optionsLifetime: ServiceLifetime.Singleton); // will be created in web project root
+            options.UseNpgsql(connectionString), optionsLifetime: ServiceLifetime.Singleton); // will be created in web project root
     public static void AddDbContextFactory(this IServiceCollection services, string connectionString) =>
         services.AddDbContextFactory<AppDbContext>(
         options =>
-            options.UseSqlServer(connectionString));
+            options.UseNpgsql(connectionString));
     public static void AddHangfire(this IServiceCollection services, string connectionString)
     {
         services.AddHangfire(configuration => configuration

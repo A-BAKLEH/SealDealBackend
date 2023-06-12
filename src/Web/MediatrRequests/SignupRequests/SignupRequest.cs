@@ -64,7 +64,6 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
         };
         var agency = new Agency()
         {
-
             AgencyName = request.AgencyName,
             NumberOfBrokersInSubscription = 0,
             StripeSubscriptionStatus = StripeSubscriptionStatus.NoStripeSubscription,

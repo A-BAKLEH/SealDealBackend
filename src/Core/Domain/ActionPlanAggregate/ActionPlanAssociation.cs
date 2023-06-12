@@ -18,7 +18,7 @@ public class ActionPlanAssociation : Entity<int>
     /// <summary>
     /// client TimeZ
     /// </summary>
-    public DateTimeOffset ActionPlanTriggeredAt { get; set; }
+    public DateTime ActionPlanTriggeredAt { get; set; }
     /// <summary>
     /// Status of this instance of the associated action plan that belongs to this specific lead
     /// </summary>

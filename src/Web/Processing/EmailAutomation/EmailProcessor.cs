@@ -79,8 +79,8 @@ public class EmailProcessor
             }
         }
 
-        connEmail.SubsExpiryDate = SubsEnds;
-        var nextRenewalDate = SubsEnds - TimeSpan.FromMinutes(60);
+        connEmail.SubsExpiryDate = SubsEnds.UtcDateTime;
+        var nextRenewalDate = SubsEnds - TimeSpan.FromMinutes(120);
         string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connEmail.Email), nextRenewalDate);
         connEmail.SubsRenewalJobId = RenewalJobId;
         _appDbContext.SaveChanges();
@@ -91,7 +91,9 @@ public class EmailProcessor
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         var categs = await _aDGraphWrapper._graphClient.Users[connectedEmail.Email].Outlook.MasterCategories.GetAsync();
         List<OutlookCategory> categories = categs.Value;
-        var cats = new List<string>() { APIConstants.NewLeadCreated, APIConstants.SeenOnSealDeal, APIConstants.VerifyEmailAddress, APIConstants.SentBySealDeal };
+        var cats = new List<string>() { APIConstants.NewLeadCreated, APIConstants.SeenOnSealDeal,
+            //APIConstants.VerifyEmailAddress,
+            APIConstants.SentBySealDeal };
         foreach (var cat in cats)
         {
             if (!categories.Any(x => x.DisplayName == cat))
@@ -108,10 +110,10 @@ public class EmailProcessor
                 {
                     newCat.Color = CategoryColor.Preset4;
                 }
-                else if (cat == APIConstants.VerifyEmailAddress)
-                {
-                    newCat.Color = CategoryColor.Preset3;
-                }
+                //else if (cat == APIConstants.VerifyEmailAddress)
+                //{
+                //    newCat.Color = CategoryColor.Preset3;
+                //}
                 else //SentBySealDeal
                 {
                     newCat.Color = CategoryColor.Preset7;
@@ -150,7 +152,7 @@ public class EmailProcessor
         connectedEmail.GraphSubscriptionId = Guid.Parse(CreatedSubs.Id);
 
         //renew 60 minutes before subs Ends
-        var renewalTime = SubsEnds - TimeSpan.FromMinutes(60);
+        var renewalTime = SubsEnds - TimeSpan.FromMinutes(120);
         string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connectedEmail.Email), renewalTime);
         connectedEmail.SubsRenewalJobId = RenewalJobId;
 
@@ -168,7 +170,7 @@ public class EmailProcessor
             try
             {
                 jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), GlobalControl.EmailStartSyncingDelay);
-                _logger.LogInformation("{place} scheduled email parsing with", "ScheduleEmailParseing", "ScheduleEmailParseing");
+                _logger.LogInformation("{place} scheduled email parsing with", "ScheduleEmailParseing");
             }
             catch (Exception ex)
             {
@@ -291,9 +293,11 @@ public class EmailProcessor
 
         DateTimeOffset lastSync;
         if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow - TimeSpan.FromDays(2);
-        else lastSync = (DateTimeOffset)connEmail.LastSync + TimeSpan.FromSeconds(1);
+        else
+            lastSync = (DateTimeOffset)connEmail.LastSync + TimeSpan.FromSeconds(1);
 
-        //TODO deal with when lsatSync and FirstSync is null it means this is the first sync
+
+        //TODO deal with when lastSync and FirstSync is null it means this is the first sync
 
         bool error = false;
 
@@ -323,10 +327,6 @@ public class EmailProcessor
 
             if (messages.Value.Any())
             {
-                //if (messages.Value[0].ReceivedDateTime == lastSync)
-                //{
-
-                //}
                 bool first = true;
                 do
                 {
@@ -347,7 +347,7 @@ public class EmailProcessor
                     LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
                     var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
                     totaltokens += toks1;
-                    
+
                 } while (messages.OdataNextLink != null);
             }
             else LastProcessedTimestamp = DateTimeOffset.UtcNow;
@@ -408,7 +408,7 @@ public class EmailProcessor
             await _appDbContext.ConnectedEmails.Where(e => e.Email == email)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
                 .SetProperty(e => e.SyncScheduled, false)
-                .SetProperty(e => e.LastSync, LastProcessedTimestamp));
+                .SetProperty(e => e.LastSync, LastProcessedTimestamp.UtcDateTime));
             await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
             StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
             return;
@@ -419,7 +419,7 @@ public class EmailProcessor
             await _appDbContext.ConnectedEmails.Where(e => e.Email == email)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
                 .SetProperty(e => e.SyncScheduled, false)
-                .SetProperty(e => e.LastSync, LastProcessedTimestamp));
+                .SetProperty(e => e.LastSync, LastProcessedTimestamp.UtcDateTime));
             await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
             StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
         }
@@ -459,7 +459,7 @@ public class EmailProcessor
             Id = message.Id,
             LeadParsedFromEmail = false,
             Seen = (bool)message.IsRead,
-            TimeReceived = (DateTimeOffset)message.ReceivedDateTime,
+            TimeReceived = ((DateTimeOffset)message.ReceivedDateTime).UtcDateTime,
             LeadId = leadId
         };
         if (messList.Count == 1 && messList[0].Id == message.Id)
@@ -535,7 +535,7 @@ public class EmailProcessor
                             LeadId = leadEmail.LeadId,
                             LeadParsedFromEmail = false,
                             Seen = false,
-                            TimeReceived = (DateTimeOffset)m.ReceivedDateTime
+                            TimeReceived = ((DateTimeOffset)m.ReceivedDateTime).UtcDateTime,
                         }));
                     }
                     else
@@ -614,8 +614,17 @@ public class EmailProcessor
             }
             else
             {
-                localdbContext.Leads.Add(LeadProviderDBRecordsTask.Item1.Result.Lead);
-                leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, Message>(LeadProviderDBRecordsTask.Item1.Result, LeadProviderDBRecordsTask.Item2));
+                var Newlead = LeadProviderDBRecordsTask.Item1.Result.Lead;
+                bool exists = false;
+                //only relevant for admins
+                if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
+                //relevant for brokers and admins who assigned lead to another broker or themselve
+                else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                if (exists)
+                {
+                    localdbContext.Leads.Add(Newlead);
+                    leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, Message>(LeadProviderDBRecordsTask.Item1.Result, LeadProviderDBRecordsTask.Item2));
+                }
             }
         }
 
@@ -636,8 +645,17 @@ public class EmailProcessor
             }
             else
             {
-                localdbContext.Leads.Add(UnknownDBRecordsTask.Item1.Result.Lead);
-                leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, Message>(UnknownDBRecordsTask.Item1.Result, UnknownDBRecordsTask.Item2));
+                var Newlead = UnknownDBRecordsTask.Item1.Result.Lead;
+                bool exists = false;
+                //only relevant for admins
+                if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
+                //relevant for brokers and admins who assigned lead to another broker or themselve
+                else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                if(exists)
+                {
+                    localdbContext.Leads.Add(Newlead);
+                    leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, Message>(UnknownDBRecordsTask.Item1.Result, UnknownDBRecordsTask.Item2));
+                }         
             }
         }
 
@@ -688,13 +706,15 @@ public class EmailProcessor
 
         await localdbContext.SaveChangesAsync();
 
+        //later maybe admin can define action plans that run on unassigned leads
+        var assignedAddedLeads = leadsAdded.Where(l => l.Item1.Lead.BrokerId != null);
         //Trigger Action plans start
-        if (leadsAdded.Any())
+        if (assignedAddedLeads.Any())
         {
             //localdbContext.Leads.AddRange(leadsAdded.Select(l => l.Item1.Lead));            
             if (brokerDTO.brokerStartActionPlans.Any())
             {
-                foreach (var leadT in leadsAdded)
+                foreach (var leadT in assignedAddedLeads)
                 {
                     if (leadT.Item1.LeadEmailUnsure) continue;
                     var lead = leadT.Item1.Lead;
@@ -721,7 +741,7 @@ public class EmailProcessor
                 if (!tup.Item2.Categories.Any(c => c == APIConstants.NewLeadCreated))
                 {
                     tup.Item2.Categories.Add(APIConstants.NewLeadCreated);
-                    if (tup.Item1.LeadEmailUnsure) tup.Item2.Categories.Add(APIConstants.VerifyEmailAddress);
+                    //if (tup.Item1.LeadEmailUnsure) tup.Item2.Categories.Add(APIConstants.VerifyEmailAddress);
                     await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[tup.Item2.Id]
                     .PatchAsync(tup.Item2);
                 }
@@ -758,7 +778,7 @@ public class EmailProcessor
         appevents.AddRange(ActionPlanEvents);
         var emailevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.EmailEvents).ToList();
         emailevents.AddRange(KnownLeadEmailEvents);
-        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true,null, appevents, emailevents);
+        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true, null, appevents, emailevents);
         return tokens;
     }
 
@@ -768,7 +788,7 @@ public class EmailProcessor
         {
             LeadId = apass.LeadId,
             BrokerId = brokerId,
-            EventTimeStamp = DateTimeOffset.UtcNow,
+            EventTimeStamp = DateTime.UtcNow,
             EventType = EventType.ActionPlanFinished,
             ReadByBroker = false,
             IsActionPlanResult = true,
@@ -800,78 +820,78 @@ public class EmailProcessor
     {
         var timeNow = DateTime.UtcNow;
         List<AppEvent> events = new(actionPlans.Count);
-        foreach (var ap in actionPlans)
+        ActionPlan ap = actionPlans[0];
+
+        var FirstActionDelay = ap.FirstActionDelay;
+        var delays = FirstActionDelay?.Split(':');
+        TimeSpan timespan = TimeSpan.Zero;
+        if (delays != null)
         {
-            var FirstActionDelay = ap.FirstActionDelay;
-            var delays = FirstActionDelay?.Split(':');
-            TimeSpan timespan = TimeSpan.Zero;
+            if (int.TryParse(delays[0], out var days)) timespan += TimeSpan.FromDays(days);
+            if (int.TryParse(delays[1], out var hours)) timespan += TimeSpan.FromHours(hours);
+            if (int.TryParse(delays[2], out var minutes)) timespan += TimeSpan.FromMinutes(minutes);
+        }
+        var firstAction = ap.Actions[0];
+        var actionTracker = new ActionTracker
+        {
+            TrackedActionId = firstAction.Id,
+            ActionStatus = ActionStatus.ScheduledToStart,
+            HangfireScheduledStartTime = timeNow + timespan,
+        };
+        var apAssociation = new ActionPlanAssociation
+        {
+            //LeadId = lead.Id,
+            ActionPlanId = ap.Id,
+            ActionPlanTriggeredAt = timeNow,
+            ThisActionPlanStatus = ActionPlanStatus.Running,
+            ActionTrackers = new() { actionTracker },
+            currentTrackedActionId = firstAction.Id,
+        };
+        if (lead.ActionPlanAssociations == null) lead.ActionPlanAssociations = new();
+        lead.ActionPlanAssociations.Add(apAssociation);
+
+        bool OldHasActionPlanToStop = lead.HasActionPlanToStop;
+        if (ap.StopPlanOnInteraction && !OldHasActionPlanToStop) lead.HasActionPlanToStop = true;
+        if (ap.EventsToListenTo != EventType.None)
+        {
+            lead.EventsForActionPlans |= ap.EventsToListenTo; //for now not used
+        }
+        var APStartedEvent = new AppEvent
+        {
+            BrokerId = brokerId,
+            EventTimeStamp = timeNow,
+            EventType = EventType.ActionPlanStarted,
+            IsActionPlanResult = true,
+            ReadByBroker = false,
+            ProcessingStatus = ProcessingStatus.NoNeed,
+        };
+        APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = EventType.LeadAssignedToYou.ToString();
+        APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = ap.Id.ToString();
+        APStartedEvent.Props[NotificationJSONKeys.ActionPlanName] = ap.Name;
+        events.Add(APStartedEvent);
+        lead.AppEvents.Add(APStartedEvent); //never null cuz this lead is newly created so it has that notif
+        string HangfireJobId = "";
+        try
+        {
             if (delays != null)
             {
-                if (int.TryParse(delays[0], out var days)) timespan += TimeSpan.FromDays(days);
-                if (int.TryParse(delays[1], out var hours)) timespan += TimeSpan.FromHours(hours);
-                if (int.TryParse(delays[2], out var minutes)) timespan += TimeSpan.FromMinutes(minutes);
+                HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null), timespan);
             }
-            var firstAction = ap.Actions[0];
-            var actionTracker = new ActionTracker
+            else
             {
-                TrackedActionId = firstAction.Id,
-                ActionStatus = ActionStatus.ScheduledToStart,
-                HangfireScheduledStartTime = timeNow + timespan,
-            };
-            var apAssociation = new ActionPlanAssociation
-            {
-                //LeadId = lead.Id,
-                ActionPlanId = ap.Id,
-                ActionPlanTriggeredAt = timeNow,
-                ThisActionPlanStatus = ActionPlanStatus.Running,
-                ActionTrackers = new() { actionTracker },
-                currentTrackedActionId = firstAction.Id,
-            };
-            if (lead.ActionPlanAssociations == null) lead.ActionPlanAssociations = new();
-            lead.ActionPlanAssociations.Add(apAssociation);
-
-            bool OldHasActionPlanToStop = lead.HasActionPlanToStop;
-            if (ap.StopPlanOnInteraction && !OldHasActionPlanToStop) lead.HasActionPlanToStop = true;
-            if (ap.EventsToListenTo != EventType.None)
-            {
-                lead.EventsForActionPlans |= ap.EventsToListenTo; //for now not used
+                HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null));
             }
-            var APStartedEvent = new AppEvent
-            {
-                BrokerId = brokerId,
-                EventTimeStamp = timeNow,
-                EventType = EventType.ActionPlanStarted,
-                IsActionPlanResult = true,
-                ReadByBroker = false,
-                ProcessingStatus = ProcessingStatus.NoNeed,
-            };
-            APStartedEvent.Props[NotificationJSONKeys.APTriggerType] = EventType.LeadAssignedToYou.ToString();
-            APStartedEvent.Props[NotificationJSONKeys.ActionPlanId] = ap.Id.ToString();
-            APStartedEvent.Props[NotificationJSONKeys.ActionPlanName] = ap.Name;
-            events.Add(APStartedEvent);
-            lead.AppEvents.Add(APStartedEvent); //never null cuz this lead is newly created so it has that notif
-            string HangfireJobId = "";
-            try
-            {
-                if (delays != null)
-                {
-                    HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null), timespan);
-                }
-                else
-                {
-                    HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null));
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
-                 " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor", ap.Id, lead.Id, ex.Message);
-                lead.ActionPlanAssociations.Remove(apAssociation);
-                lead.AppEvents.Remove(APStartedEvent);
-                lead.HasActionPlanToStop = OldHasActionPlanToStop;
-            }
-            actionTracker.HangfireJobId = HangfireJobId;
         }
+        catch (Exception ex)
+        {
+            _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
+             " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor", ap.Id, lead.Id, ex.Message);
+            lead.ActionPlanAssociations.Remove(apAssociation);
+            lead.AppEvents.Remove(APStartedEvent);
+            lead.HasActionPlanToStop = OldHasActionPlanToStop;
+        }
+        actionTracker.HangfireJobId = HangfireJobId;
+
         return events;
     }
     /// <summary>
@@ -977,7 +997,7 @@ public class EmailProcessor
             LeadFirstName = parsedContent.firstName ?? "",
             LeadLastName = parsedContent.lastName ?? "",
             PhoneNumber = parsedContent.phoneNumber,
-            EntryDate = DateTime.UtcNow,
+            EntryDate = DateTime.UtcNow - TimeSpan.FromSeconds(1),
             leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.New,
@@ -991,7 +1011,7 @@ public class EmailProcessor
 
         AppEvent LeadCreationNotif = new()
         {
-            EventTimeStamp = DateTime.UtcNow,
+            EventTimeStamp = DateTime.UtcNow - TimeSpan.FromSeconds(1),
             DeleteAfterProcessing = false,
             ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = false,
@@ -1074,7 +1094,7 @@ public class EmailProcessor
 
                         AppEvent LeadAssignedNotif = new()
                         {
-                            EventTimeStamp = DateTime.UtcNow,
+                            EventTimeStamp = DateTime.UtcNow - TimeSpan.FromSeconds(1),
                             DeleteAfterProcessing = false,
                             ProcessingStatus = ProcessingStatus.NoNeed,
                             ReadByBroker = false,

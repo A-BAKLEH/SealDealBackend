@@ -26,7 +26,7 @@ public class GetBrokerTodosRequestHandler : IRequestHandler<GetBrokerTodosReques
               lastName = todoTask.Lead.LeadLastName,
               Id = todoTask.Id,
               LeadId = todoTask.LeadId,
-              TaskDueDate = todoTask.TaskDueDate.UtcDateTime,
+              TaskDueDate = todoTask.TaskDueDate,
               TaskName = todoTask.TaskName,
           })
           .ToListAsync();
