@@ -17,7 +17,7 @@ public class Listing : Entity<int>
     /// <summary>
     /// client timeZ
     /// </summary>
-    public DateTimeOffset DateOfListing { get; set; }
+    public DateTime DateOfListing { get; set; }
     public ListingStatus Status { get; set; } = ListingStatus.Listed;
     public int Price { get; set; }
     public byte AssignedBrokersCount { get; set; } = 0;

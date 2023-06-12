@@ -54,7 +54,7 @@ public class BrokerQService
               Id = b.Id,
               LastName = b.LastName,
               SigninEmail = b.LoginEmail,
-              created = b.Created.UtcDateTime,
+              created = b.Created,
               PhoneNumber = b.PhoneNumber
           })
           .ToListAsync();
@@ -109,7 +109,7 @@ public class BrokerQService
         var StripeNotif = new AppEvent
         {
             BrokerId = userId,
-            EventTimeStamp = DateTimeOffset.UtcNow,
+            EventTimeStamp = DateTime.UtcNow,
             EventType = EventType.StripeSubsChanged,
             ProcessingStatus = ProcessingStatus.NoNeed,
             ReadByBroker = true,
@@ -141,13 +141,13 @@ public class BrokerQService
             }
         }
         await _appDbContext.Database.ExecuteSqlRawAsync
-          ($"DELETE FROM [dbo].[ToDoTasks] WHERE BrokerId = '{brokerDeleteId}';" +
-          $"DELETE FROM [dbo].[Notifs] WHERE BrokerId = '{brokerDeleteId}';" +
-          $"DELETE FROM [dbo].[AppEvents] WHERE BrokerId = '{brokerDeleteId}';" +
-          $"DELETE FROM [dbo].[EmailEvents] WHERE BrokerId = '{brokerDeleteId}';" +
-          $"DELETE FROM [dbo].[Leads] WHERE BrokerId = '{brokerDeleteId}';" +
-          $"DELETE FROM [dbo].[BrokerListingAssignments] WHERE BrokerId = '{brokerDeleteId}';" +
-          $"DELETE FROM [dbo].[Brokers] WHERE Id = '{brokerDeleteId}';");
+          ($"DELETE FROM \"ToDoTasks\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"Notifs\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"AppEvents\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"EmailEvents\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"Leads\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"BrokerListingAssignments\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"Brokers\" WHERE \"Id\" = '{brokerDeleteId}';");
 
         //delete template should be by cascade
         //delete tags dont know

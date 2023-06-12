@@ -14,7 +14,7 @@ public class NotificationService
     }
     public async Task MarkLeadNotifsRead(int LeadId, Guid brokerId)
     {
-        var timeNow = DateTimeOffset.UtcNow;
+        var timeNow = DateTime.UtcNow;
         using var AppEventsContext = _contextFactory.CreateDbContext();
         using var EmailEventsContext = _contextFactory.CreateDbContext();
         using var NotifContext = _contextFactory.CreateDbContext();

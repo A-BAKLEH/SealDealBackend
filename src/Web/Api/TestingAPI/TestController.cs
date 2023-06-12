@@ -95,11 +95,22 @@ public class TestController : ControllerBase
     [HttpGet("testaddress")]
     public async Task<IActionResult> testaddress()
     {
+
         var addres = "chalet gatineau";
         var listings = await _appDbContext.Listings
                 .Where(x => x.AgencyId == 56 && EF.Functions.Like(x.FormattedStreetAddress, $"{addres}%"))
                 .AsNoTracking()
                 .ToListAsync();
+        return Ok();
+    }
+    [HttpGet("testpostgresExecuteUpdate")]
+    public async Task<IActionResult> testgresExecuteUpdate()
+    {
+        var task1 = await _appDbContext.AppEvents
+            .Where(e => e.LeadId == 2 )
+                .ExecuteUpdateAsync(setters => setters
+                .SetProperty(e => e.DeleteAfterProcessing, false));
+
         return Ok();
     }
 
@@ -165,7 +176,7 @@ public class TestController : ControllerBase
             AgencyId = 40,
             LeadFirstName = "asad",
             LeadLastName = "abdullah",
-            EntryDate = DateTimeOffset.UtcNow,
+            EntryDate = DateTime.UtcNow,
             source = LeadSource.manual,
             leadType = LeadType.Buyer,
             BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"),
@@ -181,7 +192,7 @@ public class TestController : ControllerBase
               DeleteAfterProcessing = false,
               IsActionPlanResult = false,
               BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"),
-              EventTimeStamp= DateTimeOffset.UtcNow,
+              EventTimeStamp= DateTime.UtcNow,
               EventType = EventType.LeadStatusChange,
               NotifyBroker = false,
               ProcessingStatus = ProcessingStatus.Done,

@@ -29,7 +29,7 @@ public class TemplatesQService
         }
         if (!apNames.Any())
         {
-            await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM [dbo].[Templates] WHERE Id = {templateId};");
+            await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM \"Templates\" WHERE \"Id\" = {templateId};");
         }
         return apNames;
     }
@@ -41,7 +41,7 @@ public class TemplatesQService
         if (dto.text != null) template.templateText = dto.text;
         if (dto.TemplateName != null) template.Title = dto.TemplateName;
         if (dto.TemplateType == "e" && dto.subject != null) template.EmailTemplateSubject = dto.subject;
-        template.Modified = DateTimeOffset.UtcNow;
+        template.Modified = DateTime.UtcNow;
         await _appDbContext.SaveChangesAsync();
         return template.MapToDTO();
     }

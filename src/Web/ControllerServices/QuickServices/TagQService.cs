@@ -23,13 +23,13 @@ public class TagQService
 
     if (tag != null && !tag.Leads.Any())
     {
-      await _appDbContext.Database.ExecuteSqlRawAsync($"INSERT INTO [LeadTag] VALUES ({LeadId}, {TagId});");
+      await _appDbContext.Database.ExecuteSqlRawAsync($"INSERT INTO \"LeadTag\" VALUES ({LeadId}, {TagId});");
     }
   }
 
   public async Task DeleteTagFromLeadAsync(int LeadId, int TagId, Guid brokerId)
   {
-    await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM [LeadTag] WHERE LeadId = {LeadId} AND TagsId = {TagId};");
+    await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM \"LeadTag\" WHERE \"LeadId\" = {LeadId} AND \"TagsId\" = {TagId};");
   }
   public async Task<BrokerTagsDTO>? GetBrokerTagsAsync(Guid brokerId)
   {

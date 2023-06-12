@@ -1,7 +1,4 @@
-﻿using Infrastructure.Migrations;
-using Stripe;
-
-namespace Web.Constants;
+﻿namespace Web.Constants;
 
 public class APIConstants
 {
@@ -25,11 +22,11 @@ public class APIConstants
     public const string ParseLeadPrompt = "if email contains an inquiry from a possible real-estate lead (not an ad or promotional email), extract lead's first name,last name,language used in email,phone number,email address,property address of interest;and format output as JSON with properties: firstName,lastName,Language,phoneNumber,emailAddress,PropertyAddress,StreetAddress,Apartment (get 'StreetAddress' and 'Apartment' from 'PropertyAddress'). Else output '{\"NotFound\":1}'.email: ";
     public const string ParseLeadPrompt2 = "if email is from a possible" +
         " real-estate lead (not an ad or promotional email), get lead's first name," +
-        "last name,language used in email,phone number,email address,property address of interest;" +
-        "and format output as only JSON with properties: firstName,lastName,Language,phoneNumber,emailAddress," +
+        "last name,phone number,email address,property address of interest and what language the email is written in;" +
+        "Format output as only JSON with properties: firstName,lastName,Language,phoneNumber,emailAddress," +
         "PropertyAddress,StreetAddress,Apartment (get 'StreetAddress' and 'Apartment' from 'PropertyAddress')." +
         " Else output exactly '{\"NotFound\":1}'.email: ";
-    
+
     public const int PromptTokensCount = 100; //TODO update later
 
     public const string SealDealTenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";

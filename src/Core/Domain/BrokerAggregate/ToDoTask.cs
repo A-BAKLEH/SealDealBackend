@@ -16,7 +16,7 @@ public class ToDoTask : Entity<int>
     /// to review
     /// </summary>
     public bool IsDone { get; set; } = false;
-    public DateTimeOffset TaskDueDate { get; set; }
+    public DateTime TaskDueDate { get; set; }
     public string? HangfireReminderId { get; set; }
     public Guid BrokerId { get; set; }
     public Broker Broker { get; set; }

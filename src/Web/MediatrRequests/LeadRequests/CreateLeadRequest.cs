@@ -44,7 +44,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         if (!request.BrokerWhoRequested.isAdmin && dto.AssignToSelf == false)
             throw new CustomBadRequestException("lead has to be assigned to self for broker who is not admin", ProblemDetailsTitles.AssignToSelf);
 
-        var timestamp = DateTimeOffset.UtcNow;
+        var timestamp = DateTime.UtcNow;
         var lead = new Lead
         {
             AgencyId = request.BrokerWhoRequested.AgencyId,
@@ -205,7 +205,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         {
             Budget = lead.Budget,
             Emails = lead.LeadEmails.Select(em => new LeadEmailDTO { email = em.EmailAddress, isMain = em.IsMain }).ToList(),
-            EntryDate = lead.EntryDate.UtcDateTime,
+            EntryDate = lead.EntryDate,
             LeadFirstName = lead.LeadFirstName,
             LeadId = lead.Id,
             LeadLastName = lead.LeadLastName,

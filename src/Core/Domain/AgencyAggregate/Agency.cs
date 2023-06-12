@@ -17,14 +17,14 @@ public class Agency : Entity<int>
     /// <summary>
     /// client timeZ
     /// </summary>
-    public DateTimeOffset SignupDateTime { get; set; } = DateTimeOffset.UtcNow;
+    public DateTime SignupDateTime { get; set; } = DateTime.UtcNow;
 
     public string? AdminStripeId { get; set; }
     public string? StripeSubscriptionId { get; set; }
     /// <summary>
     /// client timeZ
     /// </summary>
-    public DateTimeOffset? SubscriptionLastValidDate { get; set; }
+    public DateTime? SubscriptionLastValidDate { get; set; }
     public int NumberOfBrokersInSubscription { get; set; }
     public StripeSubscriptionStatus StripeSubscriptionStatus { get; set; }
 

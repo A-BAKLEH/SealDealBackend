@@ -40,6 +40,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
             List<AppEvent> appEvents = new();
             if (appEvent.ProcessingStatus != ProcessingStatus.Done)
             {
+                
                 //Handle possible actionPlan for broker on lead Assignment FOR NOW NO AUTOMATIC ACTION PLAN
                 if (appEvent.Broker.ActionPlans.Any())
                 {
@@ -47,7 +48,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                     var lead = appEvent.lead;
                     foreach (var ap in appEvent.Broker.ActionPlans)
                     {
-                        if (!lead.ActionPlanAssociations.Any(apa => apa.ActionPlanId == ap.Id))
+                        if (!lead.ActionPlanAssociations.Any(apa => apa.ActionPlanId == ap.Id) && !lead.ActionPlanAssociations.Any(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running && !apa.TriggeredManually))
                         {
                             var FirstActionDelay = ap.FirstActionDelay;
                             var delays = FirstActionDelay?.Split(':');

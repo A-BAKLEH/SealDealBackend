@@ -76,7 +76,7 @@ public class ActionPQService
                 {
                     LeadId = apass.LeadId,
                     BrokerId = brokerId,
-                    EventTimeStamp = DateTimeOffset.UtcNow,
+                    EventTimeStamp = DateTime.UtcNow,
                     EventType = EventType.ActionPlanFinished,
                     ReadByBroker = true,
                     IsActionPlanResult = true,
@@ -132,7 +132,7 @@ public class ActionPQService
             {
                 LeadId = apass.LeadId,
                 BrokerId = brokerId,
-                EventTimeStamp = DateTimeOffset.UtcNow,
+                EventTimeStamp = DateTime.UtcNow,
                 EventType = EventType.ActionPlanFinished,
                 ReadByBroker = true,
                 IsActionPlanResult = true,
@@ -173,7 +173,7 @@ public class ActionPQService
               name = a.Name,
               ActionsCount = a.ActionsCount,
               StopPlanOnInteraction = a.StopPlanOnInteraction,
-              TimeCreated = a.TimeCreated.UtcDateTime,
+              TimeCreated = a.TimeCreated,
               FlagTriggers = a.Triggers,
               Actions = a.Actions.OrderBy(a => a.ActionLevel).Select(aa => new ActionDTO
               {
@@ -295,7 +295,7 @@ public class ActionPQService
             id = actionPlan.Id,
             name = actionPlan.Name,
             StopPlanOnInteraction = actionPlan.StopPlanOnInteraction,
-            TimeCreated = actionPlan.TimeCreated.UtcDateTime,
+            TimeCreated = actionPlan.TimeCreated,
             Trigger = dto.Trigger,
             Actions = new List<Action1DTO>()
         };
@@ -435,7 +435,6 @@ public class ActionPQService
         var ActionPlanAssociations = await _appDbContext.ActionPlanAssociations
           .Where(apa => apa.ActionPlanId == ActionPlanId && apa.ActionPlan.BrokerId == brokerId)
           .Include(apa => apa.ActionTrackers.Where(a => a.ActionStatus == ActionStatus.ScheduledToStart || a.ActionStatus == ActionStatus.Failed))
-          .AsSplitQuery()
           .AsNoTracking()
           .ToListAsync();
 
@@ -456,7 +455,7 @@ public class ActionPQService
             }
         }
         //this will delete action trackers  and Actions also
-        await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM ActionPlanAssociations WHERE ActionPlanId = {ActionPlanId};"
-          + $"DELETE FROM ActionPlans WHERE Id = {ActionPlanId};");
+        await _appDbContext.Database.ExecuteSqlRawAsync($"DELETE FROM \"ActionPlanAssociations\" WHERE \"ActionPlanId\" = {ActionPlanId};"
+          + $"DELETE FROM \"ActionPlans\" WHERE \"Id\" = {ActionPlanId};");
     }
 }

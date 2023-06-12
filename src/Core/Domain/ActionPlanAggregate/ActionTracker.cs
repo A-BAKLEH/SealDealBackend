@@ -18,8 +18,8 @@ public class ActionTracker : EntityBase
     /// <summary>
     /// if null immediate
     /// </summary>
-    public DateTimeOffset? HangfireScheduledStartTime { get; set; }
-    public DateTimeOffset? ExecutionCompletedTime { get; set; }
+    public DateTime? HangfireScheduledStartTime { get; set; }
+    public DateTime? ExecutionCompletedTime { get; set; }
     /// <summary>
     /// if need to track action result
     /// </summary>

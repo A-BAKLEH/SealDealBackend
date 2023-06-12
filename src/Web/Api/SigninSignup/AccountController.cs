@@ -1,4 +1,5 @@
 ﻿using Core.Config.Constants.LoggingConstants;
+using Core.Domain.LeadAggregate;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,7 @@ using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
+using Web.ControllerServices.StaticMethods;
 
 namespace Web.Api.SigninSignup;
 
@@ -30,8 +32,15 @@ public class AccountController : BaseApiController
     public async Task<IActionResult> VerifyAccount()
     {
         var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogWarning("[{Tag}] inactive User with UserId {UserId} tried to set TimeZone ", TagConstants.Inactive, id);
+            return Forbid();
+        }
         var dto = await this._authorizeService.VerifyAccountAsync(id);
-
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+        dto.Created = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, dto.Created);
         return Ok(dto);
     }
 

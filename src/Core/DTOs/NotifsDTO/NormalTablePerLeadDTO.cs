@@ -6,7 +6,7 @@ public class AppEventForNotifSelectedDTO
 {
     public int Id { get; set; }
     public int LeadID { get; set; }
-    public DateTimeOffset EventTimeStamp { get; set; }
+    public DateTime EventTimeStamp { get; set; }
     public EventType eventType { get; set; }
     public LeadStatus LeadStatus { get; set; }
     public Dictionary<string, string> Props { get; set; }
@@ -27,7 +27,7 @@ public class LeadForNotifsDTO
     /// </summary>
     public string LeadEmail { get; set; }
     public string LeadStatus { get; set; }
-    public DateTimeOffset LastTimeYouViewedLead { get; set; }
+    public DateTime LastTimeYouViewedLead { get; set; }
 }
 //actual sent DTOs
 
@@ -41,7 +41,7 @@ public class AppEventsNonLeadDTO
 {
     public int AppEventID { get; set; }
     public string EventType { get; set; }
-    public DateTimeOffset EventTimeStamp { get; set; }
+    public DateTime EventTimeStamp { get; set; }
 }
 /// <summary>
 /// just leave null lists that arent used
@@ -58,8 +58,8 @@ public class DashboardPerLeadDTO
     /// </summary>
     public string LeadEmail { get; set; }
     public string LeadStatus { get; set; }
-    public DateTimeOffset? LastTimeYouViewedLead { get; set; }
-    public DateTimeOffset? MostRecentEventOrEmailTime { get; set; }
+    public DateTime? LastTimeYouViewedLead { get; set; }
+    public DateTime? MostRecentEventOrEmailTime { get; set; }
     public byte? HighestPriority { get; set; }
     public IEnumerable<NormalTableLeadAppEventDTO>? AppEvents { get; set; }
     public IEnumerable<NormalTableLeadEmailEventDTO>? EmailEvents { get; set; }
@@ -69,13 +69,13 @@ public class NormalTableLeadAppEventDTO
 {
     public int AppEventID { get; set; }
     public string EventType { get; set; }
-    public DateTimeOffset EventTimeStamp { get; set; }
+    public DateTime EventTimeStamp { get; set; }
 }
 //unseen / unreplied-to emails
 public class NormalTableLeadEmailEventDTO
 {
     public string EmailId { get; set; }
-    public DateTimeOffset Received { get; set; }
+    public DateTime Received { get; set; }
     public bool Seen { get; set; }
     public bool NeedsAction { get; set; }
     public bool RepliedTo { get; set; }
@@ -87,6 +87,6 @@ public class PriorityTableLeadNotifDTO
     public byte Priority { get; set; }
     public string EventType { get; set; }
     public string? EmailID { get; set; }
-    public DateTimeOffset EventTimeStamp { get; set; }
+    public DateTime EventTimeStamp { get; set; }
 }
 

@@ -65,7 +65,7 @@ public class ListingQService
             {
                 ListingId = l.Id,
                 Address = new AddressDTO { StreetAddress = l.Address.StreetAddress,apt = l.Address.apt, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
-                DateOfListing = l.DateOfListing.UtcDateTime,
+                DateOfListing = l.DateOfListing,
                 ListingURL = l.URL,
                 Price = l.Price,
                 Status = l.Status.ToString(),
@@ -87,7 +87,7 @@ public class ListingQService
             {
                 ListingId = bla.ListingId,
                 Address = new AddressDTO { StreetAddress = bla.Listing.Address.StreetAddress,apt = bla.Listing.Address.apt ,City = bla.Listing.Address.City, Country = bla.Listing.Address.Country, PostalCode = bla.Listing.Address.PostalCode, ProvinceState = bla.Listing.Address.ProvinceState },
-                DateOfListing = bla.Listing.DateOfListing.UtcDateTime,
+                DateOfListing = bla.Listing.DateOfListing,
                 ListingURL = bla.Listing.URL,
                 Price = bla.Listing.Price,
                 Status = bla.Listing.Status.ToString(),
@@ -199,7 +199,7 @@ public class ListingQService
         var listingDTO = new AgencyListingDTO
         {
             Address = new AddressDTO { StreetAddress = listing.Address.StreetAddress,apt = listing.Address.apt, City = listing.Address.City, Country = listing.Address.Country, PostalCode = listing.Address.PostalCode, ProvinceState = listing.Address.ProvinceState },
-            DateOfListing = listing.DateOfListing.UtcDateTime,
+            DateOfListing = listing.DateOfListing,
             GeneratedLeadsCount = 0,
             ListingURL = listing.URL,
             Price = listing.Price,

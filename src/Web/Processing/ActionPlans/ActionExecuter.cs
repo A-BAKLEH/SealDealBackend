@@ -78,7 +78,7 @@ public class ActionExecuter
             switch (wordWithoutDollards)
             {
                 case "firstname":
-                    replacementValue = lead.LeadFirstName;
+                    replacementValue = lead.LeadFirstName ?? "";
                     break;
                 case "lastname":
                     replacementValue = lead.LeadLastName ?? "";

@@ -29,6 +29,6 @@ public class ToDoTaskQService
       catch (Exception) { }
     }
     await _appDbContext.Database.ExecuteSqlRawAsync
-      ($"DELETE FROM [dbo].[ToDoTasks] WHERE Id = {ToDoId};");
+      ($"DELETE FROM \"ToDoTasks\" WHERE \"Id\" = {ToDoId};");
   }
 }

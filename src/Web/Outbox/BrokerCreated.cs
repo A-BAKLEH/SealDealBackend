@@ -57,9 +57,9 @@ public class BrokerCreatedHandler : EventHandlerBase<BrokerCreated>
                             new Recipient
                             {
                                 EmailAddress = new EmailAddress
-                              {
-                                Address = appEvent.Broker.LoginEmail
-                              }
+                                {
+                                  Address = appEvent.Broker.LoginEmail
+                                }
                             }
                         }
                     };

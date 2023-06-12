@@ -8,7 +8,7 @@ public class BrokerListingAssignment : EntityBase
     public Guid BrokerId { get; set; }
     public Listing Listing { get; set; }
     public int ListingId { get; set; }
-    public DateTimeOffset assignmentDate { get; set; }
+    public DateTime assignmentDate { get; set; }
     /// <summary>
     /// only relevant for brokers, when admins assign them a listing to display the listings in red 
     /// on frontend

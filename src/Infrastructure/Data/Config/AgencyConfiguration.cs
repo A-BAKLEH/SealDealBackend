@@ -13,10 +13,11 @@ public class AgencyConfiguration : IEntityTypeConfiguration<Agency>
         builder.Property(a => a.PhoneNumber).HasMaxLength(30);
 
         builder.Property(b => b.StripeSubscriptionStatus).HasConversion<string>();
-        builder.OwnsOne(agency => agency.Address, ownedNavigationBuilder =>
-        {
-            ownedNavigationBuilder.ToJson();
-        });
+        builder.OwnsOne(agency => agency.Address);
+        //builder.OwnsOne(agency => agency.Address, ownedNavigationBuilder =>
+        //{
+        //    ownedNavigationBuilder.ToJson();
+        //});
     }
 
 }
