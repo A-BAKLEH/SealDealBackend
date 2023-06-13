@@ -17,8 +17,12 @@ using Web.RealTimeNotifs;
 var builder = WebApplication.CreateBuilder(args);
 
 var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
+builder.Host.UseSerilog((_, config) =>
+  config.MinimumLevel.Information()
+  .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", Serilog.Events.LogEventLevel.Warning)
+  .MinimumLevel.Override("Microsoft.Azure.SignalR.Connections.Client.Internal.WebSocketsTransport", Serilog.Events.LogEventLevel.Warning)
   .WriteTo.Seq("http://localhost:5341", restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
+  .WriteTo.Console()
   .Enrich.FromLogContext()
   .Enrich.WithProperty("AppVersion", version));
 

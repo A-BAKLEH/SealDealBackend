@@ -188,7 +188,21 @@ public class ActionPQService
           })
           .OrderByDescending(a => a.ActiveOnXLeads)
           .ToListAsync();
-
+        var TemplateIds = actionPlans.SelectMany(a => a.Actions).Select(a => a.TemplateId).Where(t => t != null).Distinct().ToList();
+        if(TemplateIds.Any())
+        {
+            var templateNames = await _appDbContext.Templates
+                .Where(t => t.BrokerId == brokerId && TemplateIds.Contains(t.Id))
+                .Select(t => new { t.Id, t.Title })
+                .ToListAsync();
+            foreach (var actionPlan in actionPlans)
+            {
+                foreach (var action in actionPlan.Actions)
+                {
+                    if(action.TemplateId != null) action.TemplateName = templateNames.First(t => t.Id == action.TemplateId).Title;
+                }
+            }
+        }
         foreach (var item in actionPlans)
         {
             //TECH

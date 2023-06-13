@@ -25,6 +25,7 @@ public class ActionDTO
     public string actionType { get; set; }
     public int ActionLevel { get; set; }
     public int? TemplateId { get; set; }
+    public string? TemplateName { get; set; }
     public Dictionary<string, string> ActionProperties { get; set; }
     public string? NextActionDelay { get; set; }
 }
