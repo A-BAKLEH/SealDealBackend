@@ -27,6 +27,15 @@ public class APIConstants
         "PropertyAddress,StreetAddress,Apartment (get 'StreetAddress' and 'Apartment' from 'PropertyAddress')." +
         " Else output exactly '{\"NotFound\":1}'.email: ";
 
+    public const string ParseLeadPrompt3 = "If the email that follows is from a possible" +
+        " real-estate lead and not an ad or promotional email, extract the lead's first name," +
+        "last name,phone number,email address,property address he/she inquired about and isolate this property's street address and apartment number." +
+        "Also determine the language the email is written in." +
+        "Output and format these values as strictly JSON with keys: firstName,lastName,phoneNumber,emailAddress," +
+        "PropertyAddress,StreetAddress,Apartment,Language. Only output values that you are sure about." +
+        " Else if the email is not from a lead,output exactly '{\"NotFound\":1}'.email: ";
+    //property address of interest
+    //(get 'StreetAddress' and 'Apartment' from 'PropertyAddress')
     public const int PromptTokensCount = 100; //TODO update later
 
     public const string SealDealTenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";

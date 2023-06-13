@@ -1,7 +1,9 @@
-﻿using Microsoft.Graph.Models;
+﻿using Core.Domain.LeadAggregate;
+using Microsoft.Graph.Models;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Web.Config;
 using Web.Constants;
 
 namespace Web.HTTPClients
@@ -19,6 +21,7 @@ namespace Web.HTTPClients
             _logger = logger;
         }
 
+        
         /// <summary>
         /// if leadProvdier is null then email is from unknown sender
         /// </summary>
@@ -30,13 +33,11 @@ namespace Web.HTTPClients
             OpenAIResponse res;
             try
             {
-                //TODO strip emailBOdy from unnecessary parts
-                //HtmlDocument doc = new HtmlDocument();
-                //doc.LoadHtml(message.Body.Content);
-                //string EmailText = doc.DocumentNode.InnerText;
+                
                 var length = message.Body.Content.Length;
-
-                string prompt = APIConstants.ParseLeadPrompt2 + message.Body.Content;
+                var text = message.Body.Content;
+                text = EmailReducer.Reduce(text,message.From.EmailAddress.Address);
+                string prompt = APIConstants.ParseLeadPrompt2 + text;
 
                 StringContent jsonContent = new(
                 JsonSerializer.Serialize(new

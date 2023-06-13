@@ -1,7 +1,9 @@
 ﻿using Core.Constants;
+using Core.Domain.LeadAggregate;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.Differencing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
@@ -10,6 +12,7 @@ using Microsoft.Kiota.Abstractions;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.HTTPClients;
@@ -377,8 +380,8 @@ public class TestEmailController : ControllerBase
         return Ok(replies1);
     }
 
-    [HttpGet("GetMessages/{index}/{isNo}")]
-    public async Task<IActionResult> GetMessages(int index, bool isNo)
+    [HttpGet("GetMessages/{index}")]
+    public async Task<IActionResult> GetMessages(int index)
     {
         var SyncStartDate = new DateTime(2023, 1, 1).ToUniversalTime();
 
@@ -393,57 +396,30 @@ public class TestEmailController : ControllerBase
           .GetAsync(config =>
           {
               config.QueryParameters.Orderby = new string[] { "receivedDateTime desc" };
-              config.QueryParameters.Top = 4;
+              config.QueryParameters.Top = 15;
               config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
           });
         var messages = messages1.Value;
         var text = messages[index].Body.Content;
 
-        //HtmlDocument doc = new HtmlDocument();
-        //doc.LoadHtml(firstMessageContent);
-        //string text = doc.DocumentNode.InnerText; // copy paste stripped text
-
-        var lenggg = text.Length;
-
-        //var prompt = APIConstants.ParseLeadPrompt + text;
-        //var prompt = APIConstants.ParseLeadPrompt + text;
-        //if (isNo) prompt = APIConstants.ParseLeadPrompt + "Hello, my name is abdul, are you interested in our new lead tracking software? let me know thank you! ---Lead provider---- abdul: abdul@hotmail.com, 514 522 5142";
-
-        //var httpClient = new HttpClient()
-        //{
-        //    BaseAddress = new Uri("https://api.openai.com/v1/chat/completions")
-        //    //BaseAddress = new Uri("https://api.openai.com/v1/completions")
-        //};
-        //httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", santaBro);
-        //httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        //StringContent jsonContent = new(
-        //JsonSerializer.Serialize(new
-        //{
-        //    model = "gpt-3.5-turbo",
-        //    //model = "text-curie-001",
-        //    //prompt = prompt,
-        //    messages = new List<GPTRequest>
-        //    {
-        //        new GPTRequest{role = "user", content = prompt},
-        //    },
-        //    temperature = 0,
-        //}),
-        //Encoding.UTF8,
-        //"application/json");
-
-        //HttpResponseMessage response = await httpClient.PostAsync("", content: jsonContent);
-        //response.EnsureSuccessStatusCode();
-        ////check if answer is no before deserialising
-        //var jsonResponse = await response.Content.ReadAsStringAsync();
-
-        //var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
-
-        //var cleanedGOAT = rawResponse.choices[0].message.content.Replace("\n", "");
-        //var GOATpart = JsonSerializer.Deserialize<LeadParsingContent>(cleanedGOAT); ;
-        //var resWithTime = new { jsonResponse, GOATpart };
-
-
-        string prompt = APIConstants.ParseLeadPrompt2 + text;
+        if(index == 10)
+        {
+            ////Que pensez-vous de ce renvoi de client potentiel?
+            //string pattern = @"Que pensez-vous de ce renvoi de client potentiel";
+            ////MatchCollection matches = Regex.Matches(input, pattern);
+            ////var builder = new StringBuilder(input);
+            //var match = Regex.Match(text, pattern);
+            //if(match.Success)
+            //{
+            //    var indexStart = match.Groups[1].Index;
+            //    text = text.Substring(0,indexStart);
+            //}
+            string pattern = @"Que pensez-vous de ce renvoi de client potentiel";
+            var indexStart = text.IndexOf(pattern);
+            text = text.Substring(0, indexStart);
+        }
+       
+        string prompt = APIConstants.ParseLeadPrompt3 + text;
 
         StringContent jsonContent = new(
         JsonSerializer.Serialize(new
@@ -461,7 +437,16 @@ public class TestEmailController : ControllerBase
         _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
+        HttpResponseMessage response = null;
+        try
+        {
+            response = await _httpClient.PostAsync("", content: jsonContent);
+        }
+        catch(Exception ex)
+        {
+            var ess = ex;
+        }
+        
 
         //TODO handle API error 
         response.EnsureSuccessStatusCode();
@@ -469,9 +454,10 @@ public class TestEmailController : ControllerBase
         var jsonResponse = await response.Content.ReadAsStringAsync();
         var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
         var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
+
         var LeadParsed = JsonSerializer.Deserialize<LeadParsingContent>(GPTCompletionJSON);
 
-        return Ok();
+        return Ok(jsonResponse);
     }
 
     [HttpGet("testsupportmail")]

@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
+using System.Net.Mail;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
@@ -161,6 +162,7 @@ public class EmailProcessor
 
     public async Task CheckEmailSyncAsync(Guid SubsId, string tenantId)
     {
+        return;
         //ADDCACHE
         if (StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
         {
@@ -651,11 +653,11 @@ public class EmailProcessor
                 if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 //relevant for brokers and admins who assigned lead to another broker or themselve
                 else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
-                if(exists)
+                if (exists)
                 {
                     localdbContext.Leads.Add(Newlead);
                     leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, Message>(UnknownDBRecordsTask.Item1.Result, UnknownDBRecordsTask.Item2));
-                }         
+                }
             }
         }
 
@@ -913,29 +915,44 @@ public class EmailProcessor
         string LeadEmail = "";
         if (FromLeadProvider)
         {
-            LeadEmail = message.ReplyTo?.FirstOrDefault()?.EmailAddress?.Address;
-            if (LeadEmail == null)
+            var valid = false;
+            if (!string.IsNullOrEmpty(parsedContent.emailAddress))
             {
-                if (!string.IsNullOrEmpty(parsedContent.emailAddress))
+                try
                 {
+                    var emailAddress = new MailAddress(parsedContent.emailAddress);
+                    valid = true;
                     LeadEmail = parsedContent.emailAddress;
                 }
-                else
+                catch
                 {
-                    LeadEmail = message.From.EmailAddress.Address;
-                    result.LeadEmailUnsure = true;
                 }
             }
+            if(!valid)
+            {
+                LeadEmail = message.From.EmailAddress.Address;
+                result.LeadEmailUnsure = true;
+            }
+            //LeadEmail = message.ReplyTo?.FirstOrDefault()?.EmailAddress?.Address;
         }
         else
         {
             LeadEmail = message.From.EmailAddress.Address;
             if (!string.IsNullOrEmpty(parsedContent.emailAddress))
             {
-                if (parsedContent.emailAddress != LeadEmail)
+                bool valid = false;
+                try
                 {
-                    //TODO log proper message
-                    _logger.LogWarning("Not lead provider, parsed email doesnt correspond to from");
+                    var emailAddress = new MailAddress(parsedContent.emailAddress);
+                    valid = true;
+                }
+                catch
+                {
+                }
+                if (valid && parsedContent.emailAddress != LeadEmail)
+                {
+                    result.LeadEmailUnsure = true;
+                    _logger.LogWarning("{place} Not lead provider, parsed email doesnt correspond to from. parsed: {parsedEmail}, from: {fromEmail}","CreateDbRecords", parsedContent.emailAddress, message.From.EmailAddress.Address);
                 }
             }
         }
@@ -990,7 +1007,13 @@ public class EmailProcessor
         //TODO automatic forwarding to assigned-to broker
 
         Language lang = brokerDTO.BrokerLanguge;
-        if (parsedContent.Language != null) Enum.TryParse(parsedContent.Language, true, out lang);
+        bool parsedSuccess = false;
+        if (parsedContent.Language != null) parsedSuccess = Enum.TryParse(parsedContent.Language, true, out lang);
+        if (!parsedSuccess)
+        {
+            if (parsedContent.Language.ToLower().Contains("en")) lang = Language.English;
+            else if (parsedContent.Language.ToLower().Contains("fr")) lang = Language.French;
+        }
         var lead = new Lead
         {
             AgencyId = brokerDTO.AgencyId,
