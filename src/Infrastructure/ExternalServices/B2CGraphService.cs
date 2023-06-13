@@ -3,6 +3,7 @@ using Azure.Identity;
 using Core.Domain.BrokerAggregate;
 using Core.ExternalServiceInterfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
@@ -12,10 +13,11 @@ public class B2CGraphService : IB2CGraphService
 {
 
     public GraphServiceClient _graphClient;
+    private readonly ILogger<B2CGraphService> _logger;
     //private readonly IConfigurationSection _MsGraphConfigSection;
-    public B2CGraphService(IConfiguration config)
+    public B2CGraphService(IConfiguration config, ILogger<B2CGraphService> logger)
     {
-
+        _logger = logger;
         var configSection = config.GetSection("B2CGraphOptions");
         var scopes = new[] { "https://graph.microsoft.com/.default" };
         var tenantId = configSection["tenantId"];
