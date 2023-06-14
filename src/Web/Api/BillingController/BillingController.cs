@@ -25,7 +25,7 @@ public class BillingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value), true);
         if (!brokerTuple.Item3)
         {
-            _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} tried to create Billing portal session", TagConstants.Unauthorized, brokerTuple.Item1.Id.ToString());
+            _logger.LogCritical("{tag} nonAdmin mofo User with userId {userId}", TagConstants.Unauthorized, brokerTuple.Item1.Id.ToString());
             return Forbid();
         }
         Guid b2cBrokerId = brokerTuple.Item1.Id;
@@ -36,7 +36,7 @@ public class BillingController : BaseApiController
               AgencyStripeId = brokerTuple.Item1.Agency.AdminStripeId,
               returnURL = req.ReturnUrl
           });
-        _logger.LogInformation("[{Tag}] created Billing portal for user with UserId {UserId} ", TagConstants.BillingPortal, b2cBrokerId);
+        _logger.LogInformation("{tag} created Billing portal for user with userId {userId} ", TagConstants.BillingPortal, b2cBrokerId);
         return Ok(new BillingPortalResponse
         {
             portalURL = portalURL
@@ -52,14 +52,14 @@ public class BillingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value), true);
         if (!brokerTuple.Item3)
         {
-            _logger.LogWarning("[{Tag}] non-admin mofo User with UserId {UserId} tried to create Checkout Session", TagConstants.Unauthorized, brokerTuple.Item1.Id.ToString());
+            _logger.LogCritical("{tag} non-admin mofo User with userId {userId}", TagConstants.Unauthorized, brokerTuple.Item1.Id.ToString());
             return Forbid();
         }
         b2cBrokerId = brokerTuple.Item1.Id;
         AgencyID = brokerTuple.Item1.AgencyId;
 
-        _logger.LogInformation("[{Tag}] Creating a CheckoutSession for User with UserId '{UserId}' in" +
-          " Agency with AgencyId {AgencyId} with PriceID {PriceID} and Quantity {Quantity}", TagConstants.CheckoutSession, b2cBrokerId.ToString(), AgencyID, req.PriceId, req.Quantity);
+        _logger.LogInformation("{tag} Creating a CheckoutSession for User with UserId '{userId}' in" +
+          " Agency with AgencyId {agencyId} with PriceID {priceID} and Quantity {quantity}", TagConstants.CheckoutSession, b2cBrokerId.ToString(), AgencyID, req.PriceId, req.Quantity);
 
         var checkoutSessionDTO = await _mediator.Send(new CreateCheckoutSessionRequest
         {
@@ -69,7 +69,7 @@ public class BillingController : BaseApiController
         });
 
         if (string.IsNullOrEmpty(checkoutSessionDTO.sessionId)) throw new InconsistentStateException("CreateCheckoutSession-nullOrEmpty SessionID", $"session ID is {checkoutSessionDTO.sessionId}", b2cBrokerId.ToString());
-        _logger.LogInformation("[{Tag}] Created a CheckoutSession with ID {CheckoutSessionId} for User with UserId '{UserId}' in " +
+        _logger.LogInformation("{tag} Created a CheckoutSession with ID {checkoutSessionId} for User with UserId '{userId}' in " +
           "Agency with AgencyId {AgencyId}", TagConstants.CheckoutSession, checkoutSessionDTO.sessionId, b2cBrokerId.ToString(), AgencyID);
         return Ok(checkoutSessionDTO);
     }

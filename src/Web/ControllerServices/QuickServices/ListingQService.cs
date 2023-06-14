@@ -1,4 +1,5 @@
-﻿using Core.Constants.ProblemDetailsTitles;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.NotificationAggregate;
@@ -64,7 +65,7 @@ public class ListingQService
             .Select(l => new AgencyListingDTO
             {
                 ListingId = l.Id,
-                Address = new AddressDTO { StreetAddress = l.Address.StreetAddress,apt = l.Address.apt, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
+                Address = new AddressDTO { StreetAddress = l.Address.StreetAddress, apt = l.Address.apt, City = l.Address.City, Country = l.Address.Country, PostalCode = l.Address.PostalCode, ProvinceState = l.Address.ProvinceState },
                 DateOfListing = l.DateOfListing,
                 ListingURL = l.URL,
                 Price = l.Price,
@@ -86,7 +87,7 @@ public class ListingQService
             .Select(bla => new AgencyListingDTO
             {
                 ListingId = bla.ListingId,
-                Address = new AddressDTO { StreetAddress = bla.Listing.Address.StreetAddress,apt = bla.Listing.Address.apt ,City = bla.Listing.Address.City, Country = bla.Listing.Address.Country, PostalCode = bla.Listing.Address.PostalCode, ProvinceState = bla.Listing.Address.ProvinceState },
+                Address = new AddressDTO { StreetAddress = bla.Listing.Address.StreetAddress, apt = bla.Listing.Address.apt, City = bla.Listing.Address.City, Country = bla.Listing.Address.Country, PostalCode = bla.Listing.Address.PostalCode, ProvinceState = bla.Listing.Address.ProvinceState },
                 DateOfListing = bla.Listing.DateOfListing,
                 ListingURL = bla.Listing.URL,
                 Price = bla.Listing.Price,
@@ -115,7 +116,7 @@ public class ListingQService
 
         if (dto.AssignedBrokersIds != null && dto.AssignedBrokersIds.Any())
         {
-            brokersCount += (byte) dto.AssignedBrokersIds.Count;
+            brokersCount += (byte)dto.AssignedBrokersIds.Count;
             foreach (var b in dto.AssignedBrokersIds)
             {
                 brokersAssignments.Add(new BrokerListingAssignment { assignmentDate = DateTime.UtcNow, BrokerId = b, isSeen = false });
@@ -124,14 +125,14 @@ public class ListingQService
 
         var streetAddress = dto.Address.StreetAddress.Replace("  ", " ").Trim();
         string apt = "";
-        if(!string.IsNullOrWhiteSpace(dto.Address.apt))
+        if (!string.IsNullOrWhiteSpace(dto.Address.apt))
         {
             apt = dto.Address.apt.Replace(" ", "");
         }
         var formatted = streetAddress.FormatStreetAddress();
 
         var listingStatus = ListingStatus.Listed;
-        Enum.TryParse(dto.Status, true,out listingStatus);
+        Enum.TryParse(dto.Status, true, out listingStatus);
 
         var listing = new Listing
         {
@@ -149,7 +150,7 @@ public class ListingQService
             AgencyId = AgencyId,
             Price = dto.Price,
             URL = dto.URL,
-            Status =  listingStatus,
+            Status = listingStatus,
             AssignedBrokersCount = brokersCount,
             BrokersAssigned = brokersAssignments,
             LeadsGeneratedCount = 0
@@ -179,16 +180,15 @@ public class ListingQService
             foreach (var appEvent in AppEvents)
             {
                 var eventId = appEvent.Id;
-                var ListingAssigned = new ListingAssigned {  AppEventId = eventId };
+                var ListingAssigned = new ListingAssigned { AppEventId = eventId };
                 try
                 {
                     var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned));
                 }
                 catch (Exception ex)
                 {
-                    //TODO refactor log message
-                    _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingAssigned Event for event" +
-                      "with {eventId} with error {Error}", eventId, ex.Message);
+                    _logger.LogCritical("{tag} Hangfire error scheduling Outbox Disptacher for ListingAssigned Event for event" +
+                     "with {eventId} with error {error}", TagConstants.HangfireDispatch, eventId, ex.Message + " :" + ex.StackTrace);
                     OutboxMemCache.SchedulingErrorDict.TryAdd(eventId, ListingAssigned);
                 }
             }
@@ -198,7 +198,7 @@ public class ListingQService
         await transaction.CommitAsync();
         var listingDTO = new AgencyListingDTO
         {
-            Address = new AddressDTO { StreetAddress = listing.Address.StreetAddress,apt = listing.Address.apt, City = listing.Address.City, Country = listing.Address.Country, PostalCode = listing.Address.PostalCode, ProvinceState = listing.Address.ProvinceState },
+            Address = new AddressDTO { StreetAddress = listing.Address.StreetAddress, apt = listing.Address.apt, City = listing.Address.City, Country = listing.Address.Country, PostalCode = listing.Address.PostalCode, ProvinceState = listing.Address.ProvinceState },
             DateOfListing = listing.DateOfListing,
             GeneratedLeadsCount = 0,
             ListingURL = listing.URL,
@@ -212,7 +212,7 @@ public class ListingQService
         return listingDTO;
     }
 
-    public async Task EditListingAsync(int AgencyId,int listingId, EditListingDTO dto)
+    public async Task EditListingAsync(int AgencyId, int listingId, EditListingDTO dto)
     {
         var listing = await _appDbContext.Listings.FirstAsync(l => l.Id == listingId && l.AgencyId == AgencyId);
 
@@ -249,7 +249,7 @@ public class ListingQService
 
         else
         {
-            BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow, BrokerId = brokerId , isSeen = false};
+            BrokerListingAssignment brokerlisting = new() { assignmentDate = DateTime.UtcNow, BrokerId = brokerId, isSeen = false };
 
             if (listing.BrokersAssigned != null) listing.BrokersAssigned.Add(brokerlisting);
             else listing.BrokersAssigned = new List<BrokerListingAssignment> { brokerlisting };
@@ -270,7 +270,7 @@ public class ListingQService
             await _appDbContext.SaveChangesAsync();
 
             var eventId = appEvent.Id;
-            var ListingAssigned = new ListingAssigned {  AppEventId = eventId };
+            var ListingAssigned = new ListingAssigned { AppEventId = eventId };
             try
             {
                 var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned));
@@ -278,8 +278,8 @@ public class ListingQService
             catch (Exception ex)
             {
                 //TODO refactor log message
-                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for ListingAssigned Event for event" +
-                      "with {eventId} with error {Error}", eventId, ex.Message);
+                _logger.LogCritical("{tag} Hangfire error scheduling Outbox Disptacher for LeadAssigned Event for event" +
+                "with {eventId} with error {error}", TagConstants.HangfireDispatch, eventId, ex.Message + " :" + ex.StackTrace);
                 OutboxMemCache.SchedulingErrorDict.TryAdd(eventId, ListingAssigned);
             }
         }

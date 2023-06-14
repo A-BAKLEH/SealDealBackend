@@ -1,4 +1,5 @@
-﻿using Core.Constants.ProblemDetailsTitles;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
@@ -298,10 +299,6 @@ public class LeadQService
         var adminBroker = brokers.FirstOrDefault(b => b.Id == adminId);
         var broker = brokers.FirstOrDefault(b => b.Id == AssignToId);
 
-        //creationEvent.Props[NotificationJSONKeys.AssignedToId] = AssignToId.ToString();
-        //creationEvent.Props[NotificationJSONKeys.AssignedToFullName] = $"{broker.FirstName} {broker.LastName}";
-        //_appDbContext.Entry(creationEvent).Property(f => f.Props).IsModified = true;
-
         var AssignedToYouEvent = new AppEvent
         {
             BrokerId = AssignToId,
@@ -334,13 +331,12 @@ public class LeadQService
         var leadAssignedEvent = new LeadAssigned { AppEventId = notifId };
         try
         {
-            var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent));
+            var HangfireJobId = BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent));
         }
         catch (Exception ex)
         {
-            //TODO refactor log message
-            _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for LeadAssigned Event for notif" +
-              "with {NotifId} with error {Error}", notifId, ex.Message);
+            _logger.LogCritical("{tag} Hangfire error scheduling Outbox Disptacher for LeadAssigned Event for event" +
+              "with {eventId} with error {error}", TagConstants.HangfireDispatch, notifId, ex.Message + " :" + ex.StackTrace);
             OutboxMemCache.SchedulingErrorDict.TryAdd(notifId, leadAssignedEvent);
         }
     }

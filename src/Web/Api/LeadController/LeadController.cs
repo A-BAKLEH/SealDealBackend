@@ -30,7 +30,7 @@ public class LeadController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId}", TagConstants.Unauthorized, id);
             return Forbid();
         }
 
@@ -46,7 +46,7 @@ public class LeadController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId}", TagConstants.Unauthorized, id);
             return Forbid();
         }
         // user needs to be admin if he is assigning a lead to someone other than himself
@@ -54,7 +54,7 @@ public class LeadController : BaseApiController
         {
             if (!brokerTuple.Item3)
             {
-                _logger.LogWarning("[{Tag}] non-admin User with UserId {UserId} tried to assign lead", TagConstants.Unauthorized, id);
+                _logger.LogCritical("{tag} non-admin User with UserId {userId} tried to assign lead", TagConstants.Unauthorized, id);
                 return Forbid();
             }
         }
@@ -79,7 +79,7 @@ public class LeadController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to update Lead", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to update Lead", TagConstants.Unauthorized, id);
             return Forbid();
         }
         var lead = await _leadQService.UpdateLeadAsync(LeadId, dto, id);
@@ -97,7 +97,7 @@ public class LeadController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to delete Lead", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with userId {UserId} tried to delete Lead", TagConstants.Unauthorized, id);
             return Forbid();
         }
         await _leadQService.DeleteLeadAsync(LeadId, id, brokerTuple.Item1.isAdmin);
@@ -116,7 +116,7 @@ public class LeadController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to create Lead", TagConstants.Unauthorized, brokerid);
             return Forbid();
         }
         var broker = brokerTuple.Item1;
@@ -180,7 +180,7 @@ public class LeadController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to create Lead", TagConstants.Unauthorized, brokerid);
             return Forbid();
         }
         var leads = await _leadQService.GetLeadsAsync(brokerid);
@@ -202,7 +202,7 @@ public class LeadController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to create Lead", TagConstants.Unauthorized, brokerid);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to create Lead", TagConstants.Unauthorized, brokerid);
             return Forbid();
         }
 

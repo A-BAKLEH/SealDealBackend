@@ -27,6 +27,13 @@ public class TemplateController : BaseApiController
     [HttpGet("Variables")]
     public async Task<IActionResult> GetTemplateVariables()
     {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
+            return Forbid();
+        }
         var res = new TemplateVariablesDTO { variables = TemplateVariables.templateVariables };
         return Ok(res);
     }
@@ -39,7 +46,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 
@@ -61,7 +68,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 
@@ -79,7 +86,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to update template", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 
@@ -98,7 +105,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to delete template", TagConstants.Inactive, brokerId);
+            _logger.LogCritical("{tag} inactive mofo User with UserId {userId}", TagConstants.Inactive, brokerId);
             return Forbid();
         }
 

@@ -1,4 +1,5 @@
-﻿using Core.Domain.LeadAggregate;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Domain.LeadAggregate;
 using Microsoft.Graph.Models;
 using System.Net.Http.Headers;
 using System.Text;
@@ -28,7 +29,7 @@ namespace Web.HTTPClients
         /// <param name="emailbody"></param>
         /// <param name="leadProvider"></param>
         /// <returns></returns>
-        public async Task<OpenAIResponse?> ParseEmailAsync(Message message, bool FromLeadProvider = false)
+        public async Task<OpenAIResponse?> ParseEmailAsync(Message message,string brokerEmail, bool FromLeadProvider = false)
         {
             OpenAIResponse res;
             try
@@ -79,6 +80,19 @@ namespace Web.HTTPClients
                     res.content = LeadParsed;
                 }
             }
+            catch(HttpRequestException e)
+            {
+                res = new OpenAIResponse
+                {
+                    HasLead = false,
+                    ErrorMessage = e.Message,
+                    ErrorType = e.GetType(),
+                    ProcessedMessage = message
+                };
+                _logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
+                    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail,
+                    e.Message + " code: " + e.StatusCode + " " + e.StackTrace);
+            }
             catch (Exception e)
             {
                 res = new OpenAIResponse
@@ -88,7 +102,8 @@ namespace Web.HTTPClients
                     ErrorType = e.GetType(),
                     ProcessedMessage = message
                 };
-                _logger.LogError("{Category} GPT 3.5 email parsing error for messageID {messageID} and error {Error}", "OpenAI", message.Id, e.Message);
+                _logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
+                    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id,brokerEmail, e.Message + e.StackTrace);
             }
             return res;
         }

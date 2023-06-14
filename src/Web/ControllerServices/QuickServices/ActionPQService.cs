@@ -1,4 +1,5 @@
-﻿using Core.Constants.ProblemDetailsTitles;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
@@ -422,8 +423,8 @@ public class ActionPQService
             }
             catch (Exception ex)
             {
-                _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
-                 " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor", dto.ActionPlanID, lead.Id, ex.Message);
+                _logger.LogError("{tag} Hangfire error scheduling ActionPlan processor" +
+                 " for ActionPlan {actionPlanID} and Lead {leadID} with error {error}", TagConstants.HangfireScheduleActionPlan, dto.ActionPlanID, lead.Id, ex.Message + " :" + ex.StackTrace);
                 lead.ActionPlanAssociations.Remove(apAssociation);
                 lead.AppEvents.Remove(APStartedEvent);
                 lead.HasActionPlanToStop = OldHasActionPlanToStop;

@@ -25,7 +25,6 @@ public class SigninSignupController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> SigninSingup([FromBody] SigninDTO dto)
     {
-        _logger.LogWarning("SIGNIN SIGNUP CALLED Ya hbibi");
         var l = User.Claims.ToList();
         var newUserClaim = l.Find(x => x.Type == "newUser");
 
@@ -34,10 +33,7 @@ public class SigninSignupController : BaseApiController
         if (newUserClaim == null)
         {
             Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-            //TODO check if correct to createAgencyIfNotExistsHere (the true param to VerifyAccountAsync)
             var res = await _authorizeService.VerifyAccountAsync(b2cID, timeZoneId, true);
-            //TODO trigger EmailFetch and SMS fetch if not happened in 6 hours.
-            //other fethces from 3rd parties
             return Ok(res);
         }
         //signup
@@ -52,7 +48,7 @@ public class SigninSignupController : BaseApiController
             email = l.Find(x => x.Type == "emails").Value,
             TimeZoneId = timeZoneId
         });
-        _logger.LogInformation("[{Tag}] New Agency Signed up with name {AgencyName} and admin B2cId {UserId}", TagConstants.AgencySignup, agencyName, id);
+        _logger.LogWarning("{tag} New Agency Signed up with name {agencyName} and admin B2cId {userId}", TagConstants.AgencySignup, agencyName, id);
         return Ok(signinResponseDTO);
     }
 }

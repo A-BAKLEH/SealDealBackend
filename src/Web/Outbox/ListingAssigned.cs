@@ -1,4 +1,5 @@
-﻿using Core.Domain.NotificationAggregate;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Domain.NotificationAggregate;
 using Infrastructure.Data;
 using Web.Outbox.Config;
 using Web.RealTimeNotifs;
@@ -37,7 +38,7 @@ public class ListingAssignedHandler : EventHandlerBase<ListingAssigned>
         }
         catch (Exception ex)
         {
-            _logger.LogError("Handling ListingAssigned Failed for appEvent with appEventId {AppEventId} with error {error}", listingAssignedEvent.AppEventId, ex.Message);
+            _logger.LogError("{tag} Handling ListingAssigned Failed for appEvent with appEventId {appEventId} with error {error}",TagConstants.handleListingAssigned ,listingAssignedEvent.AppEventId, ex.Message);
             appEvent.ProcessingStatus = ProcessingStatus.Failed;
             await _context.SaveChangesAsync();
             throw;

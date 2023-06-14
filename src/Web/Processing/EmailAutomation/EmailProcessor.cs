@@ -1,4 +1,5 @@
-﻿using Core.Constants;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Constants;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
@@ -172,11 +173,10 @@ public class EmailProcessor
             try
             {
                 jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), GlobalControl.EmailStartSyncingDelay);
-                _logger.LogInformation("{place} scheduled email parsing with", "ScheduleEmailParseing");
             }
             catch (Exception ex)
             {
-                _logger.LogError("{place} error scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+                _logger.LogError("{tag} error scheduling email parsing with error {error}", TagConstants.HangfireScheduleEmailParser, ex.Message + ex.StackTrace);
                 StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
                 return;
             }
@@ -185,11 +185,10 @@ public class EmailProcessor
                 connEmail.SyncScheduled = true;
                 connEmail.SyncJobId = jobId;
                 await _appDbContext.SaveChangesAsync();
-                _logger.LogInformation("{place} scheduled email parsing with", "savingEmailParseing");
             }
             catch (Exception ex)
             {
-                _logger.LogError("{place} error saving db after scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+                _logger.LogError("{tag} error saving db after scheduling email parsing with error {error}", TagConstants.scheduleEmailParser, ex.Message);
 
                 BackgroundJob.Delete(jobId);
                 StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
@@ -221,7 +220,7 @@ public class EmailProcessor
         }
         catch (ODataError er)
         {
-            _logger.LogError("{place} failed with error code {code} and error message {message}", "TagFailedMessages", er.Error.Code, er.Error.Message);
+            _logger.LogError("{tag} failed with error {error}", TagConstants.tagFailedMessages, er.Error.Code + ": "+ er.Error.Message);
         }
     }
 
@@ -250,7 +249,7 @@ public class EmailProcessor
         }
         catch (ODataError er)
         {
-            _logger.LogError("{place} failed with error code {code} and error message {message}", "TagFailedMessages", er.Error.Code, er.Error.Message);
+            _logger.LogError("{tag} failed with error {error}", TagConstants.getFailedMessages, er.Error.Code + ": " + er.Error.Message);
             return null;
         }
     }
@@ -278,14 +277,14 @@ public class EmailProcessor
         {
             if (performContext.BackgroundJob.Id != connEmail.SyncJobId)
             {
-                _logger.LogCritical("{place} sync email job's connectedEmail syncJobId {dbSyncJobID} not equal to actual jobId {currentJobId}.", "syncEmail", connEmail.SyncJobId, performContext.BackgroundJob.Id);
+                _logger.LogCritical("{tag} sync email job's connectedEmail syncJobId {dbSyncJobID} not equal to actual jobId {currentJobId}.", TagConstants.syncEmail, connEmail.SyncJobId, performContext.BackgroundJob.Id);
                 StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
                 return;
             }
         }
         else
         {
-            _logger.LogCritical("{place} sync email job started without SubsID {SubsId} in dictionary,returning.", "syncEmail", connEmail.GraphSubscriptionId);
+            _logger.LogCritical("{tag} sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
             StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
             return;
         }
@@ -406,7 +405,7 @@ public class EmailProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogCritical("{place} sync email job failed ", "syncEmail");
+            _logger.LogCritical("{tag} sync email job failed with error {error}", TagConstants.syncEmail, ex.Message + ": " + ex.StackTrace);
             await _appDbContext.ConnectedEmails.Where(e => e.Email == email)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
                 .SetProperty(e => e.SyncScheduled, false)
@@ -427,7 +426,7 @@ public class EmailProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating fields at end of email sync");
+            _logger.LogError("{tag} Error updating fields at end of email sync with error {error}", TagConstants.syncEmail, ex.Message + ":"+ ex.StackTrace);
         }
     }
 
@@ -503,7 +502,7 @@ public class EmailProcessor
             string fromEmailAddress = emailsGrouping.Key;
             foreach (var email in emailsGrouping)
             {
-                LeadProviderTasks.Add(_GPT35Service.ParseEmailAsync(email, true));
+                LeadProviderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, true));
                 LeadProviderTaskMessages.Add(email);
             }
         }
@@ -551,7 +550,7 @@ public class EmailProcessor
                 foreach (var email in messageGrp)
                 {
                     //TODO take into consideration that this unknown sender might send multiple messages
-                    UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, false));
+                    UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, false));
                     UnknownSenderTaskMessages.Add(email);
                 }
             }
@@ -612,7 +611,7 @@ public class EmailProcessor
                 //TODO check error type to discard email if needed
                 ReprocessMessages.Add(LeadProviderDBRecordsTask.Item2);
                 //TODO change error message if email discarded
-                _logger.LogError("{Category} dbRecordsCreation and error {Error}", "FetchListingAndCreateDBRecordsAsync", LeadProviderDBRecordsTask.Item1.Exception.Message);
+                _logger.LogError("{tag} dbRecordsCreation and error {Error}", TagConstants.createDbRecordsResults, LeadProviderDBRecordsTask.Item1.Exception.Message + LeadProviderDBRecordsTask.Item1.Exception.StackTrace);
             }
             else
             {
@@ -643,7 +642,7 @@ public class EmailProcessor
                 //TODO check error type to discard email if needed
                 ReprocessMessages.Add(UnknownDBRecordsTask.Item2);
                 //TODO change error message if email discarded
-                _logger.LogError("{Category} dbRecordsCreation and error {Error}", "FetchListingAndCreateDBRecordsAsync", UnknownDBRecordsTask.Item1.Exception.Message);
+                _logger.LogError("{tag} dbRecordsCreation and error {Error}", TagConstants.createDbRecordsResults, UnknownDBRecordsTask.Item1.Exception.Message + UnknownDBRecordsTask.Item1.Exception.StackTrace);
             }
             else
             {
@@ -700,7 +699,7 @@ public class EmailProcessor
                 foreach (var apass in ActionPlanAssociations)
                 {
                     var APStopppedEvent = StopActionPlan(brokerDTO.Id, apass);
-                    ActionPlanEvents.Add(APStopppedEvent);
+                    if(APStopppedEvent != null) ActionPlanEvents.Add(APStopppedEvent);
                 }
             }
             localdbContext.AppEvents.AddRange(ActionPlanEvents);
@@ -748,9 +747,9 @@ public class EmailProcessor
                     .PatchAsync(tup.Item2);
                 }
             }
-            catch (Exception ex)
+            catch (ODataError ex)
             {
-                _logger.LogError("{Category} patching email category after processing error: {Error}", "GraphSDK", ex.Message);
+                _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Error.Message + ": "+ ex.Error.Code);
             }
         }));
         //mark the messages that failed with tag ReprocessMessageId"
@@ -769,9 +768,9 @@ public class EmailProcessor
                 await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[message.Id]
                 .PatchAsync(message);
             }
-            catch (Exception ex)
+            catch (ODataError ex)
             {
-                _logger.LogError("{Category} assigning reprocess prop on emails after processing error: {Error}", "GraphSDK", ex.Message);
+                _logger.LogError("{tag} assigning reprocess extendedValue on emails error: {error}",TagConstants.extendedValueAdding , ex.Error.Code + ": " +ex.Error.Message);
             }
         }));
         await transaction.CommitAsync();
@@ -886,8 +885,8 @@ public class EmailProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
-             " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor", ap.Id, lead.Id, ex.Message);
+            _logger.LogCritical("{tag} Hangfire error scheduling ActionPlan processor from email processor/trigger action plan" +
+             " for ActionPlan {actionPlanID} and Lead {leadID} with error {error}", TagConstants.HangfireScheduleActionPlan, ap.Id, lead.Id, ex.Message + ": " + ex.StackTrace);
             lead.ActionPlanAssociations.Remove(apAssociation);
             lead.AppEvents.Remove(APStartedEvent);
             lead.HasActionPlanToStop = OldHasActionPlanToStop;
@@ -932,6 +931,7 @@ public class EmailProcessor
             {
                 LeadEmail = message.From.EmailAddress.Address;
                 result.LeadEmailUnsure = true;
+                _logger.LogWarning("{tag} lead provider, gpt parsed email is {parsedEmail}, from email: {fromEmail}", TagConstants.createDbRecords, parsedContent.emailAddress, message.From.EmailAddress.Address);
             }
             //LeadEmail = message.ReplyTo?.FirstOrDefault()?.EmailAddress?.Address;
         }
@@ -952,7 +952,7 @@ public class EmailProcessor
                 if (valid && parsedContent.emailAddress != LeadEmail)
                 {
                     result.LeadEmailUnsure = true;
-                    _logger.LogWarning("{place} Not lead provider, parsed email doesnt correspond to from. parsed: {parsedEmail}, from: {fromEmail}","CreateDbRecords", parsedContent.emailAddress, message.From.EmailAddress.Address);
+                    _logger.LogWarning("{tag} Not lead provider, parsed email doesnt correspond to from. parsed: {parsedEmail}, from: {fromEmail}", TagConstants.createDbRecords, parsedContent.emailAddress, message.From.EmailAddress.Address);
                 }
             }
         }
@@ -1163,7 +1163,7 @@ public class EmailProcessor
             //TODO check error type to discard email if needed
             ReprocessMessages.Add(message);
             //TODO change error message if email discarded
-            _logger.LogError("{Category} GPT 3.5 email parsing and error {Error}", "OpenAI", leadTask.Exception.Message);
+            _logger.LogError("{tag} task faulted and error {Error}", TagConstants.handleTaskResult, leadTask?.Exception?.Message + leadTask?.Exception?.StackTrace);
             return 0;
         }
 
@@ -1172,8 +1172,6 @@ public class EmailProcessor
         {
             //TODO check error type to discard email if needed
             ReprocessMessages.Add(message);
-            //TODO change error message if email discarded
-            _logger.LogError("{Category} GPT 3.5 email parsing and error {Error}", "OpenAI", result.ErrorType.ToString() + ": " + result.ErrorMessage);
         }
         else if (result.HasLead) //no error and has lead
         {

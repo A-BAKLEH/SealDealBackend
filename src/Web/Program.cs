@@ -78,26 +78,19 @@ builder.Services.AddProblemDetails(options =>
     });
 });
 
-
-if (builder.Environment.IsDevelopment())
-{
-}
-
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    //options.Configuration = builder.Configuration.GetConnectionString("redis");
-    options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
-    {
-        EndPoints = { "redis-17282.c56.east-us.azure.cloud.redislabs.com:17282" },
-        Password = "m2qOkNVxZXxhXAwncrC5l0vpaCiBj3dc"
-    };
-    //options.InstanceName = "test1";
-});
+//builder.Services.AddStackExchangeRedisCache(options =>
+//{
+//    //options.Configuration = builder.Configuration.GetConnectionString("redis");
+//    options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
+//    {
+//        EndPoints = { "redis-17282.c56.east-us.azure.cloud.redislabs.com:17282" },
+//        Password = "m2qOkNVxZXxhXAwncrC5l0vpaCiBj3dc"
+//    };
+//    //options.InstanceName = "test1";
+//});
 
 builder.Services.AddSignalR().AddAzureSignalR();
 
-//builder.Services.AddApplicationInsightsTelemetry();
-//builder.Logging.AddAzureWebAppDiagnostics(); //add this if deploying to Azure
 
 VariousCons.MainAPIURL = builder.Configuration.GetSection("URLs")["MainAPI"];
 

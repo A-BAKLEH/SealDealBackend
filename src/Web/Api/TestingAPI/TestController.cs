@@ -34,26 +34,42 @@ public class TestController : ControllerBase
 
     private readonly AppDbContext _appDbContext;
     private readonly TemplatesQService _templatesQService;
-    private readonly IDistributedCache _distributedCache;
+    //private readonly IDistributedCache _distributedCache;
     private readonly BrokerQService _brokerTagsQService;
-    private readonly AgencyQService _agencyQService;
     private readonly ActionPQService _actionPQService;
 
     public TestController(IMediator mediator, ILogger<TestController> logger, ADGraphWrapper aDGraph,
        AppDbContext appDbContext, IB2CGraphService msGraphService, TemplatesQService templatesQService,
-       IDistributedCache _distributedCache, BrokerQService brokerTagsQService,
-       ActionPQService actionPQService, AgencyQService agencyQService)
+       //IDistributedCache _distributedCache,
+       BrokerQService brokerTagsQService,
+       ActionPQService actionPQService)
     {
         _mediator = mediator;
         _logger = logger;
-        this._distributedCache = _distributedCache;
+        //this._distributedCache = _distributedCache;
         _appDbContext = appDbContext;
         _templatesQService = templatesQService;
         _brokerTagsQService = brokerTagsQService;
-        _agencyQService = agencyQService;
         _adGraphWrapper = aDGraph;
         _actionPQService = actionPQService;
     }
+
+    [HttpGet("testlogger")]
+    public async Task<IActionResult> stestLogger()
+    {
+        try
+        {
+            throw new Exception("test exception");
+        }
+        catch (Exception ex)
+        {
+            var exx = ex;
+            _logger.LogError("{tag} wassup fool with error {error}", "test");
+        }
+
+        return Ok();
+    }
+
 
     [HttpGet("startmailprocessor")]
     public async Task<IActionResult> startmailprocessor()
@@ -107,7 +123,7 @@ public class TestController : ControllerBase
     public async Task<IActionResult> testgresExecuteUpdate()
     {
         var task1 = await _appDbContext.AppEvents
-            .Where(e => e.LeadId == 2 )
+            .Where(e => e.LeadId == 2)
                 .ExecuteUpdateAsync(setters => setters
                 .SetProperty(e => e.DeleteAfterProcessing, false));
 

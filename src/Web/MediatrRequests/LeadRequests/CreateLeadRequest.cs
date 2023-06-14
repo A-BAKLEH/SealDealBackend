@@ -1,4 +1,5 @@
-﻿using Core.Constants.ProblemDetailsTitles;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
@@ -7,6 +8,7 @@ using Core.DTOs.ProcessingDTOs;
 using Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SharedKernel.Exceptions;
 using Web.ApiModels.RequestDTOs;
 using Web.Constants;
@@ -195,8 +197,8 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             catch (Exception ex)
             {
                 //TODO refactor log message
-                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for LeadAssigned Event for notif" +
-                  "with {NotifId} with error {Error}", notifId, ex.Message);
+                _logger.LogCritical("{tag} Hangfire error scheduling Outbox Disptacher for LeadAssigned Event for event" +
+                     "with {eventId} with error {error}", TagConstants.HangfireDispatch, notifId, ex.Message + " :" + ex.StackTrace);
                 OutboxMemCache.SchedulingErrorDict.TryAdd(notifId, leadAssignedEvent);
             }
         }

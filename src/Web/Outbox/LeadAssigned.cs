@@ -1,4 +1,5 @@
-﻿using Core.Domain.ActionPlanAggregate;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Domain.ActionPlanAggregate;
 using Core.Domain.NotificationAggregate;
 using Hangfire;
 using Infrastructure.Data;
@@ -40,7 +41,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
             List<AppEvent> appEvents = new();
             if (appEvent.ProcessingStatus != ProcessingStatus.Done)
             {
-                
+
                 //Handle possible actionPlan for broker on lead Assignment FOR NOW NO AUTOMATIC ACTION PLAN
                 if (appEvent.Broker.ActionPlans.Any())
                 {
@@ -111,8 +112,8 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                             }
                             catch (Exception ex)
                             {
-                                _logger.LogCritical("{place} Hangfire error scheduling ActionPlan processor" +
-                                 " for ActionPlan {ActionPlanID} and Lead {LeadID} with error {Error}", "ScheduleActionPlanProcessor", ap.Id, lead.Id, ex.Message);
+                                _logger.LogError("{tag} Hangfire error scheduling ActionPlan processor" +
+                                " for ActionPlan {actionPlanID} and Lead {leadID} with error {error}", TagConstants.HangfireScheduleActionPlan, ap.Id, lead.Id, ex.Message + " :" + ex.StackTrace);
                                 lead.ActionPlanAssociations.Remove(apAssociation);
                                 lead.AppEvents.Remove(APStartedEvent);
                                 lead.HasActionPlanToStop = OldHasActionPlanToStop;
@@ -129,7 +130,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
         }
         catch (Exception ex)
         {
-            _logger.LogError("Handling ListingAssigned Failed for appEvent with appEventId {AppEventId} with error {error}", LeadAssignedEvent.AppEventId, ex.Message);
+            _logger.LogError("{tag} Handling LeadAssigned Failed for appEvent with appEventId {appEventId} with error {error}",TagConstants.handleLeadAssigned ,LeadAssignedEvent.AppEventId, ex.Message);
             appEvent.ProcessingStatus = ProcessingStatus.Failed;
             await _context.SaveChangesAsync();
             throw;

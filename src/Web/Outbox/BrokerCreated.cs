@@ -1,4 +1,5 @@
-﻿using Core.Domain.NotificationAggregate;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Domain.NotificationAggregate;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ public class BrokerCreatedHandler : EventHandlerBase<BrokerCreated>
         {
             //process
             appEvent = _context.AppEvents.Include(e => e.Broker).FirstOrDefault(x => x.Id == BrokerCreatedEvent.AppEventId);
-            if (appEvent == null) { _logger.LogError("No appEvent with NotifId {NotifId}", BrokerCreatedEvent.AppEventId); return; }
+            if (appEvent == null) { _logger.LogError("{tag} No appEvent with eventId {eventId}", TagConstants.handlebrokerCreated, BrokerCreatedEvent.AppEventId); return; }
 
             if (appEvent.ProcessingStatus != ProcessingStatus.Done)
             {
@@ -76,21 +77,21 @@ public class BrokerCreatedHandler : EventHandlerBase<BrokerCreated>
                 }
                 catch (ODataError er)
                 {
-                    _logger.LogCritical("{place} cannot send email with temp password for appEvent with" +
-                        "AppEventId {AppEventId} with graph api error code {errCode} and message {errorMessage}", "MailSender", appEvent.Id, er.Error.Code, er.Error.Message);
+                    _logger.LogCritical("{tag} cannot send email with temp password for appEvent with" +
+                        "AppEventId {AppEventId} with graph api error code {error}", TagConstants.handlebrokerCreated, appEvent.Id, er.Error.Code + ": " + er.Error.Message);
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogCritical("{place} cannot send email with temp password for appEvent with" +
-                        "AppEventId {AppEventId} with exception message {errorMessage}", "MailSender", appEvent.Id, ex.Message);
+                    _logger.LogCritical("{tag} cannot send email with temp password for appEvent with" +
+                        "AppEventId {eventId} with error {error}", TagConstants.handlebrokerCreated, appEvent.Id, ex.Message);
                 }
             }
             await this.FinishProcessing(appEvent);
         }
         catch (Exception ex)
         {
-            _logger.LogError("Handling BrokerCreated Failed for appEvent with appEventId {AppEventId} with error {error}", BrokerCreatedEvent.AppEventId, ex.Message);
+            _logger.LogError("{tag} BrokerCreated Failed for appEvent with appEventId {eventId} with error {error}", TagConstants.handlebrokerCreated, BrokerCreatedEvent.AppEventId, ex.Message);
             appEvent.ProcessingStatus = ProcessingStatus.Failed;
             await _context.SaveChangesAsync();
             throw;

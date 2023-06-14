@@ -32,7 +32,7 @@ public class NotificationsController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
         
@@ -83,7 +83,7 @@ public class NotificationsController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
         
@@ -120,7 +120,7 @@ public class NotificationsController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
         var res = await _notificationService.UpdatePriorityTable(id);
@@ -151,7 +151,7 @@ public class NotificationsController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {uerId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
@@ -191,7 +191,7 @@ public class NotificationsController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] Inactive User with UserId {UserId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
 

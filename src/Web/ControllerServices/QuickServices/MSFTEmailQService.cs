@@ -1,4 +1,6 @@
-﻿using Core.Constants.ProblemDetailsTitles;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Constants.ProblemDetailsTitles;
+using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Hangfire;
 using Infrastructure.Data;
@@ -97,95 +99,21 @@ public class MSFTEmailQService
             {
                 if (ex.ResponseStatusCode == 403)
                 {
-                    _logger.LogError("Connect Email: agency hadAdminConsent true so tried to create subsription but forbidden");
+                    _logger.LogError("{tag} agency hadAdminConsent true so tried to create subscribtion but forbidden",TagConstants.connectMsftEmail);
                     broker.Agency.HasAdminEmailConsent = false;
                     connectedEmail.hasAdminConsent = false;
-                    BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
+                    //BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
                     await _appDbContext.SaveChangesAsync();
                 }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError("{tag} agency hadAdminConsent true, failed connecting email unknown why. error: {error}", TagConstants.connectMsftEmail,ex.Message + " :" + ex.StackTrace);
+                throw;
             }
         }
         return new { connectedEmail.Email, connectedEmail.hasAdminConsent, connectedEmail.AssignLeadsAuto };
     }
-    /// <summary>
-    /// To be primarily called by hangfire after a notif comes in
-    /// For syncing
-    /// </summary>
-    /// <param name="ConnectedEmailId"></param>
-    /// <param name="TenantId"></param>
-    /// <returns></returns>
-    public async Task SyncEmail(Guid subsId, string tenantId)
-    {
-        /*var connEmail = _appDbContext.ConnectedEmails.Single(e => e.GraphSubscriptionId == subsId);
-
-
-        if(string.IsNullOrWhiteSpace(connEmail.FolderSyncToken))
-        {
-
-        }
-        _adGraphWrapper.CreateClient(tenantId);
-
-        List<Option> options = new List<Option>();
-
-        options.Add(new QueryOption("$select", "sender,isRead,conversationId,conversationIndex,createdDateTime"));
-        //options.Add(new QueryOption("$filter", "receivedDateTime+ge+{value}"));
-        options.Add(new QueryOption("changeType", "created"));
-        options.Add(new QueryOption("$orderby", "receivedDateTime+desc"));
-        options.Add(new HeaderOption("Prefer: odata.maxpagesize", "30"));
-        options.Add(new HeaderOption("Prefer: Prefer: IdType", "ImmutableId"));
-
-        IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient.Users[connEmail.Email]
-          .MailFolders["inbox"].Messages.Delta()
-          .Request(options).GetAsync();
-
-        ProcessMessages(messages);
-
-        while (messages.NextPageRequest != null)
-        {
-          //verify that header 30 max size exists
-          messages = messages.NextPageRequest.GetAsync().Result;
-          ProcessMessages(messages);
-        }
-
-        object? deltaLink;
-
-        if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-        {
-          connEmail.FolderSyncToken = deltaLink.ToString();
-        }*/
-    }
-
-
-
-    /*public async Task HandleFirstFolderSync(ConnectedEmail connectedEmail, DateTimeOffset SyncStartDate, string FolderName)
-    {
-      var GraphClient = _adGraphWrapper._graphClient;
-
-      var messages = await GetFirstMessagesPage(connectedEmail.Email, FolderName, SyncStartDate, true);
-
-      var inboxSync1 = new FolderSync
-      {
-        FolderName = FolderName
-      };
-      connectedEmail.FolderSyncs.Add(inboxSync1);
-      EmailHelpers.ProcessMessages(messages, _logger);
-
-      while (messages.NextPageRequest != null)
-      {
-        //verify that header 30 max size exists
-        messages = messages.NextPageRequest.GetAsync().Result;
-        EmailHelpers.ProcessMessages(messages, _logger);
-      }
-      object? deltaLink;
-      if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-      {
-        inboxSync1.DeltaToken = deltaLink.ToString();
-      }
-      else
-      {
-        //TODO log error
-      }
-    }*/
     public async Task<dynamic> DummyMethodHandleAdminConsentAsync(string tenantId, Guid brokerId, int AgencyId)
     {
         var brokers = await _appDbContext.Brokers
@@ -208,12 +136,17 @@ public class MSFTEmailQService
                 {
                     if (ex.ResponseStatusCode == 403)
                     {
-                        throw;
+                        _logger.LogError("{tag} agency hadAdminConsent true so tried to create subscribtion but forbidden for connectedEmail {connectedEmail}", TagConstants.handleAdminConsentMsft,em.Email);
+                        agency.HasAdminEmailConsent = false;
+                        em.hasAdminConsent = false;
+                        //BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
+                        await _appDbContext.SaveChangesAsync();
                     }
-                    else
-                    {
-                        _logger.LogCritical("error ba3abis");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("{tag} agency hadAdminConsent true, failed connecting email unknown why. error: {error}", TagConstants.handleAdminConsentMsft, ex.Message + " :" + ex.StackTrace);
+                    throw;
                 }
             }
         }
@@ -237,6 +170,7 @@ public class MSFTEmailQService
     /// <returns></returns>
     public async Task<Tuple<dynamic, bool>> HandleAdminConsentedAsync(Guid brokerId, string email)
     {
+        //UNUSED for now
         var broker = await _appDbContext.Brokers
           .Include(b => b.Agency)
           .Include(b => b.ConnectedEmails)

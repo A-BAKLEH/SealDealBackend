@@ -33,8 +33,8 @@ public class StripeWebhookController : BaseApiController
       if (stripeEvent.Type == Events.CheckoutSessionCompleted)
       {
         var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-        _logger.BeginScope("[{Tag}] received {WebhookEvent} event with CheckoutSessionId {CheckoutSessionId}" +
-          " and SubscriptionId {SubscriptionId}", TagConstants.Webhook, "CheckoutSessionCompleted",session.Id,session.SubscriptionId);
+        _logger.BeginScope("{tag} received {webhookEvent} event with CheckoutSessionId {checkoutSessionId}" +
+          " and SubscriptionId {subscriptionId}", TagConstants.Webhook, "CheckoutSessionCompleted",session.Id,session.SubscriptionId);
 
         await _mediator.Send(new CheckoutSessionCompletedRequest
         {
@@ -46,8 +46,8 @@ public class StripeWebhookController : BaseApiController
       else if (stripeEvent.Type == Events.CustomerSubscriptionUpdated)
       {
         var subscription = stripeEvent.Data.Object as Subscription;
-        _logger.BeginScope("[{Tag}] received {WebhookEvent} event with " +
-          "SubscriptionId {SubscriptionId} and new Subscription Status {SubscriptionStatus}", TagConstants.Webhook, "SubscriptionUpdated", subscription.Id, subscription.Status);
+        _logger.BeginScope("{tag} received {webhookEvent} event with " +
+          "SubscriptionId {subscriptionId} and new Subscription Status {subscriptionStatus}", TagConstants.Webhook, "SubscriptionUpdated", subscription.Id, subscription.Status);
         await _mediator.Send(new SubscriptionUpdatedRequest
         {
           SubscriptionId = subscription.Id,
@@ -69,7 +69,7 @@ public class StripeWebhookController : BaseApiController
       else
       {
         // Unexpected event type
-        _logger.LogError("[{Tag}] Unhandled {WebhookEvent} event", TagConstants.Webhook,stripeEvent.Type);
+        _logger.LogWarning("{tag} Unhandled {webhookEvent} event", TagConstants.Webhook,stripeEvent.Type);
       }
       return Ok();
     }
@@ -80,7 +80,7 @@ public class StripeWebhookController : BaseApiController
     }
     catch(InconsistentStateException ex)
     {
-      _logger.LogError("[{Tag}] InconsistentStateException with Tag {InconsistentStateExcTag} and Details {InconsistentStateExcDetails} encountered", TagConstants.Webhook, ex.tag, ex.details);
+      _logger.LogError("{tag} InconsistentStateException with Tag {inconsistentStateExcTag} and Details {inconsistentStateExcDetails} encountered", TagConstants.Webhook, ex.tag, ex.details);
       return BadRequest();
     }
   }

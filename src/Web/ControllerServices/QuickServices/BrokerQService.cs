@@ -9,9 +9,6 @@ using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
-using Web.Constants;
-using Web.Outbox;
-using Web.Outbox.Config;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -35,7 +32,7 @@ public class BrokerQService
         await _appDbContext.SaveChangesAsync();
     }
 
-    public async Task SetaccountLanguage(Guid brokerId,string lang)
+    public async Task SetaccountLanguage(Guid brokerId, string lang)
     {
         Enum.TryParse<Language>(lang, true, out var language);
         var broker = await _appDbContext.Brokers.FirstOrDefaultAsync(b => b.Id == brokerId);
@@ -115,7 +112,7 @@ public class BrokerQService
             ReadByBroker = true,
         };
         _appDbContext.AppEvents.Add(StripeNotif);
-        
+
 
         var todoTasks = await _appDbContext.ToDoTasks.Where(t => t.BrokerId == brokerDeleteId && t.IsDone == false)
           .Select(t => t.HangfireReminderId)
@@ -129,7 +126,7 @@ public class BrokerQService
                 }
                 catch (Exception) { }
         }
-        if(agency.AgencyBrokers[0].RecurrentTasks != null && agency.AgencyBrokers[0].RecurrentTasks.Any())
+        if (agency.AgencyBrokers[0].RecurrentTasks != null && agency.AgencyBrokers[0].RecurrentTasks.Any())
         {
             foreach (var task in agency.AgencyBrokers[0].RecurrentTasks)
             {

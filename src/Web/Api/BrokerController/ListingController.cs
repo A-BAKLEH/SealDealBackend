@@ -15,7 +15,6 @@ public class ListingController : BaseApiController
     private readonly ListingQService _listingQService;
     public ListingController(AuthorizationService authorizeService, IMediator mediator,
       BrokerQService brokerTagsQService,
-      AgencyQService agencyQService,
       ListingQService listingQService,
       ILogger<ListingController> logger) : base(authorizeService, mediator)
     {
@@ -66,7 +65,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 
@@ -115,7 +114,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get broker's Listings", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
         var listings = await _listingQService.GetListingsAsync(brokerTuple.Item1.AgencyId, id, brokerTuple.Item3);
@@ -137,10 +136,10 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
-            _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to edit Listings", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
-        await _listingQService.EditListingAsync(brokerTuple.Item1.AgencyId,listingid, dto);
+        await _listingQService.EditListingAsync(brokerTuple.Item1.AgencyId, listingid, dto);
         return Ok();
     }
 
@@ -152,11 +151,11 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get Listings", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 
-        await _listingQService.AssignListingToBroker(brokerTuple.Item1.AgencyId,listingid, brokerId, id);
+        await _listingQService.AssignListingToBroker(brokerTuple.Item1.AgencyId, listingid, brokerId, id);
         return Ok();
     }
 
@@ -167,12 +166,10 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to detach Listing from broker", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId} tried to detach Listing from broker", TagConstants.Inactive, id);
             return Unauthorized();
         }
-
         await _listingQService.DetachBrokerFromListing(listingid, brokerId, id);
-
         return Ok();
     }
 
@@ -183,12 +180,11 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to detach Listing from broker", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Unauthorized();
         }
 
         await _listingQService.DeleteAgencyListingAsync(listingid, brokerTuple.Item1.AgencyId, id);
-
         return Ok();
     }
 }

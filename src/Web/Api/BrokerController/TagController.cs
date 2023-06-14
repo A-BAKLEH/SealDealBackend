@@ -24,19 +24,29 @@ public class TagController : BaseApiController
     [HttpPost("{tagname}")]
     public async Task<IActionResult> CreateTag(string tagname)
     {
-        //Not checking active, permissions
-        var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-        var tagDTO = await _TagQService.CreateBrokerTagAsync(brokerId, tagname);
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        var tagDTO = await _TagQService.CreateBrokerTagAsync(id, tagname);
         return Ok(tagDTO);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetTags()
     {
-        //Not checking active, permissions
-        var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
+            return Forbid();
+        }
 
-        var tags = await _TagQService.GetBrokerTagsAsync(brokerId);
+        var tags = await _TagQService.GetBrokerTagsAsync(id);
         if (tags == null) return NotFound();
         return Ok(tags);
     }
@@ -48,7 +58,7 @@ public class TagController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get attach tag to lead", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 
@@ -63,7 +73,7 @@ public class TagController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to delete tag to lead", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 

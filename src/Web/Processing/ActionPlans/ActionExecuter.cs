@@ -7,7 +7,6 @@ using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph.Models;
-using System.Text;
 using System.Text.RegularExpressions;
 using Web.Constants;
 
@@ -37,7 +36,7 @@ public class ActionExecuter
         string NewStatusString = currentActionDTO.ActionProperties[ActionPlanAction.NewLeadStatus];
 
         Enum.TryParse<LeadStatus>(NewStatusString, true, out var NewLeadStatus);
-        if (lead.LeadStatus == NewLeadStatus) return new Tuple<bool,AppEvent?>(false, null);
+        if (lead.LeadStatus == NewLeadStatus) return new Tuple<bool, AppEvent?>(false, null);
         var oldStatus = lead.LeadStatus;
         lead.LeadStatus = NewLeadStatus;
 
@@ -73,7 +72,7 @@ public class ActionExecuter
         {
             string word = match.Groups[1].Value;
             var wordWithoutDollards = word.Replace("%", "");
-            var index  = match.Groups[1].Index;
+            var index = match.Groups[1].Index;
             var replacementValue = "";
             switch (wordWithoutDollards)
             {
@@ -200,7 +199,7 @@ public class ActionExecuter
             LeadId = lead.Id,
             BrokerId = brokerId,
             EventTimeStamp = timeNow,
-           //EventType = Core.Domain.NotificationAggregate.EventType.SmsEvent,
+            //EventType = Core.Domain.NotificationAggregate.EventType.SmsEvent,
             ReadByBroker = false,
             IsActionPlanResult = true,
             ProcessingStatus = ProcessingStatus.NoNeed

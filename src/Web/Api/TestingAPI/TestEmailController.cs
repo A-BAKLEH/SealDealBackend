@@ -1,9 +1,7 @@
 ﻿using Core.Constants;
-using Core.Domain.LeadAggregate;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.Differencing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
@@ -12,7 +10,6 @@ using Microsoft.Kiota.Abstractions;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.HTTPClients;
@@ -43,54 +40,6 @@ public class TestEmailController : ControllerBase
         var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         _adGraphWrapper.CreateClient(tenantId);
 
-        //try
-        //{
-        //    var newCat = new OutlookCategory { DisplayName = APIConstants.SentBySealDeal };
-        //    newCat.Color = CategoryColor.Preset7;
-        //    await _adGraphWrapper._graphClient.Users["bashar.eskandar@sealdeal.ca"].Outlook.MasterCategories.PostAsync(newCat);
-        //}
-        //catch(ODataError er)
-        //{
-        //    var err = er;
-        //}
-
-        //var message = new Message
-        //{
-        //    Subject = "wlak",
-        //    Body = new ItemBody
-        //    {
-        //        ContentType = BodyType.Text,
-        //        Content = "test body helloooo"
-        //    },
-        //    ToRecipients = new List<Recipient>()
-        //    {
-        //        new Recipient
-        //        {
-        //            EmailAddress = new EmailAddress
-        //        {
-        //          Address = "basharo9999@hotmail.com"
-        //        }
-        //      }
-        //    },
-        //    SingleValueExtendedProperties = new()
-        //    {
-        //      new SingleValueLegacyExtendedProperty
-        //      {
-        //        Id = APIConstants.APSentEmailExtendedPropId,
-        //        Value = "123x321"
-        //      }
-        //    },
-        //    Categories = new List<string>()
-        //    {
-        //          APIConstants.SentBySealDeal
-        //    }
-        //};
-
-        //var requestBody = new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
-        //{ Message = message, SaveToSentItems = true };
-
-        //await _adGraphWrapper._graphClient.Users["bashar.eskandar@sealdeal.ca"]
-        //    .SendMail.PostAsync(requestBody);
         var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(360);
         var date = date1.ToString("o");
         var test = await _adGraphWrapper._graphClient
@@ -122,39 +71,6 @@ public class TestEmailController : ControllerBase
                             }
             });
         }
-
-        //try
-        //{
-        //    var batchRequestContent = new BatchRequestContent(_adGraphWrapper._graphClient);
-
-        //    int counter = 1;
-        //    foreach (var message in failedMessages)
-        //    {
-        //        var messageUpdateRequest = new Message
-        //        {
-        //            Id = message.Id,
-        //            SingleValueExtendedProperties = new()
-        //            {
-        //              new SingleValueLegacyExtendedProperty
-        //              {
-        //                Id = APIConstants.ReprocessMessExtendedPropId,
-        //                Value = "1"
-        //              }
-        //            }
-        //        };
-        //        batchRequestContent.AddBatchRequestStep(new BatchRequestStep(counter.ToString(), new HttpRequestMessage(HttpMethod.Patch, $"https://graph.microsoft.com/v1.0/users/\"bashar.eskandar@sealdeal.ca\"/messages/{message.Id}")
-        //        {
-        //            Content = new StringContent(JsonSerializer.Serialize(messageUpdateRequest), Encoding.UTF8, "application/json")
-        //        }));
-        //        counter++;
-        //    }
-        //    await _adGraphWrapper._graphClient.Batch.PostAsync(batchRequestContent);
-        //}
-        //catch (ODataError er)
-        //{
-        //    _logger.LogError("{place} failed with error code {code} and error message {message}", "TagFailedMessages", er.Error.Code, er.Error.Message);
-        //}
-
 
         var final = await _adGraphWrapper._graphClient
         .Users["bashar.eskandar@sealdeal.ca"]
@@ -295,56 +211,6 @@ public class TestEmailController : ControllerBase
             var messs = messages.Value;
 
         } while (messages.OdataNextLink != null);
-
-
-        //--------
-        //int count = 0;
-        //int pauseAfter = pagesize;
-        //List<Message> messagesList = new(pagesize);
-
-        //var pageIterator = PageIterator<Message, MessageCollectionResponse>
-        //    .CreatePageIterator(
-        //    _adGraphWrapper._graphClient,
-        //    messages,
-        //        (m) =>
-        //        {
-        //            messagesList.Add(m);
-        //            count++;
-        //            // If we've iterated over the limit,
-        //            // stop the iteration by returning false
-        //            return count < pauseAfter;
-        //        },
-        //        (req) =>
-        //        {
-        //            // Re-add the header to subsequent requests
-        //            req.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-        //            return req;
-        //        }
-        //    );
-        //await pageIterator.IterateAsync();
-
-        //do
-        //{
-        //    var lol = messagesList;
-
-        //    // Reset count and list
-        //    count = 0;
-        //    messagesList = new(pagesize);
-        //    await pageIterator.ResumeAsync();
-        //} while (pageIterator.State != PagingState.Complete);
-
-
-        //-------------
-        //while (pageIterator.State != PagingState.Complete)
-        //{
-        //    //process the messages
-        //    var lol = messagesList;
-
-        //    // Reset count and list
-        //    count = 0;
-        //    messagesList = new(pagesize);
-        //    await pageIterator.ResumeAsync();
-        //}
         return Ok();
     }
 
@@ -373,7 +239,6 @@ public class TestEmailController : ControllerBase
           .GetAsync(config =>
           {
               config.QueryParameters.Filter = $"singleValueExtendedProperties/Any(ep: ep/id eq 'String 0x1042' and ep/value eq '{messages1[4].InternetMessageId}')";
-              //config.QueryParameters.Orderby = new string[] { "receivedDateTime desc" };
               config.QueryParameters.Top = 5;
           });
         var replies1 = replies.Value;
@@ -402,7 +267,7 @@ public class TestEmailController : ControllerBase
         var messages = messages1.Value;
         var text = messages[index].Body.Content;
 
-        if(index == 10)
+        if (index == 10)
         {
             ////Que pensez-vous de ce renvoi de client potentiel?
             //string pattern = @"Que pensez-vous de ce renvoi de client potentiel";
@@ -418,7 +283,7 @@ public class TestEmailController : ControllerBase
             var indexStart = text.IndexOf(pattern);
             text = text.Substring(0, indexStart);
         }
-       
+
         string prompt = APIConstants.ParseLeadPrompt3 + text;
 
         StringContent jsonContent = new(
@@ -442,11 +307,11 @@ public class TestEmailController : ControllerBase
         {
             response = await _httpClient.PostAsync("", content: jsonContent);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             var ess = ex;
         }
-        
+
 
         //TODO handle API error 
         response.EnsureSuccessStatusCode();
@@ -564,7 +429,7 @@ public class TestEmailController : ControllerBase
         {
             NotificationUrl = VariousCons.MainAPIURL,
             ExpirationDateTime = connEmail.SubsExpiryDate
-            
+
         };
         //VariousCons.MainAPIURL = url;
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
@@ -573,11 +438,11 @@ public class TestEmailController : ControllerBase
         {
             var Subs = await _adGraphWrapper._graphClient.Subscriptions[SubsId].PatchAsync(Newsubs);
         }
-        catch(ODataError err)
+        catch (ODataError err)
         {
             var sdf = err;
         }
-        
+
         return Ok();
     }
 
@@ -610,12 +475,6 @@ public class TestEmailController : ControllerBase
         var Subs = await _adGraphWrapper._graphClient.Subscriptions.GetAsync();
         var subs1 = Subs.Value;
 
-
-        //var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-        //DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
-        //string emailBash = "bashar.eskandar@sealDeal.ca";
-
-        //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         foreach (var sub3 in subs1)
         {
             await _adGraphWrapper._graphClient.Subscriptions[sub3.Id].DeleteAsync();

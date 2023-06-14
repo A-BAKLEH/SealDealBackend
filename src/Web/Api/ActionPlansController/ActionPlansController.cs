@@ -26,7 +26,7 @@ public class ActionPlansController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
         var result = await _actionPQService.CreateActionPlanAsync(dto, id);
@@ -45,7 +45,7 @@ public class ActionPlansController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
         await _actionPQService.DeleteActionPlanAsync(id, ActionPlanId);
@@ -60,7 +60,7 @@ public class ActionPlansController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to create ActionPlan", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
 
@@ -86,7 +86,7 @@ public class ActionPlansController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
         var res = await _actionPQService.StartLeadActionPlanManually(id, dto);
@@ -101,7 +101,7 @@ public class ActionPlansController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
         await _actionPQService.ToggleActiveTriggerAsync(id, dto.Toggle, dto.ActionPlanId);
@@ -115,7 +115,7 @@ public class ActionPlansController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
         await _actionPQService.StopActionPlansOnALead(id, dto.LeadId);
@@ -130,7 +130,7 @@ public class ActionPlansController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to start actionPlan manually", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
             return Forbid();
         }
         await _actionPQService.SetNewTriggerAsync(id, dto.NewTrigger, dto.ActionPlanId);

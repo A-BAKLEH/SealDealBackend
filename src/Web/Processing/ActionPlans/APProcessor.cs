@@ -1,4 +1,5 @@
-﻿using Core.Domain.ActionPlanAggregate;
+﻿using Core.Config.Constants.LoggingConstants;
+using Core.Domain.ActionPlanAggregate;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
@@ -40,7 +41,7 @@ public class APProcessor
 
         if (ActionPlanAssociation == null || !ActionPlanAssociation.ActionTrackers.Any() || ActionPlanAssociation.lead == null)
         {
-            _logger.LogWarning("{location}: APAssociation is null for LeadId {LeadId} and ActionPlanId {ActionPlanId}", "APProcessor", LeadId, ActionPlanId);
+            _logger.LogWarning("{tag} APAssociation is null for LeadId {leadId} and ActionPlanId {actionPlanId}", TagConstants.doAction, LeadId, ActionPlanId);
             return;
         }
         var actions = await _appDbContext.Actions
@@ -57,7 +58,7 @@ public class APProcessor
 
         if (CurrentActionTracker.ActionStatus != ActionStatus.ScheduledToStart)
         {
-            _logger.LogError("{DoAction} processing action with id {ActionId} for lead {LeadId} with status {ActionTrackerStatus}", "doAction", ActionId, LeadId, CurrentActionTracker.ActionStatus.ToString());
+            _logger.LogError("{tag} processing action with id {actionId} for lead {leadId} with status {actionTrackerStatus}", TagConstants.doAction, ActionId, LeadId, CurrentActionTracker.ActionStatus.ToString());
             return;
         }
 

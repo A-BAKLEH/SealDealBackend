@@ -5,6 +5,7 @@ using Core.ExternalServiceInterfaces;
 using Core.ExternalServiceInterfaces.StripeInterfaces;
 using Infrastructure.Data;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Web.Constants;
 using Web.Outbox;
 using Web.Outbox.Config;
@@ -65,11 +66,11 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
                     };
                     brokerCreationEvent.Props.Add(NotificationJSONKeys.TempPasswd, res.Item2);
                     broker.AppEvents = new() { brokerCreationEvent };
-                    _logger.LogInformation("[{Tag}]Created B2C User with UserId {UserId} and LoginEmail {LoginEmail} ", TagConstants.AddBrokersRequest, res.Item1, broker.LoginEmail);
+                    _logger.LogInformation("{tag}Created B2C User with UserId {userId} and LoginEmail {loginEmail} ", TagConstants.AddBrokersRequest, res.Item1, broker.LoginEmail);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogCritical("[{Tag}] Error creating B2C User with LoginEmail {LoginEmail} with AgencyId {AgencyId}. Exception : {Exception}", TagConstants.AddBrokersRequest, broker.LoginEmail, agency.Id, ex.ToString());
+                    _logger.LogCritical("{tag} Error creating B2C User with LoginEmail {loginEmail} with AgencyId {agencyId}. Exception : {error}", TagConstants.AddBrokersRequest, broker.LoginEmail, agency.Id, ex.Message + " :" + ex.StackTrace);
                     //failedBrokers.Add(broker);
                     //request.brokers.Remove(broker);
                     throw;
@@ -90,7 +91,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
         if (NewBrokersCount > FreeBrokersCount)
         {
             FinalQuantity = await _stripeSubscriptionService.AddSubscriptionQuantityAsync(agency.StripeSubscriptionId, NewBrokersCount - FreeBrokersCount, FinalQuantity);
-            _logger.LogInformation("[{Tag}] Added {NewBrokersCount} brokers to Agency with AgencyId {AgencyId} and SubscriptionId {SubscriptionId}", TagConstants.AddBrokersRequest, NewBrokersCount, agency.Id, agency.StripeSubscriptionId);
+            _logger.LogInformation("{tag} Added {newBrokersCount} brokers to Agency with AgencyId {agencyId} and SubscriptionId {subscriptionId}", TagConstants.AddBrokersRequest, NewBrokersCount, agency.Id, agency.StripeSubscriptionId);
         }
 
         agency.AgencyBrokers.AddRange(request.brokers);
@@ -107,13 +108,12 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
             try
             {
                 var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated));
-                _logger.LogInformation("{place} broker with Id {brokerId} has Email sending jobId {HangfireJobId}", "brokerCreation", b.Id, HangfireJobId);
+                _logger.LogInformation("{tag} broker with Id {brokerId} has Email sending jobId {hangfireJobId}", TagConstants.AddBrokersRequest, b.Id, HangfireJobId);
             }
             catch (Exception ex)
             {
-                //TODO refactor log message
-                _logger.LogCritical("Hangfire error scheduling Outbox Disptacher for BrokerCreated Event for appEvent" +
-                  "with {appEventId} with error {Error}", appEventId, ex.Message);
+                _logger.LogCritical("{tag} Hangfire error scheduling Outbox Disptacher for brokerCreated Event for event" +
+                     "with {eventId} with error {error}", TagConstants.HangfireDispatch, appEventId, ex.Message + " :" + ex.StackTrace);
                 OutboxMemCache.SchedulingErrorDict.TryAdd(appEventId, brokerCreated);
             }
         }
