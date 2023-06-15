@@ -16,11 +16,11 @@ public class StripeQService
     public async Task<dynamic> GetInvoicesAsync(Guid brokerId)
     {
         var broker = await dbContext.Brokers
-            .Select(b => new { b.Agency.AdminStripeId, b.Id })
+            .Select(b => new { b.Agency.AdminStripeId, b.Id,b.Agency.StripeSubscriptionId })
             .FirstOrDefaultAsync(b => b.Id == brokerId);
         if (broker != null && !string.IsNullOrEmpty(broker.AdminStripeId))
         {
-            var res = await _stripeBillingPortalService.GetCustomerInvoicesAsync(broker.AdminStripeId);
+            var res = await _stripeBillingPortalService.GetCustomerInvoicesAsync(broker.AdminStripeId, broker.StripeSubscriptionId);
             return res;
         }
         return null;

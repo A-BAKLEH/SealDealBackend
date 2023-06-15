@@ -8,5 +8,5 @@ public interface IStripeBillingPortalService
     /// <param name="Quantity"></param>
     /// <returns>Created billing portal's URL</returns>
     Task<string> CreateStripeBillingSessionAsync(string AdminStripeId, string returnURL);
-    Task<dynamic> GetCustomerInvoicesAsync(string CustomerId);
+    Task<dynamic> GetCustomerInvoicesAsync(string CustomerId, string SubsId);
 }

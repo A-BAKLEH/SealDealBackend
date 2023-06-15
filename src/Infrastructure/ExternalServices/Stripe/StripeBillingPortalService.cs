@@ -29,12 +29,13 @@ public class StripeBillingPortalService : IStripeBillingPortalService
         return session.Url;
     }
 
-    public async Task<dynamic> GetCustomerInvoicesAsync(string stripeCustomerId)
+    public async Task<dynamic> GetCustomerInvoicesAsync(string stripeCustomerId, string SubsId)
     {
         var options = new InvoiceListOptions
         {
             Limit = 100,
-            Customer = stripeCustomerId
+            Customer = stripeCustomerId,
+            Subscription = SubsId
         };
         var service = new InvoiceService();
         StripeList<Invoice> invoices = await service.ListAsync(

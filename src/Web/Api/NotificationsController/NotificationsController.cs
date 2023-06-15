@@ -1,9 +1,7 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.NotificationAggregate;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
@@ -35,7 +33,7 @@ public class NotificationsController : BaseApiController
             _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
-        
+
         var res = await _notificationService.GetAllDashboardNotifs(brokerTuple.Item1.Id);
 
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
@@ -51,18 +49,18 @@ public class NotificationsController : BaseApiController
                 {
                     appEvent.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, appEvent.EventTimeStamp);
                 }
-            if(leadDTO.EmailEvents != null)
+            if (leadDTO.EmailEvents != null)
                 foreach (var emailEvent in leadDTO.EmailEvents)
                 {
                     emailEvent.Received = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, emailEvent.Received);
                 }
-            if(leadDTO.PriorityNotifs != null)
+            if (leadDTO.PriorityNotifs != null)
                 foreach (var p in leadDTO.PriorityNotifs)
                 {
                     p.EventTimeStamp = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, p.EventTimeStamp);
                 }
         }
-        if(res.OtherNotifs != null)
+        if (res.OtherNotifs != null)
         {
             foreach (var e in res.OtherNotifs)
             {
@@ -86,7 +84,7 @@ public class NotificationsController : BaseApiController
             _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to GetNotifs ", TagConstants.Unauthorized, id);
             return Forbid();
         }
-        
+
         var res = await _notificationService.UpdateNormalTable(brokerTuple.Item1.Id);
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
         foreach (var leadDTO in res.LeadRelatedNotifs)
@@ -130,7 +128,7 @@ public class NotificationsController : BaseApiController
             if (leadDTO.LastTimeYouViewedLead != null)
                 leadDTO.LastTimeYouViewedLead = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.LastTimeYouViewedLead);
             if (leadDTO.MostRecentEventOrEmailTime != null)
-                leadDTO.MostRecentEventOrEmailTime = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.MostRecentEventOrEmailTime);         
+                leadDTO.MostRecentEventOrEmailTime = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, (DateTime)leadDTO.MostRecentEventOrEmailTime);
             if (leadDTO.PriorityNotifs != null)
                 foreach (var p in leadDTO.PriorityNotifs)
                 {
