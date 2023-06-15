@@ -19,6 +19,7 @@ namespace Web
             services.AddScoped<NotifAnalyzer>();
             services.AddScoped<NotificationService>();
 
+            services.AddScoped<StripeQService>();
             services.AddScoped<AuthorizationService>();
             services.AddScoped<BrokerQService>();
             services.AddScoped<LeadQService>();

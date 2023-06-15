@@ -1,5 +1,6 @@
 ﻿using Core.Config.Constants.LoggingConstants;
 using Core.Domain.LeadAggregate;
+using Core.ExternalServiceInterfaces.StripeInterfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,16 +18,34 @@ public class AccountController : BaseApiController
     private readonly ILogger<AccountController> _logger;
     private readonly MSFTEmailQService _MSFTEmailQService;
     private readonly BrokerQService _brokerQService;
+    private readonly StripeQService _stripeQService;
     public AccountController(AuthorizationService authorizeService,
       IMediator mediator,
       ILogger<AccountController> logger,
       MSFTEmailQService mSFTEmailQService,
-      BrokerQService brokerQService) : base(authorizeService, mediator)
+      BrokerQService brokerQService,
+      StripeQService stripeQService) : base(authorizeService, mediator)
     {
         _logger = logger;
         _MSFTEmailQService = mSFTEmailQService;
         _brokerQService = brokerQService;
+        _stripeQService = stripeQService;
     }
+
+    [HttpGet("StripeInvoices")]
+    public async Task<IActionResult> StripeInvoices()
+    {
+        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2 || !brokerTuple.Item3)
+        {
+            _logger.LogCritical("{tag} inactive or non-Admin User with userId {userId}", TagConstants.Inactive, id);
+            return Forbid();
+        }
+        var dto = await _stripeQService.GetInvoicesAsync(id);
+        return Ok(dto);
+    }
+
 
     [HttpGet("Verify")]
     public async Task<IActionResult> VerifyAccount()

@@ -1,7 +1,7 @@
-﻿using MediatR;
+﻿
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Web.ControllerServices;
-using Web.ControllerServices.QuickServices;
 
 namespace Web.Api.Agencycontroller;
 
