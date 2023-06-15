@@ -43,10 +43,10 @@ public class StripeBillingPortalService : IStripeBillingPortalService
         var invList = invoices.Data;
         var response = invList.Select(i => new
         {
-            i.Total,
+            Total = i.Total / 100,
             i.Currency,
-            i.PeriodStart,
-            i.PeriodEnd,
+            PeriodStart = i.Lines.Data.First(l => l.Proration == false).Period.Start,
+            PeriodEnd = i.Lines.Data.First(l => l.Proration == false).Period.End,
             i.Status,//draft, open, paid
             i.StatusTransitions.PaidAt,
         });
