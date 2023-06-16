@@ -59,6 +59,10 @@ public class DashboardPerLeadDTO
     public string LeadEmail { get; set; }
     public string LeadStatus { get; set; }
     public DateTime? LastTimeYouViewedLead { get; set; }
+    /// <summary>
+    /// timestamp of most recent app Event or email event (whichever is more recent) belonging to this lead
+    /// or null if no app events or email events
+    /// </summary>
     public DateTime? MostRecentEventOrEmailTime { get; set; }
     public byte? HighestPriority { get; set; }
     public IEnumerable<NormalTableLeadAppEventDTO>? AppEvents { get; set; }
@@ -67,6 +71,7 @@ public class DashboardPerLeadDTO
 }
 public class NormalTableLeadAppEventDTO
 {
+    public bool Seen { get; set; }
     public int AppEventID { get; set; }
     public string EventType { get; set; }
     public DateTime EventTimeStamp { get; set; }
