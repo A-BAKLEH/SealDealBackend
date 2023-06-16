@@ -1,4 +1,5 @@
 ﻿using Core.Constants;
+using Core.Domain.BrokerAggregate;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
 using System.Net.Http.Headers;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.Json;
 using Web.Constants;
@@ -122,6 +124,45 @@ public class TestEmailController : ControllerBase
         await Task.WhenAll(tasks);
 
         var res = tasks.Select(t => t.Result).ToList();
+        
+       
+        return Ok();
+    }
+
+    [HttpGet("testverifyseenreplied")]
+    public async Task<IActionResult> testverifyseenreplied()
+    {
+        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
+
+        var brokerId = Guid.Parse("576df38e-acdb-4ce5-9323-fb3529245e87");
+        var broker = await appDbContext1.Brokers
+            .Include(b => b.EmailEvents)
+            .FirstOrDefaultAsync(b => b.Id == brokerId);
+        broker.LastSeenAppEventId = 0;
+        broker.AppEventAnalyzerLastId = 0;
+        broker.LastUnassignedLeadIdAnalyzed = 0;
+        broker.EmailEventAnalyzerLastTimestamp = DateTime.MinValue;
+        foreach (var e in broker.EmailEvents)
+        {
+            e.Seen = false;
+            e.RepliedTo = false;
+        }
+        await appDbContext1.SaveChangesAsync();
+        //var dict = new Dictionary<string, GraphServiceClient>();
+        //var emailBash = "bashar.eskandar@sealdeal.ca";
+        //dict.Add(emailBash, _adGraphWrapper.CreateExtraClient(tenantId));
+
+        //var graphServiceClient = dict[emailBash];
+        //var id = "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAfb0EAwAA";
+        //var mess = await graphServiceClient
+        //       .Users[emailBash]
+        //       .Messages[id]
+        //       .GetAsync(config =>
+        //       {
+        //           config.QueryParameters.Select = new string[] { "id", "isRead" };
+        //           config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+        //       });
+        //var sd = mess;
         return Ok();
     }
 
@@ -284,7 +325,7 @@ public class TestEmailController : ControllerBase
             text = text.Substring(0, indexStart);
         }
 
-        string prompt = APIConstants.ParseLeadPrompt3 + text;
+        string prompt = APIConstants.ParseLeadPrompt4 + text;
 
         StringContent jsonContent = new(
         JsonSerializer.Serialize(new

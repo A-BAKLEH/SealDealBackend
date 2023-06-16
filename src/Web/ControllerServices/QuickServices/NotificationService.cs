@@ -73,7 +73,7 @@ public class NotificationService
         var todayStart = todaydate.AddMinutes(0);
         var UTCstartDay = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, todayStart);
 
-        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanEmailSent | EventType.ActionPlanStarted;
+        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished |  EventType.ActionPlanStarted;
         if (broker.isAdmin && !broker.isSolo)
         {
             NormalTableFlags |= EventType.LeadCreated | EventType.YouAssignedtoBroker;
@@ -180,7 +180,7 @@ public class NotificationService
             .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo,b.TimeZoneId })
             .FirstAsync(b => b.Id == brokerId);
 
-        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted| EventType.ActionPlanEmailSent;
+        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted;
         if (broker.isAdmin && !broker.isSolo)
         {
             NormalTableFlags |= EventType.LeadCreated | EventType.YouAssignedtoBroker;
@@ -324,7 +324,7 @@ public class NotificationService
             .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo, b.TimeZoneId })
             .FirstAsync(b => b.Id == brokerId);
 
-        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted | EventType.ActionPlanEmailSent;
+        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted;
         if (broker.isAdmin && !broker.isSolo)
         {
             NormalTableFlags |= EventType.LeadCreated | EventType.YouAssignedtoBroker;

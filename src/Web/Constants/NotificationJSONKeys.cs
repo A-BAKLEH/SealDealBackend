@@ -11,6 +11,7 @@ public static class NotificationJSONKeys
     public const string TempPasswd = "TempPassword";
 
     public const string ListingId = "ListingID";
+    public const string ListingAddress = "ListingAddress";
 
     public const string AdminNote = "AdminNote";
 

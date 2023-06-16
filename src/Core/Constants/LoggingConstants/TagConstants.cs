@@ -38,4 +38,6 @@ public static class TagConstants
     public const string createDbRecordsResults = "createDbRecordsResults";
     public const string emailCategory = "emailCategory";
     public const string extendedValueAdding = "extendedValueAdding";
+
+    public const string checkSeenAndRepliedTo = "checkSeenAndRepliedTo";
 }

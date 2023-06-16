@@ -50,7 +50,6 @@ public class MSFTEmailQService
     /// </summary>
     public async Task<dynamic> ConnectEmail(Guid brokerId, string email, string TenantId, bool AssignAdminLeadsAuto)
     {
-
         var broker = _appDbContext.Brokers
           .Include(b => b.Agency)
           .Include(b => b.ConnectedEmails)

@@ -38,7 +38,7 @@ namespace Web.HTTPClients
                 var length = message.Body.Content.Length;
                 var text = message.Body.Content;
                 text = EmailReducer.Reduce(text,message.From.EmailAddress.Address);
-                string prompt = APIConstants.ParseLeadPrompt2 + text;
+                string prompt = APIConstants.ParseLeadPrompt4 + text;
 
                 StringContent jsonContent = new(
                 JsonSerializer.Serialize(new

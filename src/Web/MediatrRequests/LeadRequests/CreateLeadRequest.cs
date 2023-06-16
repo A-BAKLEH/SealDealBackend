@@ -43,7 +43,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         bool typeExists = Enum.TryParse<LeadType>(dto.leadType, true, out var leadType);
         var leadtype = typeExists ? leadType : LeadType.Unknown;
         var brokerToAssignToId = dto.AssignToSelf ? request.BrokerWhoRequested.Id : dto.AssignToBrokerId;
-        if (!request.BrokerWhoRequested.isAdmin && dto.AssignToSelf == false)
+        if ((!request.BrokerWhoRequested.isAdmin || request.BrokerWhoRequested.isSolo) && dto.AssignToSelf == false)
             throw new CustomBadRequestException("lead has to be assigned to self for broker who is not admin", ProblemDetailsTitles.AssignToSelf);
 
         var timestamp = DateTime.UtcNow;

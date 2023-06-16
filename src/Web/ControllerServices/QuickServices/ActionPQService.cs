@@ -185,7 +185,7 @@ public class ActionPQService
                   TemplateId = aa.DataTemplateId
               }),
               ActiveOnXLeads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Count(),
-              leads = a.ActionPlanAssociations.Select(apa => new LeadNameIdDTO { LeadId = apa.LeadId, firstName = apa.lead.LeadFirstName, lastName = apa.lead.LeadLastName })
+              leads = a.ActionPlanAssociations.Where(apa => apa.ThisActionPlanStatus == ActionPlanStatus.Running).Select(apa => new LeadNameIdDTO { LeadId = apa.LeadId, firstName = apa.lead.LeadFirstName, lastName = apa.lead.LeadLastName })
           })
           .OrderByDescending(a => a.ActiveOnXLeads)
           .ToListAsync();

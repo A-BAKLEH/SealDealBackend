@@ -20,7 +20,10 @@ var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformation
 builder.Host.UseSerilog((_, config) =>
   config.MinimumLevel.Information()
   .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", Serilog.Events.LogEventLevel.Warning)
-  .MinimumLevel.Override("Microsoft.Azure.SignalR.Connections.Client.Internal.WebSocketsTransport", Serilog.Events.LogEventLevel.Warning)
+  .MinimumLevel.Override("Microsoft.Azure.SignalR", Serilog.Events.LogEventLevel.Fatal)
+  .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", Serilog.Events.LogEventLevel.Fatal)
+  .MinimumLevel.Override("Microsoft.IdentityModel.LoggingExtensions.IdentityLoggerAdapter", Serilog.Events.LogEventLevel.Fatal)
+  //.MinimumLevel.Override("Microsoft.Azure.SignalR.Connections.Client.Internal.WebSocketsTransport", Serilog.Events.LogEventLevel.Warning)
   .WriteTo.Seq("http://localhost:5341", restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
   .WriteTo.Console()
   .Enrich.FromLogContext()

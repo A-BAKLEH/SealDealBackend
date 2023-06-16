@@ -163,7 +163,7 @@ public class EmailProcessor
 
     public async Task CheckEmailSyncAsync(Guid SubsId, string tenantId)
     {
-        return;
+        //return;
         //ADDCACHE
         if (StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
         {
@@ -621,7 +621,7 @@ public class EmailProcessor
                 if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 //relevant for brokers and admins who assigned lead to another broker or themselve
                 else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
-                if (exists)
+                if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
                     leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, Message>(LeadProviderDBRecordsTask.Item1.Result, LeadProviderDBRecordsTask.Item2));
@@ -652,7 +652,7 @@ public class EmailProcessor
                 if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 //relevant for brokers and admins who assigned lead to another broker or themselve
                 else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
-                if (exists)
+                if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
                     leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, Message>(UnknownDBRecordsTask.Item1.Result, UnknownDBRecordsTask.Item2));
