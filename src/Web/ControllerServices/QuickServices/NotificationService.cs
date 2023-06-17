@@ -308,7 +308,7 @@ public class NotificationService
             AppEventID = e.Id,
             EventType = e.EventType.ToString(),
             EventTimeStamp = e.EventTimeStamp,
-            Props = e.Props
+            Kes = e.Props
         }));
 
         CompleteDashboardDTO.LeadRelatedNotifs = CompleteDashboardDTO.LeadRelatedNotifs.OrderByDescending(l => l.MostRecentEventOrEmailTime).ToList();
@@ -432,7 +432,7 @@ public class NotificationService
             AppEventID = e.Id,
             EventType = e.EventType.ToString(),
             EventTimeStamp = e.EventTimeStamp,
-            Props = e.Props
+            Kes = e.Props
         }));
 
         CompleteDashboardDTO.LeadRelatedNotifs = CompleteDashboardDTO.LeadRelatedNotifs.OrderByDescending(l => l.MostRecentEventOrEmailTime).ToList();
