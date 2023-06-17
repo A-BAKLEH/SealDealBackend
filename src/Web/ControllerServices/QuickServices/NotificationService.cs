@@ -195,7 +195,7 @@ public class NotificationService
         var AppEventsTask = AppEventsContext.AppEvents
             //.Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay) && e.Id >= broker.LastSeenAppEventId)
             .Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay))
-            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType,e.ReadByBroker })
+            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType,e.ReadByBroker, e.Props })
             .OrderBy(e => e.ReadByBroker)
             .ThenByDescending(e => e.EventTimeStamp)
             .ToListAsync();
@@ -307,7 +307,8 @@ public class NotificationService
         {
             AppEventID = e.Id,
             EventType = e.EventType.ToString(),
-            EventTimeStamp = e.EventTimeStamp
+            EventTimeStamp = e.EventTimeStamp,
+            Props = e.Props
         }));
 
         CompleteDashboardDTO.LeadRelatedNotifs = CompleteDashboardDTO.LeadRelatedNotifs.OrderByDescending(l => l.MostRecentEventOrEmailTime).ToList();
@@ -339,7 +340,7 @@ public class NotificationService
         var AppEventsTask = AppEventsContext.AppEvents
             //.Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay) && e.Id >= broker.LastSeenAppEventId)
             .Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay))
-            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType, e.ReadByBroker })
+            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType, e.ReadByBroker,e.Props })
             .OrderBy(e => e.ReadByBroker)
             .ThenByDescending(e => e.EventTimeStamp)
             .ToListAsync();
@@ -430,7 +431,8 @@ public class NotificationService
         {
             AppEventID = e.Id,
             EventType = e.EventType.ToString(),
-            EventTimeStamp = e.EventTimeStamp
+            EventTimeStamp = e.EventTimeStamp,
+            Props = e.Props
         }));
 
         CompleteDashboardDTO.LeadRelatedNotifs = CompleteDashboardDTO.LeadRelatedNotifs.OrderByDescending(l => l.MostRecentEventOrEmailTime).ToList();

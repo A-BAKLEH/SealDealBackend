@@ -316,6 +316,11 @@ public class ListingQService
             };
             appEvent.Props[NotificationJSONKeys.ListingId] = listingId.ToString();
             appEvent.Props[NotificationJSONKeys.UserId] = userId.ToString();
+            var add = listing.Address.StreetAddress;
+            var apt = listing.Address.apt;
+            if (!string.IsNullOrWhiteSpace(apt)) add += "apt " + apt;
+            add += ", " + listing.Address.City;
+            appEvent.Props[NotificationJSONKeys.ListingAddress] = add;
             _appDbContext.AppEvents.Add(appEvent);
 
             await _appDbContext.SaveChangesAsync();
@@ -339,6 +344,11 @@ public class ListingQService
                 ReadByBroker = false
             };
             appEvent.Props[NotificationJSONKeys.UserId] = userId.ToString();
+            var add = listing.Address.StreetAddress;
+            var apt = listing.Address.apt;
+            if (!string.IsNullOrWhiteSpace(apt)) add += "apt " + apt;
+            add += ", " + listing.Address.City;
+            appEvent.Props[NotificationJSONKeys.ListingAddress] = add;
             _appDbContext.AppEvents.Add(appEvent);
         }
 

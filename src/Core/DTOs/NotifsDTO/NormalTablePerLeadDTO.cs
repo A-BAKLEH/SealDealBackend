@@ -42,6 +42,7 @@ public class AppEventsNonLeadDTO
     public int AppEventID { get; set; }
     public string EventType { get; set; }
     public DateTime EventTimeStamp { get; set; }
+    public Dictionary<string, string>? Props { get; set; }
 }
 /// <summary>
 /// just leave null lists that arent used

@@ -49,12 +49,12 @@ public enum EventType
     /// </summary>                                           
     LeadStatusChange = 1 << 0, //1
     /// <summary>                                         
-    /// data: listing Id, name or Id of actor who did it 
+    /// data: listing Id, listing address name or Id of actor who did it 
     /// </summary>
     ListingAssigned = 1 << 1, //2
 
     /// <summary>
-    /// listing Id, name or Id of actor who did it
+    /// listing Id, listingaddress name or Id of actor who did it
     /// </summary>
     ListingUnAssigned = 1 << 2, //4
 
