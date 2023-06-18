@@ -25,4 +25,6 @@ public static class ProblemDetailsTitles
     //Action Plans
     public const string AssignToSelf = "AssignToSelf";
     public const string AlreadyAssociatedToLead = "AlreadyAssociatedToLead";
+
+    public const string TranslationFailed = "TranslationFailed ";
 }

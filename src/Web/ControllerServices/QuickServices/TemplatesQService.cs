@@ -7,16 +7,19 @@ using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 using Web.ApiModels.APIResponses.Templates;
 using Web.ApiModels.RequestDTOs;
+using Web.HTTPClients;
 
 namespace Web.ControllerServices.QuickServices;
 
 public class TemplatesQService
 {
     private readonly AppDbContext _appDbContext;
+    private readonly OpenAIGPT35Service _openAi;
 
-    public TemplatesQService(AppDbContext appDbContext)
+    public TemplatesQService(AppDbContext appDbContext, OpenAIGPT35Service openAIGPT35Service)
     {
         _appDbContext = appDbContext;
+        _openAi = openAIGPT35Service;
     }
     public async Task<List<string>> DeleteTemplateAsync(int templateId, string tempType, Guid brokerId)
     {
@@ -83,11 +86,18 @@ public class TemplatesQService
                 Title = dto.TemplateName,
             };
         }
+        var translated = await _openAi.TranslateTemplateAsync(dto.text);
+        if(translated == null) throw new CustomBadRequestException("translation failed", ProblemDetailsTitles.TranslationFailed);
+        var languageTranslation = Language.English;
+        if(!Enum.TryParse<Language>(translated.translationlanguage, out languageTranslation))
+        {
+            if (translated.translationlanguage.ToLower().Contains("en")) languageTranslation = Language.English;
+            else if (translated.translationlanguage.ToLower().Contains("fr")) languageTranslation = Language.French;
+        };
+        if(languageTranslation == Language.English) template.templateLanguage = Language.French;
+        else template.templateLanguage = Language.English;
+        template.translatedText = translated.translatedtext;
 
-        //var language = Language.English;
-        //Enum.TryParse<Language>(dto.TemplateLang, out language);
-
-        //TODO schedule hangfire job to translate and save template in another language
         _appDbContext.Templates.Add(template);
 
        

@@ -67,8 +67,8 @@ public class TestController : ControllerBase
             var template = await _appDbContext.Templates.FirstAsync(t => t.Id == 4);
             var t = (EmailTemplate)template;
 
-            var TemplateText = "hello %firstname% %lastname%,\n I received your email and I look forward to working" +
-                "with you.\n You can contact me whenever you are free at 514 512 9956.\n Have a nice day!";
+            var TemplateText = "hello %firstname% %lastname%,\\n I received your email and I look forward to working" +
+                "with you.\\n You can contact me whenever you are free at 514 512 9956.\\n Have a nice day!";
             string prompt = APIConstants.TranslateTemplatePrompt + TemplateText;
             HttpClient _httpClient = new();
             _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
@@ -94,7 +94,7 @@ public class TestController : ControllerBase
             var jsonResponse = await response.Content.ReadAsStringAsync();
             var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
             //var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
-            var GPTCompletionJSON = rawResponse.choices[0].message.content;
+            var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
             var templateTranslated = JsonSerializer.Deserialize<TemplateTranslationContent>(GPTCompletionJSON);
         }
         catch (Exception ex)

@@ -115,7 +115,20 @@ public class ActionExecuter
 
         _adGraphWrapper.CreateClient(connEmail.tenantId);
 
-        var replacedText = ReplaceTemplateVariables(template.templateText, lead);
+        var leadLang = lead.Language;
+        string templateTextToUse = "";
+        if(leadLang == Language.English)
+        {
+            if (template.templateLanguage == Language.English) templateTextToUse = template.templateText;
+            else templateTextToUse = template.translatedText;
+        }
+        else
+        {
+            if (template.templateLanguage == Language.French) templateTextToUse = template.templateText;
+            else templateTextToUse = template.translatedText;
+        }
+
+        var replacedText = ReplaceTemplateVariables(templateTextToUse, lead);
 
         //TODO replace variables in template text
         var tag = ActionPlanAssociation.Id.ToString() + "x" + template.Id;
@@ -191,7 +204,20 @@ public class ActionExecuter
           .FirstAsync(b => b.Id == brokerId);
 
         var template = (SmsTemplate)broker.Templates.First();
+        var leadLang = lead.Language;
+        string templateTextToUse = "";
+        if (leadLang == Language.English)
+        {
+            if (template.templateLanguage == Language.English) templateTextToUse = template.templateText;
+            else templateTextToUse = template.translatedText;
+        }
+        else
+        {
+            if (template.templateLanguage == Language.French) templateTextToUse = template.templateText;
+            else templateTextToUse = template.translatedText;
+        }
 
+        var replacedText = ReplaceTemplateVariables(templateTextToUse, lead);
         // todo SEND
         template.TimesUsed++;
         var SmsSentNotif = new AppEvent

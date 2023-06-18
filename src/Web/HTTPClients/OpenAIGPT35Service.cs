@@ -22,7 +22,7 @@ namespace Web.HTTPClients
             _logger = logger;
         }
 
-        public async Task TranslateTemplateAsync(string TemplateText)
+        public async Task<TemplateTranslationContent> TranslateTemplateAsync(string TemplateText)
         {
             try
             {
@@ -47,26 +47,9 @@ namespace Web.HTTPClients
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
-                //var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
-                var GPTCompletionJSON = rawResponse.choices[0].message.content;
+                var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
                 var templateTranslated = JsonSerializer.Deserialize<TemplateTranslationContent>(GPTCompletionJSON);
-
-                //res = new OpenAIResponse
-                //{
-                //    Success = true,
-                //    ProcessedMessage = message
-                //};
-                ////email doesnt contain lead
-                //if (LeadParsed.NotFound == 1)
-                //{
-                //    res.HasLead = false;
-                //    res.EmailTokensUsed = rawResponse.usage.prompt_tokens - APIConstants.PromptTokensCount;
-                //}
-                //else
-                //{
-                //    res.HasLead = true;
-                //    res.content = LeadParsed;
-               // }
+                return templateTranslated;
             }
             catch (HttpRequestException e)
             {
@@ -93,6 +76,7 @@ namespace Web.HTTPClients
                 //_logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
                 //    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail, e.Message + e.StackTrace);
             }
+            return null;
         }
         /// <summary>
         /// if leadProvdier is null then email is from unknown sender
