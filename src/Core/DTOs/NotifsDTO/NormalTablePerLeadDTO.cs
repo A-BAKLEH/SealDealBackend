@@ -89,10 +89,11 @@ public class NormalTableLeadEmailEventDTO
 
 public class PriorityTableLeadNotifDTO
 {
-    public int NotifID { get; set; }
+    //public int NotifID { get; set; }
     public byte Priority { get; set; }
     public string EventType { get; set; }
-    public string? EmailID { get; set; }
+    public byte count { get; set; }
+    //public string? EmailID { get; set; }
     public DateTime EventTimeStamp { get; set; }
 }
 

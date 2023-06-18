@@ -42,11 +42,21 @@ public class ActionPQService
         };
 
         var broker = await _appDbContext.Brokers
-            .Include(b => b.ActionPlans.Where(ap => ap.Id == ActionPlanId))
+            .Include(b => b.ActionPlans)
             .FirstAsync(b => b.Id == brokerID);
 
-        broker.ActionPlans[0].Triggers = trigger;
-
+        var thisActionPlan = broker.ActionPlans.First(ap => ap.Id == ActionPlanId);
+        if (trigger == EventType.LeadAssignedToYou)
+        {         
+            if (thisActionPlan.isActive && broker.ActionPlans.Any(ap => ap.Id != ActionPlanId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou)))
+            {
+                throw new CustomBadRequestException("there is at least one other workflow that has an automatic trigger of" +
+                    "LeadAssigned and is active", ProblemDetailsTitles.InvalidInput);
+            }
+            thisActionPlan.StopPlanOnInteraction = true;
+        }
+        thisActionPlan.Triggers = trigger;
+        
         if (!broker.ListenForActionPlans.HasFlag(trigger))
         {
             broker.ListenForActionPlans |= trigger;
@@ -55,11 +65,6 @@ public class ActionPQService
     }
     public async Task ToggleActiveTriggerAsync(Guid brokerId, bool Toggle, int ActionPlanId)
     {
-        await _appDbContext.ActionPlans
-            .Where(a => a.Id == ActionPlanId && a.BrokerId == brokerId)
-            .ExecuteUpdateAsync(setters =>
-        setters.SetProperty(a => a.isActive, Toggle));
-
         if (Toggle == false)
         {
             var ActionPlanAssociations = await _appDbContext.ActionPlanAssociations
@@ -108,14 +113,22 @@ public class ActionPQService
         else
         {
             var broker = await _appDbContext.Brokers
-            .Include(b => b.ActionPlans.Where(ap => ap.Id == ActionPlanId))
+            .Include(b => b.ActionPlans)
             .FirstAsync(b => b.Id == brokerId);
-            if (!broker.ListenForActionPlans.HasFlag(broker.ActionPlans[0].Triggers))
+            if(broker.ActionPlans.Any(ap => ap.Id != ActionPlanId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou)))
+            {
+                throw new CustomBadRequestException("there is at least one other workflow that has an automatic trigger of" +
+                    "LeadAssigned and is active", ProblemDetailsTitles.InvalidInput);
+            }
+            if (!broker.ListenForActionPlans.HasFlag(broker.ActionPlans.First(ap => ap.Id == ActionPlanId).Triggers))
             {
                 broker.ListenForActionPlans |= broker.ActionPlans[0].Triggers;
             }
         }
-
+        await _appDbContext.ActionPlans
+            .Where(a => a.Id == ActionPlanId && a.BrokerId == brokerId)
+            .ExecuteUpdateAsync(setters =>
+        setters.SetProperty(a => a.isActive, Toggle));
         await _appDbContext.SaveChangesAsync();
     }
 
@@ -176,6 +189,8 @@ public class ActionPQService
               StopPlanOnInteraction = a.StopPlanOnInteraction,
               TimeCreated = a.TimeCreated,
               FlagTriggers = a.Triggers,
+              TimesUsed = a.TimesUsed,
+              TimesSuccess = a.TimesSuccess,
               Actions = a.Actions.OrderBy(a => a.ActionLevel).Select(aa => new ActionDTO
               {
                   actionType = aa.ActionType.ToString(),
@@ -190,7 +205,7 @@ public class ActionPQService
           .OrderByDescending(a => a.ActiveOnXLeads)
           .ToListAsync();
         var TemplateIds = actionPlans.SelectMany(a => a.Actions).Select(a => a.TemplateId).Where(t => t != null).Distinct().ToList();
-        if(TemplateIds.Any())
+        if (TemplateIds.Any())
         {
             var templateNames = await _appDbContext.Templates
                 .Where(t => t.BrokerId == brokerId && TemplateIds.Contains(t.Id))
@@ -200,7 +215,7 @@ public class ActionPQService
             {
                 foreach (var action in actionPlan.Actions)
                 {
-                    if(action.TemplateId != null) action.TemplateName = templateNames.First(t => t.Id == action.TemplateId).Title;
+                    if (action.TemplateId != null) action.TemplateName = templateNames.First(t => t.Id == action.TemplateId).Title;
                 }
             }
         }
@@ -225,6 +240,16 @@ public class ActionPQService
             default:
                 throw new CustomBadRequestException("invalid trigger", ProblemDetailsTitles.InvalidInput);
         };
+        if(trigger == EventType.LeadAssignedToYou)
+        {
+            var otherActionPlanExists = await _appDbContext.ActionPlans
+                .Where(ap => ap.BrokerId == brokerId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou))
+                .AnyAsync();
+            if(otherActionPlanExists)
+            {
+                throw new CustomBadRequestException("you can only have one action plan that is triggered by lead assignment", ProblemDetailsTitles.InvalidInput);
+            }
+        }
         if (dto.FirstActionDelay != null)
         {
             var delays = dto.FirstActionDelay.Trim().Split(':');
@@ -420,6 +445,7 @@ public class ActionPQService
                 {
                     HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, apProjection.firstAction.Id, apProjection.firstAction.ActionLevel, dto.ActionPlanID, null));
                 }
+                actionTracker.HangfireJobId = HangfireJobId;
             }
             catch (Exception ex)
             {
@@ -430,12 +456,30 @@ public class ActionPQService
                 lead.HasActionPlanToStop = OldHasActionPlanToStop;
                 failedIDs.Add(lead.Id);
             }
-            actionTracker.HangfireJobId = HangfireJobId;
         }
         //If this fails, ApProcessor's DoActionAsync method verifies if ActionPlanAssociation exists
         //at beginning.
         //But if Hangfire scheduling fails there needs to be a way other than removing everything
         await _appDbContext.SaveChangesAsync();
+        bool saved = false;
+        byte count = 0;
+        var NewQuant = leads.Count;
+        while (!saved && count <= 3)
+        {
+            try
+            {
+                count++;
+                await _appDbContext.ActionPlans.Where(ap => ap.Id == dto.ActionPlanID)
+                .ExecuteUpdateAsync(setters =>
+                setters.SetProperty(e => e.TimesUsed, e => e.TimesUsed + NewQuant));
+                saved = true;
+            }
+            catch (Exception ex)
+            {
+                await Task.Delay(300);
+            }
+        }
+
         return new ActionPlanStartDTO { AlreadyRunningIDs = AlreadyRunningIDs, errorIDs = failedIDs };
     }
 

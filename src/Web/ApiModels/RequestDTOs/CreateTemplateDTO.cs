@@ -2,6 +2,8 @@
 using System.ComponentModel.DataAnnotations;
 public class CreateTemplateDTO
 {
+    //[Required(AllowEmptyStrings = false)]
+    //public string TemplateLang { get; set; }
   /// <summary>
   /// "e" for email, "s" for sms
   /// </summary>

@@ -41,6 +41,8 @@ public class ActionPlan : Entity<int>
     /// can be overriden for a spceific lead with APAssociation's Custom Delay
     /// </summary>
     public string? FirstActionDelay { get; set; }
+    public int TimesUsed { get; set; } = 0;
+    public int TimesSuccess { get; set; } = 0;
     public List<ActionPlanAction> Actions { get; set; }
     public List<ActionPlanAssociation> ActionPlanAssociations { get; set; }
 

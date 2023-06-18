@@ -155,13 +155,13 @@ public class NotificationService
             .ToListAsync();
 
             var Notifs = await NotifsTask;
-            DashboardPerLeadDTO.PriorityNotifs = Notifs.Select(n => new PriorityTableLeadNotifDTO
+            var groupedByType = Notifs.GroupBy(n => n.NotifType);
+            DashboardPerLeadDTO.PriorityNotifs = groupedByType.Select(n => new PriorityTableLeadNotifDTO
             {
-                NotifID = n.Id,
-                Priority = n.priority,
-                EventType = n.NotifType.ToString(),
-                EmailID = n.EventId,
-                EventTimeStamp = n.CreatedTimeStamp
+                Priority = n.First().priority,
+                EventType = n.Key.ToString(),
+                EventTimeStamp = n.First().CreatedTimeStamp,
+                count = (byte)(n.Count() > 127 ? 127 : n.Count()),
             });
             DashboardPerLeadDTO.HighestPriority = DashboardPerLeadDTO.PriorityNotifs.FirstOrDefault()?.Priority;
         }
@@ -275,16 +275,21 @@ public class NotificationService
                     Received = e.TimeReceived,
                     RepliedTo = e.RepliedTo
                 }),
-                PriorityNotifs = Notifs.FirstOrDefault(g => g.Key == lead.LeadId)?.Select(n => new PriorityTableLeadNotifDTO
-                {
-                    NotifID = n.Id,
-                    Priority = n.priority,
-                    EventType = n.NotifType.ToString(),
-                    EmailID = n.EventId,
-                    EventTimeStamp = n.CreatedTimeStamp
-                })
             };
-
+            var leadNotifs = Notifs.FirstOrDefault(g => g.Key == lead.LeadId);
+            if(leadNotifs != null)
+            {
+                var groupedByType = leadNotifs.AsEnumerable().GroupBy(n => n.NotifType);
+                dtoToAdd.PriorityNotifs = groupedByType.Select(n => new PriorityTableLeadNotifDTO
+                {
+                    Priority = n.First().priority,
+                    EventType = n.Key.ToString(),
+                    EventTimeStamp = n.First().CreatedTimeStamp,
+                    count = (byte)(n.Count() > 127 ? 127 : n.Count()),
+                });
+                dtoToAdd.HighestPriority = dtoToAdd.PriorityNotifs.FirstOrDefault()?.Priority;
+            }
+                              
             if (dtoToAdd.AppEvents != null || dtoToAdd.EmailEvents != null)
             {
                 DateTime first = DateTime.MinValue;
@@ -298,8 +303,6 @@ public class NotificationService
                 dtoToAdd.MostRecentEventOrEmailTime = (first) > (second) ?
                     (first) : (second);
             }
-            if (dtoToAdd.PriorityNotifs != null)
-                dtoToAdd.HighestPriority = dtoToAdd.PriorityNotifs.FirstOrDefault()?.Priority;
 
             CompleteDashboardDTO.LeadRelatedNotifs.Add(dtoToAdd);
         }
@@ -487,16 +490,20 @@ public class NotificationService
                 LeadEmail = lead.LeadEmail,
                 LeadStatus = lead.LeadStatus,
                 LastTimeYouViewedLead = broker.isAdmin ? null : lead.LastTimeYouViewedLead,
-                PriorityNotifs = Notifs.FirstOrDefault(g => g.Key == lead.LeadId)?.Select(n => new PriorityTableLeadNotifDTO
-                {
-                    NotifID = n.Id,
-                    Priority = n.priority,
-                    EventType = n.NotifType.ToString(),
-                    EmailID = n.EventId,
-                    EventTimeStamp = n.CreatedTimeStamp
-                })
             };
-            dtoToAdd.HighestPriority = dtoToAdd.PriorityNotifs?.FirstOrDefault()?.Priority;
+            var leadNotifs = Notifs.FirstOrDefault(g => g.Key == lead.LeadId);
+            if (leadNotifs != null)
+            {
+                var groupedByType = leadNotifs.AsEnumerable().GroupBy(n => n.NotifType);
+                dtoToAdd.PriorityNotifs = groupedByType.Select(n => new PriorityTableLeadNotifDTO
+                {
+                    Priority = n.First().priority,
+                    EventType = n.Key.ToString(),
+                    EventTimeStamp = n.First().CreatedTimeStamp,
+                    count = (byte)(n.Count() > 127 ? 127 : n.Count()),
+                });
+                dtoToAdd.HighestPriority = dtoToAdd.PriorityNotifs.FirstOrDefault()?.Priority;
+            }
 
             CompleteDashboardDTO.LeadRelatedNotifs.Add(dtoToAdd);
         }

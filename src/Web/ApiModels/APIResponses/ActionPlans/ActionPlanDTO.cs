@@ -15,6 +15,8 @@ public class ActionPlanDTO
     public DateTime TimeCreated { get; set; }
     public int ActionsCount { get; set; }
     public int ActiveOnXLeads { get; set; }
+    public int TimesUsed { get; set; }
+    public int TimesSuccess { get; set; }
     public IEnumerable<LeadNameIdDTO> leads { get; set; }
     public IEnumerable<ActionDTO> Actions { get; set; }
 
