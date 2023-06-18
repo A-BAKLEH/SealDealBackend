@@ -1,6 +1,7 @@
 ﻿
 using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
+using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces;
@@ -11,11 +12,15 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
+using Web.HTTPClients;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 
@@ -54,12 +59,43 @@ public class TestController : ControllerBase
         _actionPQService = actionPQService;
     }
 
-    [HttpGet("testlogger")]
-    public async Task<IActionResult> stestLogger()
+    [HttpGet("testtranslation")]
+    public async Task<IActionResult> testtranslation()
     {
         try
         {
-            throw new Exception("test exception");
+            var template = await _appDbContext.Templates.FirstAsync(t => t.Id == 4);
+            var t = (EmailTemplate)template;
+
+            var TemplateText = "hello %firstname% %lastname%,\n I received your email and I look forward to working" +
+                "with you.\n You can contact me whenever you are free at 514 512 9956.\n Have a nice day!";
+            string prompt = APIConstants.TranslateTemplatePrompt + TemplateText;
+            HttpClient _httpClient = new();
+            _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            StringContent jsonContent = new(
+            JsonSerializer.Serialize(new
+            {
+                model = "gpt-3.5-turbo",
+                messages = new List<GPTRequest>
+                {
+                new GPTRequest{role = "user", content = prompt},
+                },
+                temperature = 0,
+            }),
+            Encoding.UTF8,
+            "application/json");
+
+            HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
+            //var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
+            var GPTCompletionJSON = rawResponse.choices[0].message.content;
+            var templateTranslated = JsonSerializer.Deserialize<TemplateTranslationContent>(GPTCompletionJSON);
         }
         catch (Exception ex)
         {

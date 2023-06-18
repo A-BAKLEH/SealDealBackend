@@ -57,4 +57,9 @@ namespace Web.HTTPClients
         public string? Apartment { get; set; }
         public string? Language { get; set; }
     }
+    public class TemplateTranslationContent
+    {
+        public string translationlanguage { get; set; }
+        public string translatedtext { get; set; }
+    }
 }

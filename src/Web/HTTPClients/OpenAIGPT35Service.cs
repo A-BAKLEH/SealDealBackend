@@ -22,7 +22,78 @@ namespace Web.HTTPClients
             _logger = logger;
         }
 
-        
+        public async Task TranslateTemplateAsync(string TemplateText)
+        {
+            try
+            {
+                string prompt = APIConstants.TranslateTemplatePrompt + TemplateText;
+
+                StringContent jsonContent = new(
+                JsonSerializer.Serialize(new
+                {
+                    model = "gpt-3.5-turbo",
+                    messages = new List<GPTRequest>
+                    {
+                new GPTRequest{role = "user", content = prompt},
+                    },
+                    temperature = 0,
+                }),
+                Encoding.UTF8,
+                "application/json");
+
+                HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
+
+                response.EnsureSuccessStatusCode();
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
+                //var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
+                var GPTCompletionJSON = rawResponse.choices[0].message.content;
+                var templateTranslated = JsonSerializer.Deserialize<TemplateTranslationContent>(GPTCompletionJSON);
+
+                //res = new OpenAIResponse
+                //{
+                //    Success = true,
+                //    ProcessedMessage = message
+                //};
+                ////email doesnt contain lead
+                //if (LeadParsed.NotFound == 1)
+                //{
+                //    res.HasLead = false;
+                //    res.EmailTokensUsed = rawResponse.usage.prompt_tokens - APIConstants.PromptTokensCount;
+                //}
+                //else
+                //{
+                //    res.HasLead = true;
+                //    res.content = LeadParsed;
+               // }
+            }
+            catch (HttpRequestException e)
+            {
+                //res = new OpenAIResponse
+                //{
+                //    HasLead = false,
+                //    ErrorMessage = e.Message,
+                //    ErrorType = e.GetType(),
+                //    ProcessedMessage = message
+                //};
+                //_logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
+                //    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail,
+                //    e.Message + " code: " + e.StatusCode + " " + e.StackTrace);
+            }
+            catch (Exception e)
+            {
+                //res = new OpenAIResponse
+                //{
+                //    HasLead = false,
+                //    ErrorMessage = e.Message,
+                //    ErrorType = e.GetType(),
+                //    ProcessedMessage = message
+                //};
+                //_logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
+                //    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail, e.Message + e.StackTrace);
+            }
+        }
         /// <summary>
         /// if leadProvdier is null then email is from unknown sender
         /// </summary>

@@ -113,6 +113,4 @@ public class TemplateController : BaseApiController
         if (names.Any()) return BadRequest(names);
         return Ok();
     }
-
-
 }

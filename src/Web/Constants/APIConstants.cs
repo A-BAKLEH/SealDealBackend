@@ -16,25 +16,14 @@ public class APIConstants
     public const string VerifyEmailAddress = "SealDeal:VerifyEmailAddress";
     public const string SeenOnSealDeal = "SeenOnSealDeal";
 
-    //gpt prompts
-    //public const string LeadProviderPrompt = "if email contains a lead, extract lead's first name,last name,language of correspondence,phone number,email address,property address of interest;and format output as firstName,lastName,Language,phoneNumber,emailAddress,PropertyAddress,StreetNumber; and Display 'null' for unavailable info (get 'StreetNumber' from 'PropertyAddress'). Else output 'no'.email: ";
-    //public const string LeadProviderPrompt = "if email contains a lead, extract lead's first name,last name,language used in email,phone number,email address,property address of interest;and format output as JSON with properties: firstName,lastName,Language,phoneNumber,emailAddress,PropertyAddress,StreetNumber (get 'StreetNumber' from 'PropertyAddress'). Else output '{\"NotFound\":1}'.email: ";
-    public const string ParseLeadPrompt = "if email contains an inquiry from a possible real-estate lead (not an ad or promotional email), extract lead's first name,last name,language used in email,phone number,email address,property address of interest;and format output as JSON with properties: firstName,lastName,Language,phoneNumber,emailAddress,PropertyAddress,StreetAddress,Apartment (get 'StreetAddress' and 'Apartment' from 'PropertyAddress'). Else output '{\"NotFound\":1}'.email: ";
-    public const string ParseLeadPrompt2 = "if email is from a possible" +
-        " real-estate lead (not an ad or promotional email), get lead's first name," +
-        "last name,phone number,email address,property address of interest and what language the email is written in;" +
-        "Format output as only JSON with properties: firstName,lastName,Language,phoneNumber,emailAddress," +
-        "PropertyAddress,StreetAddress,Apartment (get 'StreetAddress' and 'Apartment' from 'PropertyAddress')." +
-        " Else output exactly '{\"NotFound\":1}'.email: ";
-
     //'Not Provided'
-    public const string ParseLeadPrompt3 = "If the email that follows is from a possible" +
-        " real-estate lead and not an ad or promotional email, extract the lead's first name," +
-        "last name,phone number,email address,property address he/she inquired about and isolate this property's street address and apartment number." +
-        "Also determine the language the email is written in." +
-        "Output and format these values as strictly JSON with keys: firstName,lastName,phoneNumber,emailAddress," +
-        "PropertyAddress,StreetAddress,Apartment,Language. Only output values that you are sure about." +
-        " Else if the email is not from a lead,output exactly '{\"NotFound\":1}'.email: ";
+    //public const string ParseLeadPrompt3 = "If the email that follows is from a possible" +
+    //    " real-estate lead and not an ad or promotional email, extract the lead's first name," +
+    //    "last name,phone number,email address,property address he/she inquired about and isolate this property's street address and apartment number." +
+    //    "Also determine the language the email is written in." +
+    //    "Output and format these values as strictly JSON with keys: firstName,lastName,phoneNumber,emailAddress," +
+    //    "PropertyAddress,StreetAddress,Apartment,Language. Only output values that you are sure about." +
+    //    " Else if the email is not from a lead,output exactly '{\"NotFound\":1}'.email: ";
 
     public const string ParseLeadPrompt4 = "If the email that follows is from a possible" +
         " real-estate lead and not an ad or promotional email, extract the lead's first name," +
@@ -43,6 +32,13 @@ public class APIConstants
         "Output and format these values as strictly JSON with keys: firstName,lastName,phoneNumber,emailAddress," +
         "PropertyAddress,StreetAddress,Apartment,Language. Use 'null' for values that do not exist in the email text." +
         " Else if the email is not from a lead,output exactly '{\"NotFound\":1}'.email: ";
+
+    public const string TranslateTemplatePrompt = "If the following email template is in French, translate it to" +
+        "English and if it is in English, translate it to French. Do not change any words enclosed between '%' characters and conserve" +
+        " the paragraph spacing of the original template in your translation.Only output the translated version and its language," +
+        "and your output must be formatted strictly as one JSON object with" +
+        "properties 'translatedtext' and 'translationlanguage', where 'translatedtext' is your translation and 'translationlanguage' is the language of the translated template." +
+        "Here is the email template: ";
 
     //property address of interest
     //(get 'StreetAddress' and 'Apartment' from 'PropertyAddress')

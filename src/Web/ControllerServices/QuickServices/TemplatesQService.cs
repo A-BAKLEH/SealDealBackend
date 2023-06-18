@@ -1,5 +1,6 @@
 ﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.BrokerAggregate.Templates;
+using Core.Domain.LeadAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -68,7 +69,7 @@ public class TemplatesQService
                 Modified = DateTime.UtcNow,
                 templateText = dto.text,
                 TimesUsed = 0,
-                Title = dto.TemplateName
+                Title = dto.TemplateName,
             };
         }
         else
@@ -82,7 +83,14 @@ public class TemplatesQService
                 Title = dto.TemplateName,
             };
         }
+
+        //var language = Language.English;
+        //Enum.TryParse<Language>(dto.TemplateLang, out language);
+
+        //TODO schedule hangfire job to translate and save template in another language
         _appDbContext.Templates.Add(template);
+
+       
         await _appDbContext.SaveChangesAsync();
         //return template;
         return template.MapToDTO();

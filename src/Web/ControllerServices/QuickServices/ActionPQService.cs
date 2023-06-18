@@ -117,8 +117,8 @@ public class ActionPQService
             .FirstAsync(b => b.Id == brokerId);
             if(broker.ActionPlans.Any(ap => ap.Id != ActionPlanId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou)))
             {
-                throw new CustomBadRequestException("there is at least one other workflow that has an automatic trigger of" +
-                    "LeadAssigned and is active", ProblemDetailsTitles.InvalidInput);
+                throw new CustomBadRequestException("there is at least one other active workflow that has an automatic trigger of" +
+                    "Lead Assigned", ProblemDetailsTitles.InvalidInput);
             }
             if (!broker.ListenForActionPlans.HasFlag(broker.ActionPlans.First(ap => ap.Id == ActionPlanId).Triggers))
             {
@@ -240,14 +240,14 @@ public class ActionPQService
             default:
                 throw new CustomBadRequestException("invalid trigger", ProblemDetailsTitles.InvalidInput);
         };
-        if(trigger == EventType.LeadAssignedToYou)
+        if(trigger == EventType.LeadAssignedToYou && dto.ActivateNow)
         {
             var otherActionPlanExists = await _appDbContext.ActionPlans
                 .Where(ap => ap.BrokerId == brokerId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou))
                 .AnyAsync();
             if(otherActionPlanExists)
             {
-                throw new CustomBadRequestException("you can only have one action plan that is triggered by lead assignment", ProblemDetailsTitles.InvalidInput);
+                throw new CustomBadRequestException("you can only have one active action plan that is triggered by lead assignment", ProblemDetailsTitles.InvalidInput);
             }
         }
         if (dto.FirstActionDelay != null)
@@ -315,7 +315,7 @@ public class ActionPQService
         }
 
         //if action plan has an automatic trigger, add it to broker's NotifsForActionPlans
-        if (actionPlan.Triggers != EventType.None)
+        if (actionPlan.Triggers != EventType.None && dto.ActivateNow)
         {
             var broker = await _appDbContext.Brokers.FirstAsync(b => b.Id == brokerId);
             if (!broker.ListenForActionPlans.HasFlag(actionPlan.Triggers))
@@ -323,7 +323,6 @@ public class ActionPQService
                 broker.ListenForActionPlans |= actionPlan.Triggers;
             }
         }
-
         _appDbContext.ActionPlans.Add(actionPlan);
         await _appDbContext.SaveChangesAsync();
 
