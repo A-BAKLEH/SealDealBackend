@@ -34,7 +34,7 @@ public class APIConstants
         " Else if the email is not from a lead,output exactly '{\"NotFound\":1}'.email: ";
 
     public const string TranslateTemplatePrompt = "If the following email template is in French, translate it to" +
-        "English and if it is in English, translate it to French. Do not change any words enclosed between '%' characters and conserve" +
+        "English and if it is in English, translate it to French. Do not change any words enclosed between '$' characters and conserve" +
         " the paragraph spacing of the original template in your translation.Only output the translated version and its language," +
         "and your output must be formatted strictly as one JSON object with" +
         "properties 'translatedtext' and 'translationlanguage', where 'translatedtext' is your translation and 'translationlanguage' is the language of the translated template." +

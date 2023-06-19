@@ -3,6 +3,7 @@ using Core.Domain.ActionPlanAggregate;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
+using Hangfire;
 using Hangfire.Server;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ public class APProcessor
     /// <param name="ActionId"></param>
     /// <param name="ActionPlanId"></param>
     /// <returns></returns>
+    [DisableConcurrentExecution(300)]
     public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId, PerformContext performContext)
     {
         var ActionPlanAssociation = await _appDbContext.ActionPlanAssociations

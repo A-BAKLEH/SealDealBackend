@@ -40,11 +40,29 @@ public class TemplatesQService
 
     public async Task<TemplateDTO> UpdateTemplateAsync(UpdateTemplateDTO dto, Guid brokerId)
     {
-        dynamic template = await _appDbContext.Templates.FirstAsync(t => t.Id == dto.TemplateId && t.BrokerId == brokerId);
-
-        if (dto.text != null) template.templateText = dto.text;
+        var template = await _appDbContext.Templates.FirstAsync(t => t.Id == dto.TemplateId && t.BrokerId == brokerId);
+        if (dto.text != null && dto.text != template.templateText)
+        {
+            var translated = await _openAi.TranslateTemplateAsync(dto.text);
+            if (translated == null) throw new CustomBadRequestException("translation failed", ProblemDetailsTitles.TranslationFailed);
+            var languageTranslation = Language.English;
+            if (!Enum.TryParse<Language>(translated.translationlanguage, out languageTranslation))
+            {
+                if (translated.translationlanguage.ToLower().Contains("en")) languageTranslation = Language.English;
+                else if (translated.translationlanguage.ToLower().Contains("fr")) languageTranslation = Language.French;
+            };
+            if (languageTranslation == Language.English) template.templateLanguage = Language.French;
+            else template.templateLanguage = Language.English;
+            template.translatedText = translated.translatedtext;
+            template.templateText = dto.text;
+        }
         if (dto.TemplateName != null) template.Title = dto.TemplateName;
-        if (dto.TemplateType == "e" && dto.subject != null) template.EmailTemplateSubject = dto.subject;
+        if (dto.TemplateType == "e" && dto.subject != null && template is EmailTemplate)
+        {
+            //TODO translate
+            var temp = (EmailTemplate)template;
+            temp.EmailTemplateSubject = dto.subject;
+        }
         template.Modified = DateTime.UtcNow;
         await _appDbContext.SaveChangesAsync();
         return template.MapToDTO();

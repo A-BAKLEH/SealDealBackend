@@ -63,15 +63,16 @@ public class ActionExecuter
 
     public string ReplaceTemplateVariables(string input, Lead lead)
     {
-        //string pattern = @"\$\w+\$"; // Pattern to match words between $$ signs
-        string pattern = @"%(\w+)%";
+        string pattern = @"\$(\w+)\$"; // Pattern to match words between $$ signs
+        //string pattern = @"%(\w+)%";
         //MatchCollection matches = Regex.Matches(input, pattern);
         //var builder = new StringBuilder(input);
         var match = Regex.Match(input, pattern);
         while (match.Success)
         {
             string word = match.Groups[1].Value;
-            var wordWithoutDollards = word.Replace("%", "");
+            //var wordWithoutDollards = word.Replace("%", "");
+            var wordWithoutDollards = word.Replace("$", "");
             var index = match.Groups[1].Index;
             var replacementValue = "";
             switch (wordWithoutDollards)
@@ -85,8 +86,8 @@ public class ActionExecuter
                 default:
                     break;
             }
-            input = input.Remove(index, word.Length);
-            input = input.Insert(index, replacementValue);
+            input = input.Remove(index-1, word.Length+2);
+            input = input.Insert(index-1, replacementValue);
 
             match = Regex.Match(input, pattern);
         }

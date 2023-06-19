@@ -367,7 +367,7 @@ public class ActionPQService
         }
         if (AlreadyRunningIDs.Count == leads.Count)
         {
-            throw new CustomBadRequestException("Action Plan Already Associated with provided leads", ProblemDetailsTitles.AlreadyAssociatedToLead);
+            throw new CustomBadRequestException("Workflow Already Associated with provided leads", ProblemDetailsTitles.AlreadyAssociatedToLead);
         }
         leads.RemoveAll(l => AlreadyRunningIDs.Contains(l.Id));
         var timeNow = DateTime.UtcNow;
@@ -383,7 +383,7 @@ public class ActionPQService
               firstAction = ap.Actions.Select(fa => new { fa.ActionLevel, fa.Id }).First(a => a.ActionLevel == 1)
           })
           .FirstAsync(app => app.Id == dto.ActionPlanID);
-        if (!apProjection.isActive) throw new CustomBadRequestException("Action Plan Inactive", ProblemDetailsTitles.ActionPlanInactive);
+        if (!apProjection.isActive) throw new CustomBadRequestException("Workflow Inactive", ProblemDetailsTitles.ActionPlanInactive);
         var FirstActionDelay = dto.customDelay ?? apProjection.FirstActionDelay;
         var delays = FirstActionDelay?.Split(':');
         TimeSpan timespan = TimeSpan.Zero;

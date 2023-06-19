@@ -6,12 +6,12 @@ using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces;
 using Hangfire;
+using Humanizer;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -56,7 +56,25 @@ public class TestController : ControllerBase
         _templatesQService = templatesQService;
         _brokerTagsQService = brokerTagsQService;
         _adGraphWrapper = aDGraph;
-        _actionPQService = actionPQService;
+        _actionPQService = actionPQService;  
+    }
+
+    [HttpGet("testtemplateAbstract")]
+    public async Task<IActionResult> testtemplateAbstract()
+    {
+        var template = await _appDbContext.Templates.FirstAsync(t => t.Id == 6);
+
+        //if (dto.text != null && dto.text != template.templateText) template.templateText = dto.text;
+        //if (dto.TemplateName != null) template.Title = dto.TemplateName;
+        //template.EmailTemplateSubject = dto.subject;
+        if (template is EmailTemplate)
+        {
+            var template2 = (EmailTemplate)template;
+            template2.EmailTemplateSubject = "changed subject";
+        }
+        template.Modified = DateTime.UtcNow;
+        await _appDbContext.SaveChangesAsync();
+        return Ok();
     }
 
     [HttpGet("testtranslation")]
