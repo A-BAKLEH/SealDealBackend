@@ -22,6 +22,49 @@ namespace Web.HTTPClients
             _logger = logger;
         }
 
+        public async Task<string> TranslateSubjectAsync(string subject, string targetLanguage)
+        {
+            try
+            {
+                string prompt = string.Format(APIConstants.TranslateSubjectPrompt, targetLanguage) + subject;
+
+                StringContent jsonContent = new(
+                JsonSerializer.Serialize(new
+                {
+                    model = "gpt-3.5-turbo",
+                    messages = new List<GPTRequest>
+                    {
+                new GPTRequest{role = "user", content = prompt},
+                    },
+                    temperature = 0,
+                }),
+                Encoding.UTF8,
+                "application/json");
+
+                HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
+
+                response.EnsureSuccessStatusCode();
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
+                var GPTCompletion = rawResponse.choices[0].message.content.Replace("\n", "").Trim();
+                return GPTCompletion;
+            }
+            catch (HttpRequestException e)
+            {
+                //res = new OpenAIResponse
+                //{
+                //    HasLead = false,
+                //    ErrorMessage = e.Message,
+                //    ErrorType = e.GetType(),
+                //    ProcessedMessage = message
+                //};
+                //_logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
+                //    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail,
+                //    e.Message + " code: " + e.StatusCode + " " + e.StackTrace);
+            }
+            return null;
+        }
         public async Task<TemplateTranslationContent> TranslateTemplateAsync(string TemplateText)
         {
             try

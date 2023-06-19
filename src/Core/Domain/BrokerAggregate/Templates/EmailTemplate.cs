@@ -5,7 +5,7 @@ namespace Core.Domain.BrokerAggregate.Templates;
 public class EmailTemplate : Template
 {
     public string EmailTemplateSubject { get; set; }
-
+    public string TranslatedEmailTemplateSubject { get; set; }
     public override TemplateDTO MapToDTO()
     {
         Console.WriteLine("executing from EmailTemplate");

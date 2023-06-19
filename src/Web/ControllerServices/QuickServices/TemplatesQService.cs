@@ -59,9 +59,12 @@ public class TemplatesQService
         if (dto.TemplateName != null) template.Title = dto.TemplateName;
         if (dto.TemplateType == "e" && dto.subject != null && template is EmailTemplate)
         {
-            //TODO translate
             var temp = (EmailTemplate)template;
             temp.EmailTemplateSubject = dto.subject;
+            var targetLang = temp.templateLanguage == Language.English ? "French" : "English";
+            var translatedSubject = await _openAi.TranslateSubjectAsync(temp.EmailTemplateSubject, targetLang);
+            if (string.IsNullOrEmpty(translatedSubject)) throw new CustomBadRequestException("email subject translation failed", "translation failed");
+            temp.TranslatedEmailTemplateSubject = translatedSubject;
         }
         template.Modified = DateTime.UtcNow;
         await _appDbContext.SaveChangesAsync();
@@ -115,10 +118,16 @@ public class TemplatesQService
         if(languageTranslation == Language.English) template.templateLanguage = Language.French;
         else template.templateLanguage = Language.English;
         template.translatedText = translated.translatedtext;
-
-        _appDbContext.Templates.Add(template);
-
-       
+        if(template is EmailTemplate)
+        {
+            var temp = (EmailTemplate) template;
+            var targetLang = temp.templateLanguage == Language.English ? "French" : "English";
+            var translatedSubject = await _openAi.TranslateSubjectAsync(temp.EmailTemplateSubject, targetLang);
+            if (string.IsNullOrEmpty(translatedSubject)) throw new CustomBadRequestException("email subject translation failed", "translation failed");
+            temp.TranslatedEmailTemplateSubject = translatedSubject;
+        }
+        
+        _appDbContext.Templates.Add(template);     
         await _appDbContext.SaveChangesAsync();
         //return template;
         return template.MapToDTO();

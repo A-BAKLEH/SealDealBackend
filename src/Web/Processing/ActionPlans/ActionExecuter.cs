@@ -86,8 +86,8 @@ public class ActionExecuter
                 default:
                     break;
             }
-            input = input.Remove(index-1, word.Length+2);
-            input = input.Insert(index-1, replacementValue);
+            input = input.Remove(index - 1, word.Length + 2);
+            input = input.Insert(index - 1, replacementValue);
 
             match = Regex.Match(input, pattern);
         }
@@ -118,24 +118,40 @@ public class ActionExecuter
 
         var leadLang = lead.Language;
         string templateTextToUse = "";
-        if(leadLang == Language.English)
+        string subjectTextToUse = "";
+        if (leadLang == Language.English)
         {
-            if (template.templateLanguage == Language.English) templateTextToUse = template.templateText;
-            else templateTextToUse = template.translatedText;
+            if (template.templateLanguage == Language.English)
+            {
+                templateTextToUse = template.templateText;
+                subjectTextToUse = template.EmailTemplateSubject;
+            }
+            else
+            {
+                templateTextToUse = template.translatedText;
+                subjectTextToUse = template.TranslatedEmailTemplateSubject;
+            }
         }
         else
         {
-            if (template.templateLanguage == Language.French) templateTextToUse = template.templateText;
-            else templateTextToUse = template.translatedText;
+            if (template.templateLanguage == Language.French)
+            {
+                templateTextToUse = template.templateText;
+                subjectTextToUse = template.EmailTemplateSubject;
+            }
+            else
+            {
+                templateTextToUse = template.translatedText;
+                subjectTextToUse = template.TranslatedEmailTemplateSubject;
+            }
         }
 
         var replacedText = ReplaceTemplateVariables(templateTextToUse, lead);
 
-        //TODO replace variables in template text
         var tag = ActionPlanAssociation.Id.ToString() + "x" + template.Id;
         var message = new Message
         {
-            Subject = template.EmailTemplateSubject,
+            Subject = subjectTextToUse,
             Body = new ItemBody
             {
                 ContentType = BodyType.Text,

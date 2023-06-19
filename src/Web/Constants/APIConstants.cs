@@ -40,6 +40,9 @@ public class APIConstants
         "properties 'translatedtext' and 'translationlanguage', where 'translatedtext' is your translation and 'translationlanguage' is the language of the translated template." +
         "Here is the email template: ";
 
+    public const string TranslateSubjectPrompt = "Translate the following email subject to" +
+        " {0}. Do not change any words enclosed between '$' characters.Strictly output the translation. Here is the email subject: ";
+
     //property address of interest
     //(get 'StreetAddress' and 'Apartment' from 'PropertyAddress')
     public const int PromptTokensCount = 100; //TODO update later
