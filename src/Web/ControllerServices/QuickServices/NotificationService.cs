@@ -47,7 +47,7 @@ public class NotificationService
         using var NotifContext = _contextFactory.CreateDbContext();
 
         var brokerTask = AppEventsContext.Brokers
-            .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo,b.TimeZoneId })
+            .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo, b.TimeZoneId })
             .FirstAsync(b => b.Id == brokerId);
 
         var leadTask = AppEventsContext.Leads
@@ -73,7 +73,7 @@ public class NotificationService
         var todayStart = todaydate.AddMinutes(0);
         var UTCstartDay = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, todayStart);
 
-        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished |  EventType.ActionPlanStarted;
+        var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted;
         if (broker.isAdmin && !broker.isSolo)
         {
             NormalTableFlags |= EventType.LeadCreated | EventType.YouAssignedtoBroker;
@@ -94,7 +94,7 @@ public class NotificationService
         {
             var AppEventsTask = AppEventsContext.AppEvents
             .Where(e => e.BrokerId == brokerId && e.LeadId == LeadId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay))
-            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType,e.ReadByBroker })
+            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType, e.ReadByBroker })
             .OrderBy(e => e.ReadByBroker)
             .ThenByDescending(e => e.EventTimeStamp)
             .ToListAsync();
@@ -177,7 +177,7 @@ public class NotificationService
         using var NotifContext = _contextFactory.CreateDbContext();
 
         var broker = await AppEventsContext.Brokers
-            .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo,b.TimeZoneId })
+            .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo, b.TimeZoneId })
             .FirstAsync(b => b.Id == brokerId);
 
         var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted;
@@ -195,7 +195,7 @@ public class NotificationService
         var AppEventsTask = AppEventsContext.AppEvents
             //.Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay) && e.Id >= broker.LastSeenAppEventId)
             .Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay))
-            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType,e.ReadByBroker, e.Props })
+            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType, e.ReadByBroker, e.Props })
             .OrderBy(e => e.ReadByBroker)
             .ThenByDescending(e => e.EventTimeStamp)
             .ToListAsync();
@@ -277,7 +277,7 @@ public class NotificationService
                 }),
             };
             var leadNotifs = Notifs.FirstOrDefault(g => g.Key == lead.LeadId);
-            if(leadNotifs != null)
+            if (leadNotifs != null)
             {
                 var groupedByType = leadNotifs.AsEnumerable().GroupBy(n => n.NotifType);
                 dtoToAdd.PriorityNotifs = groupedByType.Select(n => new PriorityTableLeadNotifDTO
@@ -288,17 +288,26 @@ public class NotificationService
                     count = (byte)(n.Count() > 127 ? 127 : n.Count()),
                 });
                 dtoToAdd.HighestPriority = dtoToAdd.PriorityNotifs.FirstOrDefault()?.Priority;
+                dtoToAdd.HasUnseen = true;
             }
-                              
+
             if (dtoToAdd.AppEvents != null || dtoToAdd.EmailEvents != null)
             {
                 DateTime first = DateTime.MinValue;
                 var firstEvent = dtoToAdd.AppEvents?.FirstOrDefault();
-                if (firstEvent != null && !firstEvent.Seen) first = firstEvent.EventTimeStamp;
+                if (firstEvent != null && !firstEvent.Seen)
+                {
+                    first = firstEvent.EventTimeStamp;
+                    dtoToAdd.HasUnseen = true;
+                }
                 //var first = dtoToAdd.AppEvents?.FirstOrDefault()?.EventTimeStamp ?? DateTime.MinValue;
                 DateTime second = DateTime.MinValue;
                 var secondEvent = dtoToAdd.EmailEvents?.FirstOrDefault();
-                if(secondEvent != null && !secondEvent.Seen) second = secondEvent.Received;
+                if (secondEvent != null && !secondEvent.Seen)
+                {
+                    second = secondEvent.Received;
+                    dtoToAdd.HasUnseen = true;
+                }
                 //var second = dtoToAdd.EmailEvents?.FirstOrDefault()?.Received ?? DateTime.MinValue;
                 dtoToAdd.MostRecentEventOrEmailTime = (first) > (second) ?
                     (first) : (second);
@@ -343,7 +352,7 @@ public class NotificationService
         var AppEventsTask = AppEventsContext.AppEvents
             //.Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay) && e.Id >= broker.LastSeenAppEventId)
             .Where(e => e.BrokerId == brokerId && e.NotifyBroker && (!e.ReadByBroker || e.EventTimeStamp >= UTCstartDay))
-            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType, e.ReadByBroker,e.Props })
+            .Select(e => new { e.Id, e.LeadId, e.EventTimeStamp, e.EventType, e.ReadByBroker, e.Props })
             .OrderBy(e => e.ReadByBroker)
             .ThenByDescending(e => e.EventTimeStamp)
             .ToListAsync();
@@ -419,11 +428,19 @@ public class NotificationService
             {
                 DateTime first = DateTime.MinValue;
                 var firstEvent = dtoToAdd.AppEvents?.FirstOrDefault();
-                if (firstEvent != null && !firstEvent.Seen) first = firstEvent.EventTimeStamp;
+                if (firstEvent != null && !firstEvent.Seen)
+                {
+                    first = firstEvent.EventTimeStamp;
+                    dtoToAdd.HasUnseen = true;
+                }
                 //var first = dtoToAdd.AppEvents?.FirstOrDefault()?.EventTimeStamp ?? DateTime.MinValue;
                 DateTime second = DateTime.MinValue;
                 var secondEvent = dtoToAdd.EmailEvents?.FirstOrDefault();
-                if (secondEvent != null && !secondEvent.Seen) second = secondEvent.Received;
+                if (secondEvent != null && !secondEvent.Seen)
+                {
+                    second = secondEvent.Received;
+                    dtoToAdd.HasUnseen = true;
+                }
                 //var second = dtoToAdd.EmailEvents?.FirstOrDefault()?.Received ?? DateTime.MinValue;
                 dtoToAdd.MostRecentEventOrEmailTime = (first) > (second) ?
                     (first) : (second);
@@ -503,6 +520,7 @@ public class NotificationService
                     count = (byte)(n.Count() > 127 ? 127 : n.Count()),
                 });
                 dtoToAdd.HighestPriority = dtoToAdd.PriorityNotifs.FirstOrDefault()?.Priority;
+                dtoToAdd.HasUnseen = true;
             }
 
             CompleteDashboardDTO.LeadRelatedNotifs.Add(dtoToAdd);

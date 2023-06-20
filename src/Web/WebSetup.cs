@@ -8,6 +8,7 @@ using Web.Processing.ActionPlans;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 using Web.Processing.Various;
+using Web.RealTimeNotifs;
 
 namespace Web
 {
@@ -16,6 +17,7 @@ namespace Web
         public static void AddWebServices(this IServiceCollection services)
         {
             services.AddScoped<ActionExecuter>();
+            services.AddScoped<RealTimeNotifSender>();
             services.AddScoped<NotifAnalyzer>();
             services.AddScoped<NotificationService>();
 

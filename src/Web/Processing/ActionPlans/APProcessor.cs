@@ -17,11 +17,13 @@ public class APProcessor
     private readonly AppDbContext _appDbContext;
     private readonly ILogger<APProcessor> _logger;
     public readonly ActionExecuter _actionExecuter;
-    public APProcessor(AppDbContext appDbContext, ActionExecuter actionExecuter, ILogger<APProcessor> logger)
+    private readonly RealTimeNotifSender _realTimeNotif;
+    public APProcessor(AppDbContext appDbContext,RealTimeNotifSender realTimeNotifSender, ActionExecuter actionExecuter, ILogger<APProcessor> logger)
     {
         _appDbContext = appDbContext;
         _logger = logger;
         _actionExecuter = actionExecuter;
+        _realTimeNotif = realTimeNotifSender;
     }
     /// <summary>
     /// Executes Action Plan action for a given ActionPlanAssociation and ActionTracker
@@ -200,6 +202,6 @@ public class APProcessor
         // END---- Handle Next Action DONE--------
 
         // SignalR and push notifs for action-result event + endofActionPlan event
-        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger,brokerId, true, true, null, RTEvents, null);  
+        await _realTimeNotif.SendRealTimeNotifsAsync(_logger,brokerId, true, true, null, RTEvents, null);  
     }
 }

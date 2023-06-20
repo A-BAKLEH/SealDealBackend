@@ -20,8 +20,10 @@ public class LeadAssigned : EventBase
 }
 public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
 {
-    public LeadAssignedHandler(AppDbContext appDbContext, ILogger<LeadAssignedHandler> logger) : base(appDbContext, logger)
+    private readonly RealTimeNotifSender _realTimeNotif;
+    public LeadAssignedHandler(AppDbContext appDbContext, RealTimeNotifSender realTimeNotifSender, ILogger<LeadAssignedHandler> logger) : base(appDbContext, logger)
     {
+        _realTimeNotif = realTimeNotifSender;
     }
 
     public override async Task Handle(LeadAssigned LeadAssignedEvent, CancellationToken cancellationToken)
@@ -124,7 +126,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                 }
                 appEvents.Add(appEvent);
                 //TODO notify broker now if he's online and send PushNotif
-                await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, appEvent.BrokerId, true, true, null, appEvents, null); ;
+                await _realTimeNotif.SendRealTimeNotifsAsync(_logger, appEvent.BrokerId, true, true, null, appEvents, null); ;
             }
             await this.FinishProcessing(appEvent);
         }

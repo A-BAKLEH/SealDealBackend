@@ -19,8 +19,10 @@ public class NotifAnalyzer
     private readonly ILogger<NotifAnalyzer> _logger;
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ADGraphWrapper _aDGraphWrapper;
-    public NotifAnalyzer(IDbContextFactory<AppDbContext> contextFactory, ADGraphWrapper aDGraphWrapper, ILogger<NotifAnalyzer> logger)
+    private readonly RealTimeNotifSender _realTimeNotif;
+    public NotifAnalyzer(IDbContextFactory<AppDbContext> contextFactory,RealTimeNotifSender realTimeNotifSender, ADGraphWrapper aDGraphWrapper, ILogger<NotifAnalyzer> logger)
     {
+        _realTimeNotif = realTimeNotifSender;
         _logger = logger;
         _contextFactory = contextFactory;
         _aDGraphWrapper = aDGraphWrapper;
@@ -355,6 +357,6 @@ public class NotifAnalyzer
         dbcontext.Notifs.AddRange(notifs);
         await dbcontext.SaveChangesAsync();
         //TODO real time notifs, check that email parsing running correctly
-        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, brokerId, true, true, notifs, null, null);
+        await _realTimeNotif.SendRealTimeNotifsAsync(_logger, brokerId, true, true, notifs, null, null);
     }
 }

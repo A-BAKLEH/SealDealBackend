@@ -49,6 +49,7 @@ public class AppEventsNonLeadDTO
 /// </summary>
 public class DashboardPerLeadDTO
 {
+    public bool HasUnseen { get; set; } = false;
     public int LeadId { get; set; }
     public bool LeadUnAssigned { get; set; }
     public string LeadfirstName { get; set; }

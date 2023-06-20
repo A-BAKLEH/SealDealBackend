@@ -35,8 +35,9 @@ public class EmailProcessor
     private readonly IConfigurationSection _configurationSection;
     private readonly OpenAIGPT35Service _GPT35Service;
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly RealTimeNotifSender _realTimeNotif;
     public EmailProcessor(AppDbContext appDbContext, IConfiguration config,
-        ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
+        ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, RealTimeNotifSender realTimeNotif ,ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
     {
         _appDbContext = appDbContext;
         _logger = logger;
@@ -44,6 +45,7 @@ public class EmailProcessor
         _GPT35Service = openAIGPT35Service;
         _configurationSection = config.GetSection("URLs");
         _contextFactory = contextFactory;
+        _realTimeNotif = realTimeNotif;
     }
 
     public void HandleAdminConsentConflict(Guid brokerId, string email)
@@ -833,7 +835,7 @@ public class EmailProcessor
         appevents.AddRange(ActionPlanEvents);
         var emailevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.EmailEvents).ToList();
         emailevents.AddRange(KnownLeadEmailEvents);
-        await RealTimeNotifSender.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true, null, appevents, emailevents);
+        await _realTimeNotif.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true, null, appevents, emailevents);
         return tokens;
     }
 

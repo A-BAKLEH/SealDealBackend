@@ -16,8 +16,10 @@ public class ListingAssigned : EventBase
 
 public class ListingAssignedHandler : EventHandlerBase<ListingAssigned>
 {
-    public ListingAssignedHandler(AppDbContext appDbContext, ILogger<ListingAssignedHandler> logger) : base(appDbContext, logger)
+    private readonly RealTimeNotifSender _realTimeNotif;
+    public ListingAssignedHandler(AppDbContext appDbContext,RealTimeNotifSender realTimeNotifSender , ILogger<ListingAssignedHandler> logger) : base(appDbContext, logger)
     {
+        _realTimeNotif = realTimeNotifSender;
     }
 
     public override async Task Handle(ListingAssigned listingAssignedEvent, CancellationToken cancellationToken)
@@ -32,7 +34,7 @@ public class ListingAssignedHandler : EventHandlerBase<ListingAssigned>
             if (appEvent.ProcessingStatus != ProcessingStatus.Done)
             {
                 //TODO notify broker now if he's online and send PushNotif
-                await RealTimeNotifSender.RealTimeNotifOneEvent(_logger, appEvent.BrokerId, appEvent);
+                await _realTimeNotif.RealTimeNotifOneEvent(_logger, appEvent.BrokerId, appEvent);
             }
             await this.FinishProcessing(appEvent);
         }

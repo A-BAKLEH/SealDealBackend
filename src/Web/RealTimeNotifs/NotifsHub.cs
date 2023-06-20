@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using System.Runtime.ConstrainedExecution;
 using Web.ControllerServices;
 
 namespace Web.RealTimeNotifs;
@@ -18,7 +19,10 @@ public class NotifsHub : Hub
     public async Task Echo(string name, string message) =>
         await Clients.Client(Context.ConnectionId)
                .SendAsync("echo", name, $"{message} (echo from server)");
-
+    //public Task SendPrivateMessage(string user, string message)
+    //{
+    //    return Clients.User(user).SendAsync("ReceiveMessage", message);
+    //}
     public override Task OnConnectedAsync()
     {
         //var id = Guid.Parse(Context.User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);

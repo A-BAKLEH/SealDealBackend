@@ -6,11 +6,11 @@ using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces;
 using Hangfire;
-using Humanizer;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using System.Text;
@@ -23,6 +23,7 @@ using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
+using Web.RealTimeNotifs;
 
 namespace Web.Api.TestingAPI;
 
@@ -42,12 +43,14 @@ public class TestController : ControllerBase
     //private readonly IDistributedCache _distributedCache;
     private readonly BrokerQService _brokerTagsQService;
     private readonly ActionPQService _actionPQService;
+    private readonly IHubContext<NotifsHub> hub;
 
     public TestController(IMediator mediator, ILogger<TestController> logger, ADGraphWrapper aDGraph,
        AppDbContext appDbContext, IB2CGraphService msGraphService, TemplatesQService templatesQService,
        //IDistributedCache _distributedCache,
        BrokerQService brokerTagsQService,
-       ActionPQService actionPQService)
+       ActionPQService actionPQService,
+       IHubContext<NotifsHub> hubContext)
     {
         _mediator = mediator;
         _logger = logger;
@@ -56,9 +59,27 @@ public class TestController : ControllerBase
         _templatesQService = templatesQService;
         _brokerTagsQService = brokerTagsQService;
         _adGraphWrapper = aDGraph;
-        _actionPQService = actionPQService;  
+        _actionPQService = actionPQService;
+        hub = hubContext;   
     }
 
+
+    [HttpGet("testHub")]
+    public async Task<IActionResult> testHub()
+    {
+        //var id = Guid.Parse("576df38e-acdb-4ce5-9323-fb3529245e87");
+        var id = Guid.NewGuid();
+        try
+        {
+            await hub.Clients.User(id.ToString()).SendAsync("ReceiveMessage", "hello from server lmao");
+        }
+        catch(Exception ex)
+        {
+
+        }
+        
+        return Ok();
+    }
     [HttpGet("testtemplateAbstract")]
     public async Task<IActionResult> testtemplateAbstract()
     {
