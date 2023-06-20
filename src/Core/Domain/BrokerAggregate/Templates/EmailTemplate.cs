@@ -18,7 +18,9 @@ public class EmailTemplate : Template
             TimesUsed = TimesUsed,
             Title = Title,
             type = "e",
-            Language = templateLanguage.ToString()
+            Language = templateLanguage.ToString(),
+            translatedSubject = TranslatedEmailTemplateSubject,
+            translatedText = translatedText,
         };
         return dto;
     }

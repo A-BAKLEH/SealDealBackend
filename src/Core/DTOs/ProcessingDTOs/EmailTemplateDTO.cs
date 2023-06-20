@@ -17,6 +17,7 @@ public class TemplateDTO
     public string type { get; set; }
     public int id { get; set; }
     public string templateText { get; set; }
+    public string translatedText { get; set; }
     public DateTime Modified { get; set; }
     public int? TimesUsed { get; set; }
     public string Title { get; set; }
@@ -25,4 +26,5 @@ public class TemplateDTO
     /// just for email
     /// </summary>
     public string? subject { get; set; }
+    public string? translatedSubject { get; set; }
 }

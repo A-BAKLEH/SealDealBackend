@@ -54,7 +54,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     {
                         builder.Configuration.Bind("AzureAdB2C", options);
                         options.TokenValidationParameters.NameClaimType = "name";
-
                         options.Events = new JwtBearerEvents
                         {
                             OnMessageReceived = context =>
@@ -63,7 +62,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
                                 // If the request is for our hub...
                                 var path = context.HttpContext.Request.Path;
-                                Console.WriteLine("request path value :" + path.Value);
                                 if (!string.IsNullOrEmpty(accessToken) &&
                                     //(path.StartsWithSegments("/hubs/notifs")))
                                     (path.StartsWithSegments("/notifs")))

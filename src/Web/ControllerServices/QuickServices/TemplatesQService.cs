@@ -43,28 +43,20 @@ public class TemplatesQService
         var template = await _appDbContext.Templates.FirstAsync(t => t.Id == dto.TemplateId && t.BrokerId == brokerId);
         if (dto.text != null && dto.text != template.templateText)
         {
-            var translated = await _openAi.TranslateTemplateAsync(dto.text);
-            if (translated == null) throw new CustomBadRequestException("translation failed", ProblemDetailsTitles.TranslationFailed);
-            var languageTranslation = Language.English;
-            if (!Enum.TryParse<Language>(translated.translationlanguage, out languageTranslation))
-            {
-                if (translated.translationlanguage.ToLower().Contains("en")) languageTranslation = Language.English;
-                else if (translated.translationlanguage.ToLower().Contains("fr")) languageTranslation = Language.French;
-            };
-            if (languageTranslation == Language.English) template.templateLanguage = Language.French;
-            else template.templateLanguage = Language.English;
-            template.translatedText = translated.translatedtext;
             template.templateText = dto.text;
         }
+        if(dto.translatedText != null && dto.translatedText != template.translatedText)
+        {
+            template.translatedText = dto.translatedText;
+        }
         if (dto.TemplateName != null) template.Title = dto.TemplateName;
-        if (dto.TemplateType == "e" && dto.subject != null && template is EmailTemplate)
+        if (dto.TemplateType == "e" && template is EmailTemplate)
         {
             var temp = (EmailTemplate)template;
-            temp.EmailTemplateSubject = dto.subject;
-            var targetLang = temp.templateLanguage == Language.English ? "French" : "English";
-            var translatedSubject = await _openAi.TranslateSubjectAsync(temp.EmailTemplateSubject, targetLang);
-            if (string.IsNullOrEmpty(translatedSubject)) throw new CustomBadRequestException("email subject translation failed", "translation failed");
-            temp.TranslatedEmailTemplateSubject = translatedSubject;
+            if (dto.subject != null && dto.subject != temp.EmailTemplateSubject)
+                temp.EmailTemplateSubject = dto.subject;
+            if (dto.translatedSubject != null && dto.translatedSubject != temp.TranslatedEmailTemplateSubject)
+                temp.TranslatedEmailTemplateSubject = dto.translatedSubject;
         }
         template.Modified = DateTime.UtcNow;
         await _appDbContext.SaveChangesAsync();

@@ -15,7 +15,8 @@ public class SmsTemplate : Template
             TimesUsed = TimesUsed,
             Title = Title,
             type = "s",
-            Language = templateLanguage.ToString()
+            Language = templateLanguage.ToString(),
+            translatedText = translatedText,
         };
         return dto;
     }
