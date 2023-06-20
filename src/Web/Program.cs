@@ -19,10 +19,10 @@ var builder = WebApplication.CreateBuilder(args);
 var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
 builder.Host.UseSerilog((_, config) =>
   config.MinimumLevel.Information()
-  .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", Serilog.Events.LogEventLevel.Warning)
-  .MinimumLevel.Override("Microsoft.Azure.SignalR", Serilog.Events.LogEventLevel.Fatal)
-  .MinimumLevel.Override("Microsoft.AspNetCore.Authentication", Serilog.Events.LogEventLevel.Fatal)
-  .MinimumLevel.Override("Microsoft.IdentityModel.LoggingExtensions.IdentityLoggerAdapter", Serilog.Events.LogEventLevel.Fatal)
+  //.MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", Serilog.Events.LogEventLevel.Warning)
+  //.MinimumLevel.Override("Microsoft.Azure.SignalR", Serilog.Events.LogEventLevel.Fatal)
+  //.MinimumLevel.Override("Microsoft.AspNetCore.Authentication", Serilog.Events.LogEventLevel.Fatal)
+  //.MinimumLevel.Override("Microsoft.IdentityModel.LoggingExtensions.IdentityLoggerAdapter", Serilog.Events.LogEventLevel.Fatal)
   //.MinimumLevel.Override("Microsoft.Azure.SignalR.Connections.Client.Internal.WebSocketsTransport", Serilog.Events.LogEventLevel.Warning)
   .WriteTo.Seq("http://localhost:5341", restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
   .WriteTo.Console()
@@ -30,7 +30,7 @@ builder.Host.UseSerilog((_, config) =>
   .Enrich.WithProperty("AppVersion", version));
 
 string PostgresconnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireConnection"); 
+var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireConnection");
 builder.Services.AddHangfire(hangfireConnectionString);
 builder.Services.AddInfrastructureServices(builder.Configuration, Assembly.GetExecutingAssembly());
 builder.Services.AddWebServices();
@@ -54,12 +54,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     {
                         builder.Configuration.Bind("AzureAdB2C", options);
                         options.TokenValidationParameters.NameClaimType = "name";
+
+                        options.Events = new JwtBearerEvents
+                        {
+                            OnMessageReceived = context =>
+                            {
+                                var accessToken = context.Request.Query["access_token"];
+
+                                // If the request is for our hub...
+                                var path = context.HttpContext.Request.Path;
+                                Console.WriteLine("request path value :" + path.Value);
+                                if (!string.IsNullOrEmpty(accessToken) &&
+                                    //(path.StartsWithSegments("/hubs/notifs")))
+                                    (path.StartsWithSegments("/notifs")))
+                                {
+                                    // Read the token out of the query string
+                                    context.Token = accessToken;
+                                }
+                                return Task.CompletedTask;
+                            }
+                        };
                     },
-                      options =>
-                      {
-                          builder.Configuration.Bind("AzureAdB2C", options);
-                      }
-                      );
+                    options =>
+                    {
+                        builder.Configuration.Bind("AzureAdB2C", options);
+                    });
 
 builder.Services.AddHttpContextAccessor();
 
@@ -93,7 +112,6 @@ builder.Services.AddProblemDetails(options =>
 //});
 
 builder.Services.AddSignalR().AddAzureSignalR();
-
 
 VariousCons.MainAPIURL = builder.Configuration.GetSection("URLs")["MainAPI"];
 
