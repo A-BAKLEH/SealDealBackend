@@ -19,6 +19,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <PackageReference Include="Hangfire.Dashboard.BasicAuthorization" />
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />
     <PackageReference Include="HtmlAgilityPack" />
     <PackageReference Include="MediatR" />

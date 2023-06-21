@@ -40,4 +40,6 @@ public static class TagConstants
     public const string extendedValueAdding = "extendedValueAdding";
 
     public const string checkSeenAndRepliedTo = "checkSeenAndRepliedTo";
+
+    public const string OutboxCleaner = "outboxCleaner";
 }

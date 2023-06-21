@@ -86,7 +86,7 @@ public class BrokerQService
         //check broker exists, belongs to this agency, is not an admin
         var agency = await _appDbContext.Agencies
           .Include(a => a.AgencyBrokers.Where(b => b.Id == brokerDeleteId && b.isAdmin == false))
-          .ThenInclude(b => b.RecurrentTasks.Where(t => t.taskStatus == Core.Domain.TasksAggregate.HangfireTaskStatus.Scheduled))
+          .ThenInclude(b => b.RecurrentTasks)
           .FirstAsync(a => a.Id == AgencyId);
         if (agency == null || agency.AgencyBrokers.First(b => b.Id == brokerDeleteId) == null
           || agency.AgencyBrokers.First(b => b.Id == brokerDeleteId).isAdmin) throw new CustomBadRequestException("invalid", ProblemDetailsTitles.InvalidInput);

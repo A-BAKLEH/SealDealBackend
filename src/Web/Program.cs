@@ -1,5 +1,5 @@
-﻿using Core.Constants;
-using Hangfire;
+﻿using Hangfire;
+using Hangfire.Dashboard.BasicAuthorization;
 using Hellang.Middleware.ProblemDetails;
 using Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -38,8 +38,11 @@ string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
-      policy => { policy.WithOrigins("http://localhost:3000", "https://localhost:7156")
-          .AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
+      policy =>
+      {
+          policy.WithOrigins("http://localhost:3000", "https://localhost:7156")
+          .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+      });
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -114,8 +117,30 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<NotifsHub>("/notifs");
 app.MapControllers();
-app.MapHangfireDashboard();
-app.Run();
 
+if (app.Environment.IsProduction())
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = new[] { new BasicAuthAuthorizationFilter(
+                    new BasicAuthAuthorizationFilterOptions
+                    {
+                        RequireSsl = false,
+                        SslRedirect = false,
+                        LoginCaseSensitive = true,
+                        Users = new[]
+                        {
+                            new BasicAuthAuthorizationUser
+                            {
+                                Login = app.Configuration.GetSection("Hangfire")["Username"],
+                                PasswordClear = app.Configuration.GetSection("Hangfire")["Password"]
+                            }
+                        }
+                    }) }
+    });
+}
+else app.MapHangfireDashboard();
+
+app.Run();
 //Add-Migration InitialMigrationName -StartupProject Web -Context AppDbContext -Project Infrastructure
 //stripe listen --forward-to https://localhost:7156/api/Webhook/webhook

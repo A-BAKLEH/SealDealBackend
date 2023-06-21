@@ -5,6 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="Azure.Identity" Version="1.8" />
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.0" />
+    <PackageVersion Include="Hangfire.Dashboard.BasicAuthorization" Version="1.0.2" />
     <PackageVersion Include="Hangfire.SqlServer" Version="1.8.0" />
     <PackageVersion Include="Hellang.Middleware.ProblemDetails" Version="6.5.1" />
     <PackageVersion Include="HtmlAgilityPack" Version="1.11.46" />

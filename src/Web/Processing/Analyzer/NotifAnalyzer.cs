@@ -2,6 +2,7 @@
 using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
+using Hangfire.Server;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.CodeAnalysis.VisualBasic.Syntax;
@@ -174,7 +175,7 @@ public class NotifAnalyzer
         }
         return new Tuple<Notif?, DateTime?>(null, newEmailEventAnalyzerLastTimestamp);
     }
-    public async Task AnalyzeNotifsAsync(Guid brokerId)
+    public async Task AnalyzeNotifsAsync(Guid brokerId, PerformContext performContext)
     {
         using var dbcontext = _contextFactory.CreateDbContext();
         var TimeNow = DateTime.UtcNow;

@@ -6,6 +6,7 @@ using Web.HTTPClients;
 using Web.Outbox.Config;
 using Web.Processing.ActionPlans;
 using Web.Processing.Analyzer;
+using Web.Processing.Cleanup;
 using Web.Processing.EmailAutomation;
 using Web.Processing.Various;
 using Web.RealTimeNotifs;
@@ -17,6 +18,8 @@ namespace Web
         public static void AddWebServices(this IServiceCollection services)
         {
             services.AddScoped<ActionExecuter>();
+            services.AddScoped<OutboxCleaner>();
+            services.AddScoped<ResourceCleaner>();
             services.AddScoped<RealTimeNotifSender>();
             services.AddScoped<NotifAnalyzer>();
             services.AddScoped<NotificationService>();

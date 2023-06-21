@@ -1,11 +1,16 @@
 ﻿using Core.Domain.AgencyAggregate;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
+using Core.Domain.TasksAggregate;
 using Core.DTOs;
+using Hangfire;
 using Infrastructure.Data;
 using MediatR;
+using NuGet.Protocol.Plugins;
 using Web.ApiModels.APIResponses.Broker;
 using Web.ControllerServices;
+using Web.Processing.Analyzer;
+using Web.Processing.Cleanup;
 
 namespace Web.MediatrRequests.SignupRequests;
 public class SignupRequest : IRequest<SignedInBrokerDTO>
@@ -23,12 +28,14 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
     private readonly AppDbContext _appDbContext;
     private readonly AuthorizationService _authorizeService;
     private readonly ILogger<SignupRequestHandler> _logger;
+    private readonly IWebHostEnvironment _webHostEnv;
 
-    public SignupRequestHandler(AppDbContext appDbContext, AuthorizationService authorizeService, ILogger<SignupRequestHandler> logger)
+    public SignupRequestHandler(AppDbContext appDbContext, IWebHostEnvironment hostEnvironment, AuthorizationService authorizeService, ILogger<SignupRequestHandler> logger)
     {
         _appDbContext = appDbContext;
         _authorizeService = authorizeService;
         _logger = logger;
+        _webHostEnv = hostEnvironment;
     }
 
     /// <summary>
@@ -50,6 +57,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
 
             return accountWithStatus;
         }
+        using var transaction = await _appDbContext.Database.BeginTransactionAsync();
         var broker = new Broker()
         {
             Id = request.b2cId,
@@ -72,6 +80,37 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
         };
         _appDbContext.Add(agency);
         await _appDbContext.SaveChangesAsync();
+
+        if(_webHostEnv.IsProduction())
+        {
+            var recJobOptions = new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc };
+            var HangfireAnalyzerId = broker.Id.ToString() + "Analyzer";
+            Random rnd = new Random();
+            var minute = rnd.Next(0,59);
+            //analyzer every hour except between 2 and 3 montreal time
+            RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(broker.Id, null), $"{minute} 0-5,7-23 * * *", recJobOptions);
+            var recTask = new BrokerNotifAnalyzerTask
+            {
+                HangfireTaskId = HangfireAnalyzerId,
+                BrokerId = broker.Id
+            };
+            _appDbContext.Add(recTask);
+
+            var HangfireCleanerId = broker.Id.ToString() + "Cleaner";
+            minute = rnd.Next(1, 20);
+            
+            //2:01 to 2:20 AM montreal time CLEANUP
+            RecurringJob.AddOrUpdate<ResourceCleaner>(HangfireCleanerId, a => a.CleanBrokerResourcesAsync(broker.Id, null), $"{minute} 6 * * *", recJobOptions);
+
+            var recTaskCleaner = new BrokerNotifAnalyzerTask
+            {
+                HangfireTaskId = HangfireCleanerId,
+                BrokerId = broker.Id
+            };
+            _appDbContext.Add(recTaskCleaner);
+            await _appDbContext.SaveChangesAsync();
+        }
+        await transaction.CommitAsync();
 
         var response = new SignedInBrokerDTO();
         response.AgencyId = broker.AgencyId;
