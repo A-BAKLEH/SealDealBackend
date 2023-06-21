@@ -12,22 +12,19 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
+using Web.Config;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
-using Web.HTTPClients;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 using Web.RealTimeNotifs;
 
 namespace Web.Api.TestingAPI;
 
-
+[DevOnly]
 [Route("api/[controller]")]
 [ApiController]
 public class TestController : ControllerBase
@@ -60,7 +57,7 @@ public class TestController : ControllerBase
         _brokerTagsQService = brokerTagsQService;
         _adGraphWrapper = aDGraph;
         _actionPQService = actionPQService;
-        hub = hubContext;   
+        hub = hubContext;
     }
 
 
@@ -73,11 +70,11 @@ public class TestController : ControllerBase
         {
             await hub.Clients.User(id.ToString()).SendAsync("ReceiveMessage", "hello from server lmao");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
 
         }
-        
+
         return Ok();
     }
     [HttpGet("testtemplateAbstract")]
@@ -101,47 +98,6 @@ public class TestController : ControllerBase
     [HttpGet("testtranslation")]
     public async Task<IActionResult> testtranslation()
     {
-        try
-        {
-            var template = await _appDbContext.Templates.FirstAsync(t => t.Id == 4);
-            var t = (EmailTemplate)template;
-
-            var TemplateText = "hello %firstname% %lastname%,\\n I received your email and I look forward to working" +
-                "with you.\\n You can contact me whenever you are free at 514 512 9956.\\n Have a nice day!";
-            string prompt = APIConstants.TranslateTemplatePrompt + TemplateText;
-            HttpClient _httpClient = new();
-            _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            StringContent jsonContent = new(
-            JsonSerializer.Serialize(new
-            {
-                model = "gpt-3.5-turbo",
-                messages = new List<GPTRequest>
-                {
-                new GPTRequest{role = "user", content = prompt},
-                },
-                temperature = 0,
-            }),
-            Encoding.UTF8,
-            "application/json");
-
-            HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
-
-            response.EnsureSuccessStatusCode();
-
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
-            //var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
-            var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
-            var templateTranslated = JsonSerializer.Deserialize<TemplateTranslationContent>(GPTCompletionJSON);
-        }
-        catch (Exception ex)
-        {
-            var exx = ex;
-            _logger.LogError("{tag} wassup fool with error {error}", "test");
-        }
-
         return Ok();
     }
 
@@ -217,10 +173,6 @@ public class TestController : ControllerBase
     [HttpGet("addTestNotifs")]
     public async Task<IActionResult> addTestNOtifs()
     {
-        //admin  "EA14ECF1-FCDA-43C4-9325-197A953D58FA"
-        //broker "08BC58DE-1F82-4BED-B7AB-D33998CAD81A"
-
-
         await _appDbContext.SaveChangesAsync();
         return Ok();
     }
@@ -228,9 +180,6 @@ public class TestController : ControllerBase
     [HttpGet("test-params")]
     public async Task<IActionResult> test_params()
     {
-        //var notif = new ConnectedEmail {Email = "bashar.eskandar@sealdeal.ca",BrokerId = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA"), AssignLeadsAuto = true};
-        //_appDbContext.ConnectedEmails.Update(notif);
-        //_appDbContext.SaveChanges();
         var Email = "bashar.eskandar@sealdeal.ca";
         var guidd = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA").ToString();
         _appDbContext.Database.ExecuteSqlRaw($"UPDATE [dbo].[ConnectedEmails] SET OpenAITokensUsed = OpenAITokensUsed + 1" +
@@ -300,15 +249,6 @@ public class TestController : ControllerBase
     [HttpGet("testGroupBy")]
     public async Task<IActionResult> testGroupBy()
     {
-        //var id = Guid.Parse("EA14ECF1-FCDA-43C4-9325-197A953D58FA");
-        //var EmailEventsTask = await _appDbContext.EmailEvents
-        //    .Where(e => e.BrokerId == id && !e.Seen && e.LeadId != null)
-        //    .Select(e => new { e.Id, e.LeadId, e.BrokerEmail, e.Seen, e.TimeReceived })
-        //    .GroupBy(e => e.LeadId)
-        //    .Select(g => new {g.Key,  })
-        //    .AsNoTracking()
-        //    .ToListAsync();
-        // var lol = id;
         return Ok();
     }
 

@@ -16,25 +16,18 @@ using Web.RealTimeNotifs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var version = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-builder.Host.UseSerilog((_, config) =>
-  config.MinimumLevel.Information()
-  //.MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", Serilog.Events.LogEventLevel.Warning)
-  //.MinimumLevel.Override("Microsoft.Azure.SignalR", Serilog.Events.LogEventLevel.Fatal)
-  //.MinimumLevel.Override("Microsoft.AspNetCore.Authentication", Serilog.Events.LogEventLevel.Fatal)
-  //.MinimumLevel.Override("Microsoft.IdentityModel.LoggingExtensions.IdentityLoggerAdapter", Serilog.Events.LogEventLevel.Fatal)
-  //.MinimumLevel.Override("Microsoft.Azure.SignalR.Connections.Client.Internal.WebSocketsTransport", Serilog.Events.LogEventLevel.Warning)
-  .WriteTo.Seq("http://localhost:5341", restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
-  .WriteTo.Console()
+var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
   .Enrich.FromLogContext()
   .Enrich.WithProperty("AppVersion", version));
 
 string PostgresconnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireConnection");
+
 builder.Services.AddHangfire(hangfireConnectionString);
 builder.Services.AddInfrastructureServices(builder.Configuration, Assembly.GetExecutingAssembly());
 builder.Services.AddWebServices();
-
 builder.Services.AddControllers();
 builder.Services.AddDbContext(PostgresconnectionString);
 builder.Services.AddDbContextFactory(PostgresconnectionString);
@@ -45,8 +38,8 @@ string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
-      policy => { policy.WithOrigins("http://localhost:3000", "https://localhost:7156").AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
-
+      policy => { policy.WithOrigins("http://localhost:3000", "https://localhost:7156")
+          .AllowAnyHeader().AllowAnyMethod().AllowCredentials(); });
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -97,26 +90,13 @@ builder.Services.AddProblemDetails(options =>
         Detail = ex.details,
     });
 });
-
-//builder.Services.AddStackExchangeRedisCache(options =>
-//{
-//    //options.Configuration = builder.Configuration.GetConnectionString("redis");
-//    options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
-//    {
-//        EndPoints = { "redis-17282.c56.east-us.azure.cloud.redislabs.com:17282" },
-//        Password = "m2qOkNVxZXxhXAwncrC5l0vpaCiBj3dc"
-//    };
-//    //options.InstanceName = "test1";
-//});
-
 builder.Services.AddSignalR().AddAzureSignalR();
-
-VariousCons.MainAPIURL = builder.Configuration.GetSection("URLs")["MainAPI"];
 
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseProblemDetails();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -124,13 +104,10 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    //app.UseExceptionHandler();
-    //app.UseProblemDetails();
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors(MyAllowSpecificOrigins);
 app.UseRouting();
 app.UseAuthentication();
@@ -138,7 +115,6 @@ app.UseAuthorization();
 app.MapHub<NotifsHub>("/notifs");
 app.MapControllers();
 app.MapHangfireDashboard();
-
 app.Run();
 
 //Add-Migration InitialMigrationName -StartupProject Web -Context AppDbContext -Project Infrastructure

@@ -56,11 +56,7 @@ public static class InfrastructureSetup
         var _stripeConfigSection = config.GetSection("StripeOptions");
         StripeConfiguration.ApiKey = _stripeConfigSection["APIKey"];
 
-
         services.AddMediatR(config => config.RegisterServicesFromAssemblies(_assemblies.ToArray()));
-
-
-        services.AddScoped<IEmailSender, EmailSender>();
         services.AddScoped<IStripeCheckoutService, StripeCheckoutService>();
         services.AddScoped<IStripeBillingPortalService, StripeBillingPortalService>();
         services.AddScoped<IStripeSubscriptionService, StripeSubscriptionService>();

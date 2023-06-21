@@ -266,3 +266,4 @@ Packages.props
 
 #Local Log Files
 log*.txt
+/src/Web/appsettings.Development.json

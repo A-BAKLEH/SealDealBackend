@@ -1,5 +1,4 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.LeadAggregate;
 using Microsoft.Graph.Models;
 using System.Net.Http.Headers;
 using System.Text;
@@ -13,11 +12,12 @@ namespace Web.HTTPClients
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<OpenAIGPT35Service> _logger;
-        public OpenAIGPT35Service(HttpClient httpClient, ILogger<OpenAIGPT35Service> logger)
+        public OpenAIGPT35Service(HttpClient httpClient, IConfiguration config, ILogger<OpenAIGPT35Service> logger)
         {
+            var key = config.GetSection("OpenAI")["APIKey"];
             _httpClient = httpClient;
             _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _logger = logger;
         }
@@ -127,15 +127,15 @@ namespace Web.HTTPClients
         /// <param name="emailbody"></param>
         /// <param name="leadProvider"></param>
         /// <returns></returns>
-        public async Task<OpenAIResponse?> ParseEmailAsync(Message message,string brokerEmail, bool FromLeadProvider = false)
+        public async Task<OpenAIResponse?> ParseEmailAsync(Message message, string brokerEmail, bool FromLeadProvider = false)
         {
             OpenAIResponse res;
             try
             {
-                
+
                 var length = message.Body.Content.Length;
                 var text = message.Body.Content;
-                text = EmailReducer.Reduce(text,message.From.EmailAddress.Address);
+                text = EmailReducer.Reduce(text, message.From.EmailAddress.Address);
                 string prompt = APIConstants.ParseLeadPrompt4 + text;
 
                 StringContent jsonContent = new(
@@ -178,7 +178,7 @@ namespace Web.HTTPClients
                     res.content = LeadParsed;
                 }
             }
-            catch(HttpRequestException e)
+            catch (HttpRequestException e)
             {
                 res = new OpenAIResponse
                 {
@@ -201,7 +201,7 @@ namespace Web.HTTPClients
                     ProcessedMessage = message
                 };
                 _logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
-                    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id,brokerEmail, e.Message + e.StackTrace);
+                    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail, e.Message + e.StackTrace);
             }
             return res;
         }

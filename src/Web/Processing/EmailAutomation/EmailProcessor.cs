@@ -9,14 +9,12 @@ using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Hangfire.Server;
-using Humanizer;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
-using StackExchange.Redis;
 using System.Net.Mail;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
@@ -37,7 +35,7 @@ public class EmailProcessor
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly RealTimeNotifSender _realTimeNotif;
     public EmailProcessor(AppDbContext appDbContext, IConfiguration config,
-        ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, RealTimeNotifSender realTimeNotif ,ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
+        ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, RealTimeNotifSender realTimeNotif, ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
     {
         _appDbContext = appDbContext;
         _logger = logger;
@@ -224,7 +222,7 @@ public class EmailProcessor
         }
         catch (ODataError er)
         {
-            _logger.LogError("{tag} failed with error {error}", TagConstants.tagFailedMessages, er.Error.Code + ": "+ er.Error.Message);
+            _logger.LogError("{tag} failed with error {error}", TagConstants.tagFailedMessages, er.Error.Code + ": " + er.Error.Message);
         }
     }
 
@@ -294,7 +292,7 @@ public class EmailProcessor
         }
 
         var brokerDTO = new BrokerEmailProcessingDTO
-        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto};
+        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
         if (brokerStartActionPlans.Count == 1) brokerDTO.brokerStartActionPlans = brokerStartActionPlans;
         else brokerDTO.brokerStartActionPlans = new();
         DateTimeOffset lastSync;
@@ -431,7 +429,7 @@ public class EmailProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogError("{tag} Error updating fields at end of email sync with error {error}", TagConstants.syncEmail, ex.Message + ":"+ ex.StackTrace);
+            _logger.LogError("{tag} Error updating fields at end of email sync with error {error}", TagConstants.syncEmail, ex.Message + ":" + ex.StackTrace);
         }
     }
 
@@ -769,7 +767,7 @@ public class EmailProcessor
                 await localdbContext.SaveChangesAsync();
             }
         }
-        if(TimesActionPlanUsed > 0)
+        if (TimesActionPlanUsed > 0)
         {
             bool saved = false;
             byte count = 0;
@@ -805,7 +803,7 @@ public class EmailProcessor
             }
             catch (ODataError ex)
             {
-                _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Error.Message + ": "+ ex.Error.Code);
+                _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Error.Message + ": " + ex.Error.Code);
             }
         }));
         //mark the messages that failed with tag ReprocessMessageId"
@@ -826,7 +824,7 @@ public class EmailProcessor
             }
             catch (ODataError ex)
             {
-                _logger.LogError("{tag} assigning reprocess extendedValue on emails error: {error}",TagConstants.extendedValueAdding , ex.Error.Code + ": " +ex.Error.Message);
+                _logger.LogError("{tag} assigning reprocess extendedValue on emails error: {error}", TagConstants.extendedValueAdding, ex.Error.Code + ": " + ex.Error.Message);
             }
         }));
         await transaction.CommitAsync();
@@ -981,7 +979,7 @@ public class EmailProcessor
                 {
                 }
             }
-            if(!valid)
+            if (!valid)
             {
                 LeadEmail = message.From.EmailAddress.Address;
                 result.LeadEmailUnsure = true;

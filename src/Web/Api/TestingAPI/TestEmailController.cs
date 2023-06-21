@@ -1,5 +1,4 @@
 ﻿using Core.Constants;
-using Core.Domain.BrokerAggregate;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
@@ -9,15 +8,16 @@ using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
 using System.Net.Http.Headers;
-using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.Json;
+using Web.Config;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.HTTPClients;
 
 namespace Web.Api.TestingAPI;
 
+[DevOnly]
 [Route("api/[controller]")]
 [ApiController]
 public class TestEmailController : ControllerBase
@@ -27,13 +27,19 @@ public class TestEmailController : ControllerBase
     public string santaBro = "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";
     private readonly AppDbContext appDbContext1;
     public readonly MSFTEmailQService _mSFTEmailQService;
+    private string apiURL;
+    private string openAiKey;
     public TestEmailController(ADGraphWrapper aDGraphWrapper,
-        MSFTEmailQService mSFTEmailQService, AppDbContext appDbContext, ILogger<TestEmailController> logger)
+        MSFTEmailQService mSFTEmailQService, AppDbContext appDbContext,
+        IConfiguration configuration,
+        ILogger<TestEmailController> logger)
     {
         _logger = logger;
         _adGraphWrapper = aDGraphWrapper;
         appDbContext1 = appDbContext;
         _mSFTEmailQService = mSFTEmailQService;
+        apiURL = configuration.GetSection("URLs")["MainAPI"];
+        openAiKey = configuration.GetSection("OpenAI")["APIKey"];
     }
 
     [HttpGet("testemailprops")]
@@ -124,8 +130,8 @@ public class TestEmailController : ControllerBase
         await Task.WhenAll(tasks);
 
         var res = tasks.Select(t => t.Result).ToList();
-        
-       
+
+
         return Ok();
     }
 
@@ -148,21 +154,7 @@ public class TestEmailController : ControllerBase
             e.RepliedTo = false;
         }
         await appDbContext1.SaveChangesAsync();
-        //var dict = new Dictionary<string, GraphServiceClient>();
-        //var emailBash = "bashar.eskandar@sealdeal.ca";
-        //dict.Add(emailBash, _adGraphWrapper.CreateExtraClient(tenantId));
 
-        //var graphServiceClient = dict[emailBash];
-        //var id = "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAfb0EAwAA";
-        //var mess = await graphServiceClient
-        //       .Users[emailBash]
-        //       .Messages[id]
-        //       .GetAsync(config =>
-        //       {
-        //           config.QueryParameters.Select = new string[] { "id", "isRead" };
-        //           config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
-        //       });
-        //var sd = mess;
         return Ok();
     }
 
@@ -310,16 +302,7 @@ public class TestEmailController : ControllerBase
 
         if (index == 10)
         {
-            ////Que pensez-vous de ce renvoi de client potentiel?
-            //string pattern = @"Que pensez-vous de ce renvoi de client potentiel";
-            ////MatchCollection matches = Regex.Matches(input, pattern);
-            ////var builder = new StringBuilder(input);
-            //var match = Regex.Match(text, pattern);
-            //if(match.Success)
-            //{
-            //    var indexStart = match.Groups[1].Index;
-            //    text = text.Substring(0,indexStart);
-            //}
+
             string pattern = @"Que pensez-vous de ce renvoi de client potentiel";
             var indexStart = text.IndexOf(pattern);
             text = text.Substring(0, indexStart);
@@ -341,7 +324,7 @@ public class TestEmailController : ControllerBase
         "application/json");
         var _httpClient = new HttpClient();
         _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/chat/completions");
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "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");
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", openAiKey);
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         HttpResponseMessage response = null;
         try
@@ -369,12 +352,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("testsupportmail")]
     public async Task<IActionResult> testsupportmail()
     {
-        //{
-        //    "EmailAddress":{
-        //        "Name":"gscales@datarumble.com",
-        //    "Address":"gscales@datarumble.com"
-        //    }
-        //},
         var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         _adGraphWrapper.CreateClient(tenantId);
         var message = new Message
@@ -436,7 +413,6 @@ public class TestEmailController : ControllerBase
         {
             ExpirationDateTime = SubsEnds
         };
-        //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
         var CreatedSubsTask = await _adGraphWrapper._graphClient.Subscriptions[SubsId].PatchAsync(subs);
         _logger.LogWarning("IDDDDDDDD: {Id}", CreatedSubsTask.Id);
@@ -468,11 +444,10 @@ public class TestEmailController : ControllerBase
         string emailBash = "bashar.eskandar@sealDeal.ca";
         var Newsubs = new Subscription
         {
-            NotificationUrl = VariousCons.MainAPIURL,
+            NotificationUrl = apiURL,
             ExpirationDateTime = connEmail.SubsExpiryDate
 
         };
-        //VariousCons.MainAPIURL = url;
         //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
         try
@@ -559,11 +534,8 @@ public class TestEmailController : ControllerBase
             ChangeType = "created",
             ClientState = VariousCons.MSFtWebhookSecret,
             ExpirationDateTime = SubsEnds,
-            NotificationUrl = VariousCons.MainAPIURL + "/MsftWebhook/Webhook",
+            NotificationUrl = apiURL + "/MsftWebhook/Webhook",
             Resource = $"users/{emailBash}/messages"
-            //Resource = $"users/{email}/messages
-            //TODO test subscribing to all messages and see it it will notify when a folder other than inbox
-            //receives email, check if it notifies with sent emails also
         };
         _adGraphWrapper.CreateClient(tenantId);
         try
@@ -594,92 +566,12 @@ public class TestEmailController : ControllerBase
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
         string emailBash = "bashar.eskandar@sealDeal.ca";
         _adGraphWrapper.CreateClient(tenantId);
-
-        //List<Option> options = EmailHelpers.GetDeltaQueryOptions(SyncStartDate);
-        //options.AddDeltaHeaderOptions();
-
-        //IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient
-        //  .Users["bashar.eskandar@sealdeal.ca"]
-        //  .MailFolders["Inbox"]
-        //  .Messages
-        //  .Delta()
-        //  .Request(options)
-        //  .GetAsync();
-
-        //EmailHelpers.ProcessMessages(messages, _logger);
-
-        //while (messages.NextPageRequest != null)
-        //{
-        //    //verify that header max size exists
-        //    messages = messages.NextPageRequest
-        //      .Header("Prefer", "IdType=ImmutableId")
-        //      .Header("Prefer", "odata.maxpagesize=4")
-        //      .GetAsync().Result;
-        //    EmailHelpers.ProcessMessages(messages, _logger);
-        //}
-        //object? deltaLink;
-        //if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-        //{
-        //    //inboxSync1.DeltaToken = deltaLink.ToString();
-        //    _logger.LogWarning("Delta Link: {delaLink}", deltaLink.ToString());//SAVE ONLy after the "=" sign
-        //    this.deltaLinkString = deltaLink.ToString();
-        //}
-        //else
-        //{
-        //    //TODO log error
-        //}
         return Ok();
     }
 
     [HttpGet("UseDeltaToken")]
     public async Task<IActionResult> USEToken()
     {
-
-        //    var deltaUri = new Uri("https://graph.microsoft.com/v1.0/users/bashar.eskandar@sealdeal.ca/mailFolders('Inbox')/messages/delta?$deltatoken=-eIqKiyh_pvakWLxQh8qlsGoqbkRQ3J34CjVYD35S2M348VQK6h5YBWc3kbYixyIXru9xGLmCjJ2zljnDaMY9dgx-3ZJVI5Cvu7jwWYY_MPWfpOD1pn1iR-XHq8Xe3OELMd8d3MjMXdM6Mut5k0N1Zs9cyNZvjbI1lgPgesTjQ8nv_DdLINcqHbpnnYT6vETU24pOVMyAflVBJ3M3BJX_LiqpLBHk0H-9RV9Rtda3lwXj29lbpm4Ydn4bHNv_wshyCk267XZMGywys4fWrmQ2g.YBEsspT_LkBsWFxSsjfnIWR3sLrKQtuvACN-FvysZ9M");
-        //    var deltaToken = deltaUri.Query.Split("=")[1];//get the second part of the query that its the deltaToken
-        //    var queryOptions = new List<Option>()
-        //{
-        //    new QueryOption("$deltatoken", deltaToken),
-        //    new HeaderOption("Prefer", "IdType=ImmutableId"),
-        //    new HeaderOption("Prefer", "odata.maxpagesize=4")
-        //};
-
-        //    var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-        //    DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
-        //    string emailBash = "bashar.eskandar@sealDeal.ca";
-        //    _adGraphWrapper.CreateClient(tenantId);
-
-        //    IMessageDeltaCollectionPage messages = await _adGraphWrapper._graphClient
-        //      .Users["bashar.eskandar@sealdeal.ca"]
-        //      .MailFolders["Inbox"]
-        //      .Messages
-        //      .Delta()
-        //      .Request(queryOptions)
-        //      .GetAsync();
-
-        //    EmailHelpers.ProcessMessages(messages, _logger);
-
-
-        //    while (messages.NextPageRequest != null)
-        //    {
-        //        //verify that header max size exists
-        //        messages = messages.NextPageRequest
-        //          .Header("Prefer", "IdType=ImmutableId")
-        //          .Header("Prefer", "odata.maxpagesize=4")
-        //          .GetAsync().Result;
-        //        EmailHelpers.ProcessMessages(messages, _logger);
-        //    }
-        //    object? deltaLink;
-        //    if (messages.AdditionalData.TryGetValue("@odata.deltaLink", out deltaLink))
-        //    {
-        //        //inboxSync1.DeltaToken = deltaLink.ToString();
-        //        _logger.LogWarning("Delta Link: {delaLink}", deltaLink.ToString());
-        //        this.deltaLinkString = deltaLink.ToString();
-        //    }
-        //    else
-        //    {
-        //        //TODO log error
-        //    }
         return Ok();
     }
 
