@@ -29,6 +29,7 @@ public class TestEmailController : ControllerBase
     public readonly MSFTEmailQService _mSFTEmailQService;
     private string apiURL;
     private string openAiKey;
+    private string tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
     public TestEmailController(ADGraphWrapper aDGraphWrapper,
         MSFTEmailQService mSFTEmailQService, AppDbContext appDbContext,
         IConfiguration configuration,
@@ -45,7 +46,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("testemailprops")]
     public async Task<IActionResult> testemailprops()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         _adGraphWrapper.CreateClient(tenantId);
 
         var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(360);
@@ -118,7 +118,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("testConcurrency")]
     public async Task<IActionResult> testConcurrency()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         _adGraphWrapper.CreateClient(tenantId);
 
         var tasks = new List<Task<Message?>>(10);
@@ -138,8 +137,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("testverifyseenreplied")]
     public async Task<IActionResult> testverifyseenreplied()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-
         var brokerId = Guid.Parse("576df38e-acdb-4ce5-9323-fb3529245e87");
         var broker = await appDbContext1.Brokers
             .Include(b => b.EmailEvents)
@@ -161,7 +158,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("testCConvo")]
     public async Task<IActionResult> testCCCONvo()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         _adGraphWrapper.CreateClient(tenantId);
         var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
         var date = date1.ToString("o");
@@ -204,8 +200,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("convotest")]
     public async Task<IActionResult> convotestg()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-
         var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(360);
         var date = date1.ToString("o");
         int pagesize = 4;
@@ -251,8 +245,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("GraphFilterTest")]
     public async Task<IActionResult> GraphReplyTesting()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-
         _adGraphWrapper.CreateClient(tenantId);
         var messages = await _adGraphWrapper._graphClient
           .Users["bashar.eskandar@sealdeal.ca"]
@@ -282,8 +274,6 @@ public class TestEmailController : ControllerBase
     public async Task<IActionResult> GetMessages(int index)
     {
         var SyncStartDate = new DateTime(2023, 1, 1).ToUniversalTime();
-
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
 
         _adGraphWrapper.CreateClient(tenantId);
 
@@ -352,7 +342,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("testsupportmail")]
     public async Task<IActionResult> testsupportmail()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         _adGraphWrapper.CreateClient(tenantId);
         var message = new Message
         {
@@ -406,7 +395,6 @@ public class TestEmailController : ControllerBase
     public async Task<IActionResult> renewsubs(string SubsId)
     {
         var SubsIdGuid = Guid.Parse(SubsId);
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
         string emailBash = "bashar.eskandar@sealDeal.ca";
         var subs = new Subscription
@@ -422,8 +410,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("GetSubs")]
     public async Task<IActionResult> Getsubs()
     {
-
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
         string emailBash = "bashar.eskandar@sealDeal.ca";
 
@@ -437,9 +423,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("UpdateSubsURL/{SubsId}/{url}")]
     public async Task<IActionResult> UpdateSubsURL(string SubsId, string url)
     {
-
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
-
         var connEmail = await appDbContext1.ConnectedEmails.Where(e => e.tenantId == tenantId).FirstAsync();
         string emailBash = "bashar.eskandar@sealDeal.ca";
         var Newsubs = new Subscription
@@ -465,7 +448,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("setconnectedEmailLastSyncdate")]
     public async Task<IActionResult> setconnectedEmailLastSyncdate()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         var connectedEmails = await appDbContext1.ConnectedEmails
             .Where(e => e.tenantId == tenantId)
             .ToListAsync();
@@ -481,8 +463,6 @@ public class TestEmailController : ControllerBase
     [HttpDelete("DeleteSubsNow")]
     public async Task<IActionResult> DeleteSubsURL()
     {
-
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
         string emailBash = "bashar.eskandar@sealDeal.ca";
 
@@ -516,9 +496,7 @@ public class TestEmailController : ControllerBase
     [HttpGet("ResetConnectedEmailSubs")]
     public async Task<IActionResult> ResetConnectedEmailSubs()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
-
         await _mSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, Guid.Parse("F723997C-75C7-4D9C-82B0-D51034028EFA"), 57);
         return Ok();
     }
@@ -526,7 +504,6 @@ public class TestEmailController : ControllerBase
     [HttpGet("CreateSubsEmail")]
     public async Task<IActionResult> TestNewSchema()
     {
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
         string emailBash = "bashar.eskandar@sealDeal.ca";
         var subs = new Subscription
@@ -554,25 +531,19 @@ public class TestEmailController : ControllerBase
 
         return Ok();
     }
-
-
     [HttpGet("test-deltaToken")]
     public async Task<IActionResult> TestDeltaToken()
     {
-
         //var SyncStartDate = new DateTimeOffset(new DateTime(2022,12,20),TimeSpan.Zero);
         var SyncStartDate = new DateTime(2022, 12, 20);
-        var tenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
         string emailBash = "bashar.eskandar@sealDeal.ca";
         _adGraphWrapper.CreateClient(tenantId);
         return Ok();
     }
-
     [HttpGet("UseDeltaToken")]
     public async Task<IActionResult> USEToken()
     {
         return Ok();
     }
-
 }
