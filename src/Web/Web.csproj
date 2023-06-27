@@ -16,19 +16,22 @@
     <Content Remove="Filters\**" />
     <EmbeddedResource Remove="Filters\**" />
     <None Remove="Filters\**" />
+	  
   </ItemGroup>
-  
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugSymbols>False</DebugSymbols>
+		<DebugType>None</DebugType>
+	</PropertyGroup> 
   <ItemGroup>
     <PackageReference Include="Hangfire.Dashboard.BasicAuthorization" />
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />
-    <PackageReference Include="HtmlAgilityPack" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
     <PackageReference Include="Microsoft.Azure.SignalR" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" PrivateAssets="All" />
-    <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
+    <PackageReference Include="Serilog.Sinks.AzureAnalytics" />
     <PackageReference Include="Stripe.net" />
     <PackageReference Include="Microsoft.Identity.Web" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
@@ -40,6 +43,12 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Update="appsettings.Development.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   
 </Project>

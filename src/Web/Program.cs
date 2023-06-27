@@ -35,15 +35,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-builder.Services.AddCors(options =>
+
+if(builder.Environment.IsDevelopment())
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins,
-      policy =>
-      {
-          policy.WithOrigins("http://localhost:3000", "https://localhost:7156")
-          .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-      });
-});
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(name: MyAllowSpecificOrigins,
+          policy =>
+          {
+              policy.WithOrigins("http://localhost:3000", "https://localhost:7156")
+              .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+          });
+    });
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddMicrosoftIdentityWebApi(options =>
@@ -107,8 +111,8 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors(MyAllowSpecificOrigins);
 app.UseRouting();
+if (app.Environment.IsDevelopment()) app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<NotifsHub>("/notifs");
