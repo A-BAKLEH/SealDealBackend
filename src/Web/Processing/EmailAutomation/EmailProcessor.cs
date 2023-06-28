@@ -1069,8 +1069,8 @@ public class EmailProcessor
         var lead = new Lead
         {
             AgencyId = brokerDTO.AgencyId,
-            LeadFirstName = parsedContent.firstName ?? "",
-            LeadLastName = parsedContent.lastName ?? "",
+            LeadFirstName = (string.IsNullOrEmpty(parsedContent.firstName) || string.IsNullOrWhiteSpace(parsedContent.firstName) || parsedContent.firstName.Trim() == "null") ? "unknown" : parsedContent.firstName,
+            LeadLastName = (string.IsNullOrEmpty(parsedContent.lastName) || string.IsNullOrWhiteSpace(parsedContent.lastName) || parsedContent.lastName.Trim() == "null") ? "unknown" : parsedContent.lastName,
             PhoneNumber = parsedContent.phoneNumber,
             EntryDate = DateTime.UtcNow - TimeSpan.FromSeconds(1),
             leadType = LeadType.Unknown,

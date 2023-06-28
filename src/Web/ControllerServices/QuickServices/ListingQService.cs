@@ -171,6 +171,7 @@ public class ListingQService
                     ProcessingStatus = ProcessingStatus.Scheduled,
                     ReadByBroker = false
                 };
+                if (ass.BrokerId == UserId) AppEvent.ReadByBroker = true;
                 AppEvent.Props[NotificationJSONKeys.ListingId] = listing.Id.ToString();
                 var add = listing.Address.StreetAddress; if (!string.IsNullOrWhiteSpace(apt)) add += "apt " + apt;
                 add += ", " + listing.Address.City;

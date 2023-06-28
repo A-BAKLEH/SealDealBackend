@@ -78,10 +78,10 @@ public class ActionExecuter
             switch (wordWithoutDollards)
             {
                 case "firstname":
-                    replacementValue = lead.LeadFirstName ?? "";
+                    replacementValue = (string.IsNullOrEmpty(lead.LeadFirstName) || lead.LeadFirstName == "unknown") ? "" : lead.LeadFirstName;
                     break;
                 case "lastname":
-                    replacementValue = lead.LeadLastName ?? "";
+                    replacementValue = (string.IsNullOrEmpty(lead.LeadLastName) || lead.LeadLastName == "unknown") ? "" : lead.LeadLastName;
                     break;
                 default:
                     break;
