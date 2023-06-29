@@ -48,7 +48,7 @@ public class SigninSignupController : BaseApiController
             email = l.Find(x => x.Type == "emails").Value,
             TimeZoneId = timeZoneId
         });
-        _logger.LogWarning("{tag} New Agency Signed up with name {agencyName} and admin B2cId {userId}", TagConstants.AgencySignup, agencyName, id);
+        _logger.LogWarning("{tag} New Agency Signed up with name {agencyName}", TagConstants.AgencySignup, agencyName);
         return Ok(signinResponseDTO);
     }
 }

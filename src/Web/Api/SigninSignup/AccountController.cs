@@ -39,7 +39,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
-            _logger.LogCritical("{tag} inactive or non-Admin User with userId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-Admin User", TagConstants.Inactive);
             return Forbid();
         }
         var dto = await _stripeQService.GetInvoicesAsync(id);
@@ -54,7 +54,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with userId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive, id);
             return Forbid();
         }
         var dto = await this._authorizeService.VerifyAccountAsync(id);
@@ -74,7 +74,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
             return Forbid();
         }
         await _brokerQService.SetaccountLanguage(id,SetLanguage);
@@ -88,7 +88,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
             return Forbid();
         }
         var timeZoneId = TZConvert.GetTimeZoneInfo(dto.IanaTimeZone).Id;
@@ -109,7 +109,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
             return Forbid();
         }
         if (dto.EmailProvider == "m")
@@ -132,7 +132,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with UserId {userId} tried to get agency Listings", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User tried to get agency Listings", TagConstants.Inactive);
             return Forbid();
         }
         await _MSFTEmailQService.SetConnectedEmailAutoAssign(id, dto.email, dto.autoAssign);
@@ -153,7 +153,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with UserId {userId} tried to handle admin consented", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User tried to handle admin consented", TagConstants.Inactive);
             return Forbid();
         }
         var resTuple = await _MSFTEmailQService.HandleAdminConsentedAsync(id, email);
@@ -175,7 +175,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with UserId {userId} tried to handle admin consented", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User tried to handle admin consented", TagConstants.Inactive);
             return Forbid();
         }
         var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id,brokerTuple.Item1.AgencyId);
@@ -192,7 +192,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User with UserId {userId} tried to get emails", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive User tried to get emails", TagConstants.Inactive);
             return Forbid();
         }
         dynamic emails = await _MSFTEmailQService.GetConnectedEmails(id);

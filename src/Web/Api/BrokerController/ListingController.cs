@@ -37,7 +37,7 @@ public class ListingController : BaseApiController
     //  var brokerTuple = await this._authorizeService.AuthorizeUser(id);
     //  if (!brokerTuple.Item3 || !brokerTuple.Item2)
     //  {
-    //    _logger.LogWarning("[{Tag}] inactive or non-admin mofo User with UserId {UserId} tried to get agency Listings", TagConstants.Inactive, id);
+    //    _logger.LogWarning("[{Tag}] inactive or non-admin mofo User tried to get agency Listings", TagConstants.Inactive);
     //    return Forbid();
     //  }
     //  var listings = await _listingQService.GetAgencyListings(brokerTuple.Item1.AgencyId, includeSold == 1 ? true : false);
@@ -65,7 +65,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive or non-admin mofo User with userId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User", TagConstants.Inactive);
             return Forbid();
         }
 
@@ -91,9 +91,10 @@ public class ListingController : BaseApiController
     //  var brokerTuple = await this._authorizeService.AuthorizeUser(id);
     //  if (!brokerTuple.Item2)
     //  {
-    //    _logger.LogWarning("[{Tag}] inactive mofo User with UserId {UserId} tried to get broker's Listings", TagConstants.Inactive, id);
+    //    _logger.LogWarning("[{Tag}] inactive mofo User tried to get broker's Listings", TagConstants.Inactive);
     //    return Forbid();
     //  }
+
     //  var listings = await _brokerQService.GetBrokersListings(id);
 
     //  if (listings == null || !listings.Any()) return NotFound();
@@ -114,7 +115,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogWarning("{tag} inactive mofo User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive mofo User", TagConstants.Inactive);
             return Forbid();
         }
         var listings = await _listingQService.GetListingsAsync(brokerTuple.Item1.AgencyId, id, brokerTuple.Item3);
@@ -136,7 +137,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
-            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User", TagConstants.Inactive);
             return Forbid();
         }
         await _listingQService.EditListingAsync(brokerTuple.Item1.AgencyId, listingid, dto);
@@ -151,7 +152,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User", TagConstants.Inactive);
             return Forbid();
         }
 
@@ -166,7 +167,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId} tried to detach Listing from broker", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User tried to detach Listing from broker", TagConstants.Inactive);
             return Unauthorized();
         }
         await _listingQService.DetachBrokerFromListing(listingid, brokerId, id);
@@ -180,7 +181,7 @@ public class ListingController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogWarning("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive or non-admin mofo User", TagConstants.Inactive);
             return Unauthorized();
         }
 

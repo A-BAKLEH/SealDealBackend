@@ -32,7 +32,7 @@ public class TodosController : BaseApiController
     var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
     if (!brokerTuple.Item2)
     {
-      _logger.LogCritical("{tag} inactive mofo User with UserId {userId}", TagConstants.Inactive, brokerId);
+      _logger.LogCritical("{tag} inactive mofo User", TagConstants.Inactive);
       return Forbid();
     }
 
@@ -60,7 +60,7 @@ public class TodosController : BaseApiController
     var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
     if (!brokerTuple.Item2)
     {
-      _logger.LogWarning("{tag} inactive mofo User with UserId {userId}", TagConstants.Inactive, brokerId);
+      _logger.LogWarning("{tag} inactive mofo User", TagConstants.Inactive);
       return Forbid();
     }
     var oldDate = createToDoTaskDTO.dueTime;
@@ -85,7 +85,7 @@ public class TodosController : BaseApiController
     var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
     if (!brokerTuple.Item2)
     {
-      _logger.LogCritical("{tag} inactive mofo User with UserId {userId}", TagConstants.Inactive, brokerId);
+      _logger.LogCritical("{tag} inactive mofo User", TagConstants.Inactive);
       return Forbid();
     }
     await _toDoTaskQService.DeleteToDoAsync(TaskId, brokerId);

@@ -66,7 +66,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
                     };
                     brokerCreationEvent.Props.Add(NotificationJSONKeys.TempPasswd, res.Item2);
                     broker.AppEvents = new() { brokerCreationEvent };
-                    _logger.LogInformation("{tag}Created B2C User with UserId {userId} and LoginEmail {loginEmail} ", TagConstants.AddBrokersRequest, res.Item1, broker.LoginEmail);
+                    _logger.LogInformation("{tag}Created B2C NewUser with NewUserId {newUserId} and LoginEmail {loginEmail} ", TagConstants.AddBrokersRequest, res.Item1, broker.LoginEmail);
                 }
                 catch (Exception ex)
                 {

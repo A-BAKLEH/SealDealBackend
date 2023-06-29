@@ -31,7 +31,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive mofo User with userId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive mofo User", TagConstants.Inactive);
             return Forbid();
         }
         var res = new TemplateVariablesDTO { variables = TemplateVariables.templateVariables };
@@ -46,7 +46,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User", TagConstants.Inactive);
             return Forbid();
         }
 
@@ -68,7 +68,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User", TagConstants.Inactive);
             return Forbid();
         }
 
@@ -86,7 +86,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Inactive, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User", TagConstants.Inactive);
             return Forbid();
         }
 
@@ -105,7 +105,7 @@ public class TemplateController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive mofo User with UserId {userId}", TagConstants.Inactive, brokerId);
+            _logger.LogCritical("{tag} inactive mofo User", TagConstants.Inactive);
             return Forbid();
         }
 

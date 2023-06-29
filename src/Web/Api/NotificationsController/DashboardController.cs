@@ -25,7 +25,7 @@ public class DashboardController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} Inactive User with UserId {userId} tried to GetNotifs ", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} Inactive User tried to GetNotifs ", TagConstants.Unauthorized);
             return Forbid();
         }
         

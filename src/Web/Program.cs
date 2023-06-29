@@ -20,6 +20,7 @@ var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformatio
 
 builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
   .Enrich.FromLogContext()
+  .Enrich.With<UserIdEnricher>()
   .Enrich.WithProperty("AppVersion", version));
 
 string PostgresconnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -115,6 +116,7 @@ app.UseRouting();
 if (app.Environment.IsDevelopment()) app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapHub<NotifsHub>("/notifs");
 app.MapControllers();
 

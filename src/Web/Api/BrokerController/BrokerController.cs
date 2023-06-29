@@ -47,7 +47,7 @@ public class BrokerController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive or non-admin mofo User with UserId {userId}", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} inactive or non-admin mofo User", TagConstants.Unauthorized);
             return Unauthorized();
         }
         var command = new AddBrokersRequest();
@@ -103,7 +103,7 @@ public class BrokerController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive mofo User with UserId {userId}", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} inactive mofo User", TagConstants.Unauthorized);
             return Unauthorized();
         }
         var brokers = await _brokerTagsQService.GetBrokersByAdmin(brokerTuple.Item1.AgencyId);
@@ -124,7 +124,7 @@ public class BrokerController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} non-admin or inactive mofo User with UserId {userId}", TagConstants.Unauthorized, id);
+            _logger.LogCritical("{tag} non-admin or inactive mofo User", TagConstants.Unauthorized);
             return Unauthorized();
         }
         await _brokerTagsQService.DeleteBrokerAsync(BrokerId, id, brokerTuple.Item1.AgencyId);
