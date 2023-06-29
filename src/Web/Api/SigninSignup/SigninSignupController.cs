@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
@@ -32,13 +33,13 @@ public class SigninSignupController : BaseApiController
         //signin only
         if (newUserClaim == null)
         {
-            Guid b2cID = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+            var b2cID = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var res = await _authorizeService.VerifyAccountAsync(b2cID, timeZoneId, true);
             return Ok(res);
         }
         //signup
         var agencyName = l.Find(x => x.Type == "extension_AgencyName").Value;
-        var id = Guid.Parse(l.Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var signinResponseDTO = await _mediator.Send(new SignupRequest
         {
             AgencyName = agencyName,

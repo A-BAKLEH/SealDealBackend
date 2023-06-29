@@ -3,6 +3,7 @@ using Core.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TimeZoneConverter;
 using Web.ApiModels.APIResponses.Templates;
 using Web.ApiModels.RequestDTOs;
@@ -27,7 +28,7 @@ public class TemplateController : BaseApiController
     [HttpGet("Variables")]
     public async Task<IActionResult> GetTemplateVariables()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -42,7 +43,7 @@ public class TemplateController : BaseApiController
     [HttpGet("MyTemplates")]
     public async Task<IActionResult> GetAllTemplates()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -64,7 +65,7 @@ public class TemplateController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> CreateBrokerTemplate([FromBody] CreateTemplateDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -82,7 +83,7 @@ public class TemplateController : BaseApiController
     [HttpPatch]
     public async Task<IActionResult> updateBrokerTemplate([FromBody] UpdateTemplateDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -101,7 +102,7 @@ public class TemplateController : BaseApiController
     [HttpDelete("{TemplateType}/{Id}")]
     public async Task<IActionResult> DeleteBrokerTemplate(string TemplateType, int Id)
     {
-        var brokerId = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerId);
         if (!brokerTuple.Item2)
         {

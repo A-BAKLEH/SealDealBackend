@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
@@ -26,7 +27,7 @@ public class NotificationsController : BaseApiController
     [HttpGet("Dashboard/Notifs/All")]
     public async Task<IActionResult> GetALLDashboardNotifs()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -77,7 +78,7 @@ public class NotificationsController : BaseApiController
     [HttpGet("Dashboard/Notifs/NormalTable")]
     public async Task<IActionResult> UpdateDashboardNormalTable()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -114,7 +115,7 @@ public class NotificationsController : BaseApiController
     [HttpGet("Dashboard/Notifs/Priority")]
     public async Task<IActionResult> UpdateDashboardPriorityTable()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -145,7 +146,7 @@ public class NotificationsController : BaseApiController
     [HttpGet("Dashboard/Notifs/{LeadId}/{Normal}/{Priority}")]
     public async Task<IActionResult> GetDashboardNotifsPerLead(int LeadId, bool Normal, bool Priority)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -185,7 +186,7 @@ public class NotificationsController : BaseApiController
     [HttpGet("Lead/MarkRead/{LeadId}")]
     public async Task<IActionResult> MarkLeadNotifsRead(int LeadId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -228,5 +229,4 @@ public class NotificationsController : BaseApiController
     //    }
     //    return Ok();
     //}
-
 }

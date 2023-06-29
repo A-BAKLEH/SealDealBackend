@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Exceptions.CustomProblemDetails;
+using System.Security.Claims;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
@@ -43,7 +44,7 @@ public class BrokerController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> AddBrokers([FromBody] IEnumerable<NewBrokerDTO> brokers)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
@@ -99,7 +100,7 @@ public class BrokerController : BaseApiController
     [HttpGet("All")]
     public async Task<IActionResult> GetBrokers()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -120,7 +121,7 @@ public class BrokerController : BaseApiController
     [HttpDelete("{BrokerId}")]
     public async Task<IActionResult> DeleteBroker(Guid BrokerId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {

@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedKernel.Exceptions;
+using System.Security.Claims;
 using Web.ApiModels.APIResponses;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
@@ -22,7 +23,7 @@ public class BillingController : BaseApiController
     [HttpPost("Portal")]
     public async Task<IActionResult> CreateBillingPortal([FromBody] CustomerPortalRequestDTO req)
     {
-        var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value), true);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)), true);
         if (!brokerTuple.Item3)
         {
             _logger.LogCritical("{tag} nonAdmin mofo User", TagConstants.Unauthorized);
@@ -49,7 +50,7 @@ public class BillingController : BaseApiController
         Guid b2cBrokerId;
         int AgencyID;
 
-        var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value), true);
+        var brokerTuple = await this._authorizeService.AuthorizeUser(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)), true);
         if (!brokerTuple.Item3)
         {
             _logger.LogCritical("{tag} non-admin mofo User", TagConstants.Unauthorized);

@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Web.ApiModels.RequestDTOs.ActionPlans;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
@@ -22,7 +23,7 @@ public class ActionPlansController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateActionPlanDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -41,7 +42,7 @@ public class ActionPlansController : BaseApiController
     [HttpDelete("{ActionPlanId}")]
     public async Task<IActionResult> Delete(int ActionPlanId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -56,7 +57,7 @@ public class ActionPlansController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetMyAPs()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -82,7 +83,7 @@ public class ActionPlansController : BaseApiController
     [HttpPost("ManualStart")]
     public async Task<IActionResult> ManualStart([FromBody] StartActionPlanDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -97,7 +98,7 @@ public class ActionPlansController : BaseApiController
     [HttpPatch("ToggleActive")]
     public async Task<IActionResult> ToggleActive([FromBody] PatchActionPlanTriggerDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -111,7 +112,7 @@ public class ActionPlansController : BaseApiController
     [HttpPatch("Lead/StopActionPlans")]
     public async Task<IActionResult> StopActionPlansOnLead([FromBody] StopActionPlanLeadDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -126,7 +127,7 @@ public class ActionPlansController : BaseApiController
     [HttpPatch("SetTrigger")]
     public async Task<IActionResult> SetTrigger([FromBody] ChangeTriggerDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {

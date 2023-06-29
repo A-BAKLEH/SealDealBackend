@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
 
@@ -24,7 +25,7 @@ public class TagController : BaseApiController
     [HttpPost("{tagname}")]
     public async Task<IActionResult> CreateTag(string tagname)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -38,7 +39,7 @@ public class TagController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetTags()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -54,7 +55,7 @@ public class TagController : BaseApiController
     [HttpPost("{TagId}/{LeadId}")]
     public async Task<IActionResult> AttachToLead(int TagId, int LeadId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -69,7 +70,7 @@ public class TagController : BaseApiController
     [HttpDelete("{TagId}/{LeadId}")]
     public async Task<IActionResult> DetachFromLead(int TagId, int LeadId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {

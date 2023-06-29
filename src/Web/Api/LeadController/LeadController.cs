@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Web.ApiModels;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
@@ -26,7 +27,7 @@ public class LeadController : BaseApiController
     [HttpPost("AssignToBroker")]
     public async Task<IActionResult> AssignToBroker([FromBody] AssignBrokerPOSTDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
@@ -42,7 +43,7 @@ public class LeadController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> CreateLead([FromBody] CreateLeadDTO createLeadDTO)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -75,7 +76,7 @@ public class LeadController : BaseApiController
     [HttpPatch("{LeadId}")]
     public async Task<IActionResult> UpdateLead([FromBody] UpdateLeadDTO dto, int LeadId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -93,7 +94,7 @@ public class LeadController : BaseApiController
     [HttpDelete("{LeadId}")]
     public async Task<IActionResult> DeleteLead(int LeadId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -112,7 +113,7 @@ public class LeadController : BaseApiController
     [HttpGet("AllahLead/{id}/{includeEvents}")]
     public async Task<IActionResult> GetAllahLead(int id, int includeEvents)
     {
-        var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerid = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
         if (!brokerTuple.Item2)
         {
@@ -131,7 +132,7 @@ public class LeadController : BaseApiController
 
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
         lead.EntryDate = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, lead.EntryDate);
-        if(lead.LeadAppEvents != null)
+        if (lead.LeadAppEvents != null)
         {
             foreach (var e in lead.LeadAppEvents)
             {
@@ -176,7 +177,7 @@ public class LeadController : BaseApiController
     [HttpGet("MyLeads")]
     public async Task<IActionResult> GetLeads()
     {
-        var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerid = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
         if (!brokerTuple.Item2)
         {
@@ -198,7 +199,7 @@ public class LeadController : BaseApiController
     [HttpGet("UnAssigned")]
     public async Task<IActionResult> GetLeadsUnAssigned()
     {
-        var brokerid = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var brokerid = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(brokerid);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
@@ -217,5 +218,4 @@ public class LeadController : BaseApiController
 
         return Ok(leads);
     }
-
 }

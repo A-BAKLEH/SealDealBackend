@@ -17,7 +17,14 @@ public class UserIdEnricher : ILogEventEnricher
 
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
-        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
-                "UserId", _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? "na"));
+        string? id = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        if(id != null)
+        {
+            logEvent.AddPropertyIfAbsent(
+                propertyFactory.CreateProperty
+                (
+                "UserId", id)
+                );
+        }
     }
 }

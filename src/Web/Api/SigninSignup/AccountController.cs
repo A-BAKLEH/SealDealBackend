@@ -4,6 +4,7 @@ using Core.ExternalServiceInterfaces.StripeInterfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
@@ -35,7 +36,7 @@ public class AccountController : BaseApiController
     [HttpGet("StripeInvoices")]
     public async Task<IActionResult> StripeInvoices()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
@@ -50,7 +51,7 @@ public class AccountController : BaseApiController
     [HttpGet("Verify")]
     public async Task<IActionResult> VerifyAccount()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -70,7 +71,7 @@ public class AccountController : BaseApiController
     [HttpPost("Lang/{SetLanguage}")]
     public async Task<IActionResult> changeAccountlanguage(string SetLanguage)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -84,7 +85,7 @@ public class AccountController : BaseApiController
     [HttpPost("SetTimeZone")]
     public async Task<IActionResult> SetTimeZone([FromBody] SigninDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -105,7 +106,7 @@ public class AccountController : BaseApiController
     [HttpPost("ConnectedEmail/Connect")]
     public async Task<IActionResult> ConnectEmail([FromBody] ConnectEmailDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -128,7 +129,7 @@ public class AccountController : BaseApiController
     [HttpPatch("ConnectedEmail/AutoAssignLeads")]
     public async Task<IActionResult> PatchConnectedEmail([FromBody] ConnectedEmailAutoAssign dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -149,7 +150,7 @@ public class AccountController : BaseApiController
     [HttpGet("ConnectedEmail/MSFT/AdminConsent/Verify/{email}")]
     public async Task<IActionResult> VerifyAdminConsentedMSFT(string email)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {
@@ -171,7 +172,7 @@ public class AccountController : BaseApiController
     public async Task<IActionResult> VerifyAdminConsentedMSFTdummy(string tenantId)
     {
         //TODO redo this method
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -188,7 +189,7 @@ public class AccountController : BaseApiController
     [HttpGet("ConnectedEmail")]
     public async Task<IActionResult> GetEmailsConnected()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
         if (!brokerTuple.Item2)
         {

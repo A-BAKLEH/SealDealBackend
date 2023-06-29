@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Web.ApiModels.RequestDTOs;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
@@ -61,7 +62,7 @@ public class ListingController : BaseApiController
     [HttpPost]
     public async Task<IActionResult> CreateAgencyListing([FromBody] CreateListingRequestDTO dto)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
@@ -111,7 +112,7 @@ public class ListingController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> GetListings()
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
@@ -133,7 +134,7 @@ public class ListingController : BaseApiController
     [HttpPatch("{listingid}")]
     public async Task<IActionResult> EditListing([FromBody] EditListingDTO dto, int listingid)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
@@ -148,7 +149,7 @@ public class ListingController : BaseApiController
     [HttpPost("AssignToBroker/{listingid}/{brokerid}")]
     public async Task<IActionResult> AssignListingToBroker(int listingid, Guid brokerId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
@@ -163,7 +164,7 @@ public class ListingController : BaseApiController
     [HttpDelete("DetachFromBroker/{listingid}/{brokerid}")]
     public async Task<IActionResult> DetachListingFromBroker(int listingid, Guid brokerId)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
@@ -177,7 +178,7 @@ public class ListingController : BaseApiController
     [HttpDelete("{listingid}")]
     public async Task<IActionResult> DeleteListing(int listingid)
     {
-        var id = Guid.Parse(User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item3 || !brokerTuple.Item2)
         {
