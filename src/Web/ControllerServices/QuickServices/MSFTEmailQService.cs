@@ -83,7 +83,8 @@ public class MSFTEmailQService
 
         if (broker.ConnectedEmails == null) broker.ConnectedEmails = new();
         broker.ConnectedEmails.Add(connectedEmail);
-        if (!broker.Agency.HasAdminEmailConsent)
+        bool TenantHasAdminConsent = broker.Agency.HasAdminEmailConsent && broker.Agency.AzureTenantID == TenantId;
+        if (!TenantHasAdminConsent)
         {
             await _appDbContext.SaveChangesAsync();
         }

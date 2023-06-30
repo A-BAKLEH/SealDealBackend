@@ -76,7 +76,6 @@ public class RealTimeNotifSender
                 //    //update normalTable, give count of distinctIDs to backend
                 //}
             }
-            Console.WriteLine("Sending RealTimeNotifs");
         }
         // FOR NOW IGNORE PUSH NOTIFS    
         catch (Exception ex)
