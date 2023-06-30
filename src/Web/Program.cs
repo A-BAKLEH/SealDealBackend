@@ -21,6 +21,7 @@ var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformatio
 builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
   .Enrich.FromLogContext()
   .Enrich.With<UserIdEnricher>()
+  .Enrich.With<RemovePropertiesEnricher>()
   .Enrich.WithProperty("AppVersion", version));
 
 string PostgresconnectionString = builder.Configuration.GetConnectionString("DefaultConnection");

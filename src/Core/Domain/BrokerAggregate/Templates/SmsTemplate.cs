@@ -6,7 +6,6 @@ public class SmsTemplate : Template
 {
     public override TemplateDTO MapToDTO()
     {
-        Console.WriteLine("executing from EmailTemplate");
         var dto = new TemplateDTO
         {
             id = Id,

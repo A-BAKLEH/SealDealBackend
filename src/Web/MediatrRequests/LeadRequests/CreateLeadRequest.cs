@@ -99,6 +99,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         AppEvent LeadAssignedEvent = null;
         if (brokerToAssignToId != null)
         {
+            if (dto.AssignToSelf) leadCreationEvent.ReadByBroker = true;
             leadCreationEvent.EventType = EventType.LeadCreated | EventType.YouAssignedtoBroker;
             //if assiging to self
             if (!dto.AssignToSelf)
@@ -186,7 +187,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             }
         }
 
-        if (LeadAssignedEvent != null)
+        if (LeadAssignedEvent != null && !dto.AssignToSelf)
         {
             var notifId = LeadAssignedEvent.Id;
             var leadAssignedEvent = new LeadAssigned { AppEventId = notifId };

@@ -8,7 +8,6 @@ public class EmailTemplate : Template
     public string TranslatedEmailTemplateSubject { get; set; }
     public override TemplateDTO MapToDTO()
     {
-        Console.WriteLine("executing from EmailTemplate");
         var dto = new TemplateDTO
         {
             id = Id,
