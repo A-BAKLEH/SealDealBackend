@@ -18,6 +18,7 @@ using Web.Config;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
+using Web.Processing;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 using Web.RealTimeNotifs;
@@ -58,6 +59,21 @@ public class TestController : ControllerBase
         _adGraphWrapper = aDGraph;
         _actionPQService = actionPQService;
         hub = hubContext;
+    }
+
+
+    [HttpGet("testShutdown")]
+    public async Task<IActionResult> testShutdown()
+    {
+        return Ok();
+    }
+
+    [HttpGet("testQuickcSlow")]
+    public async Task<IActionResult> testQuickSlow()
+    {
+        BackgroundJob.Enqueue<TestProcessor>(x => x.testQuick(CancellationToken.None));
+        BackgroundJob.Enqueue<TestProcessor>(x => x.testSlow(CancellationToken.None));
+        return Ok();
     }
 
 
@@ -113,8 +129,7 @@ public class TestController : ControllerBase
             string jobId = "";
             try
             {
-                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), GlobalControl.EmailStartSyncingDelay);
-                _logger.LogInformation("{place} scheduled email parsing with", "ScheduleEmailParseing", "ScheduleEmailParseing");
+                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null, CancellationToken.None), GlobalControl.EmailStartSyncingDelay);
             }
             catch (Exception ex)
             {
@@ -165,7 +180,7 @@ public class TestController : ControllerBase
     public async Task<IActionResult> StartAnalyzer()
     {
         var found = await _appDbContext.Brokers.FirstAsync(b => b.isAdmin);
-        Hangfire.BackgroundJob.Enqueue<NotifAnalyzer>(x => x.AnalyzeNotifsAsync(found.Id,null));
+        Hangfire.BackgroundJob.Enqueue<NotifAnalyzer>(x => x.AnalyzeNotifsAsync(found.Id, null, CancellationToken.None));
         return Ok();
     }
 

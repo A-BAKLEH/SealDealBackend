@@ -26,7 +26,7 @@ public class AdminController : BaseApiController
     public async Task<IActionResult> ScheduleOutboxDict()
     {
         var HangfireoutboxTaskId = Guid.NewGuid().ToString();
-        RecurringJob.AddOrUpdate<OutboxCleaner>(HangfireoutboxTaskId, a => a.CleanOutbox(), $"* /5 * * * *");
+        RecurringJob.AddOrUpdate<OutboxCleaner>(HangfireoutboxTaskId, a => a.CleanOutbox(CancellationToken.None), $"* /5 * * * *");
         var outboxTask = new OutboxDictsTask { HangfireTaskId = HangfireoutboxTaskId };
         appDbContext.Add(outboxTask);
         await appDbContext.SaveChangesAsync();

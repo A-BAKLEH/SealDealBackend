@@ -9,27 +9,27 @@ public class OutboxCleaner
     {
         _logger = logger;
     }
-    public void CleanOutbox()
+    public void CleanOutbox(CancellationToken cancellationToken)
     {
         var remove = new List<int>();
         foreach (var pair in OutboxMemCache.SchedulingErrorDict)
         {
             try
             {
-                Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(pair.Value));             
+                Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(pair.Value, CancellationToken.None));
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                if(pair.Value is BrokerCreated)
+                if (pair.Value is BrokerCreated)
                 {
                     _logger.LogCritical("{tag} brokerCreated event with eventId {eventId} failed scheduling hangfire." +
-                        " Send password manually. error : {error}", TagConstants.OutboxCleaner,pair.Key,ex.Message);
+                        " Send password manually. error : {error}", TagConstants.OutboxCleaner, pair.Key, ex.Message);
                 }
             }
             finally
             {
                 remove.Add(pair.Key);
-            }          
+            }
         }
         foreach (var key in remove)
         {

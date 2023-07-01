@@ -466,7 +466,6 @@ public class TestEmailController : ControllerBase
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
         string emailBash = "bashar.eskandar@sealDeal.ca";
 
-        //"a3de7de9-3285-4672-bcbb-d18e5e2cb153"
         _adGraphWrapper.CreateClient(tenantId);
         var Subs = await _adGraphWrapper._graphClient.Subscriptions.GetAsync();
         var subs1 = Subs.Value;

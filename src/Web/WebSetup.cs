@@ -4,6 +4,7 @@ using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
 using Web.HTTPClients;
 using Web.Outbox.Config;
+using Web.Processing;
 using Web.Processing.ActionPlans;
 using Web.Processing.Analyzer;
 using Web.Processing.Cleanup;
@@ -23,6 +24,7 @@ namespace Web
             services.AddScoped<RealTimeNotifSender>();
             services.AddScoped<NotifAnalyzer>();
             services.AddScoped<NotificationService>();
+            services.AddScoped<TestProcessor>();
 
             services.AddScoped<StripeQService>();
             services.AddScoped<AuthorizationService>();

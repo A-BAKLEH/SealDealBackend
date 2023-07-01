@@ -105,11 +105,11 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                             {
                                 if (delays != null)
                                 {
-                                    HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null), timespan);
+                                    HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null, CancellationToken.None), timespan);
                                 }
                                 else
                                 {
-                                    HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null));
+                                    HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null, CancellationToken.None));
                                 }
                             }
                             catch (Exception ex)

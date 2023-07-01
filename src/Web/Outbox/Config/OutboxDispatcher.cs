@@ -9,7 +9,7 @@ public class OutboxDispatcher
     {
         _mediator = mediator;
     }
-    public async Task Dispatch(EventBase Event)
+    public async Task Dispatch(EventBase Event, CancellationToken cancellationToken)
     {
         await _mediator.Publish(Event);
     }

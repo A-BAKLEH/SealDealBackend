@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using System.Runtime.ConstrainedExecution;
 using Web.ControllerServices;
 
 namespace Web.RealTimeNotifs;
@@ -12,27 +11,5 @@ public class NotifsHub : Hub
     public NotifsHub(AuthorizationService authorizeService)
     {
         _authorizationService = authorizeService;
-    }
-    public async Task BroadcastMessage(string name, string message) =>
-              await Clients.All.SendAsync("broadcastMessage", name, message);
-
-    public async Task Echo(string name, string message) =>
-        await Clients.Client(Context.ConnectionId)
-               .SendAsync("echo", name, $"{message} (echo from server)");
-    //public Task SendPrivateMessage(string user, string message)
-    //{
-    //    return Clients.User(user).SendAsync("ReceiveMessage", message);
-    //}
-    public override Task OnConnectedAsync()
-    {
-        //var id = Guid.Parse(Context.User.Claims.ToList().Find(x => x.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier").Value);
-
-        var test = Context.UserIdentifier;
-
-        //var id = Guid.NewGuid();
-
-        //var brokerTuple = _authorizationService.AuthorizeUser(id, true).Result;
-        //Console.WriteLine("signalR user: " + brokerTuple.Item1.LoginEmail);
-        return Task.CompletedTask;
     }
 }

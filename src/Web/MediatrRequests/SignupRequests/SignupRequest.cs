@@ -88,7 +88,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             Random rnd = new Random();
             var minute = rnd.Next(0,59);
             //analyzer every hour except between 2 and 3 montreal time
-            RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(broker.Id, null), $"{minute} 0-5,7-23 * * *", recJobOptions);
+            RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(broker.Id,null,CancellationToken.None), $"{minute} 0-5,7-23 * * *", recJobOptions);
             var recTask = new BrokerNotifAnalyzerTask
             {
                 HangfireTaskId = HangfireAnalyzerId,
@@ -100,7 +100,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             minute = rnd.Next(1, 20);
             
             //2:01 to 2:20 AM montreal time CLEANUP
-            RecurringJob.AddOrUpdate<ResourceCleaner>(HangfireCleanerId, a => a.CleanBrokerResourcesAsync(broker.Id, null), $"{minute} 6 * * *", recJobOptions);
+            RecurringJob.AddOrUpdate<ResourceCleaner>(HangfireCleanerId, a => a.CleanBrokerResourcesAsync(broker.Id, null, CancellationToken.None), $"{minute} 6 * * *", recJobOptions);
 
             var recTaskCleaner = new BrokerNotifAnalyzerTask
             {

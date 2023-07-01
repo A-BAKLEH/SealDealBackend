@@ -15,8 +15,13 @@ using Web.Config;
 using Web.RealTimeNotifs;
 
 var builder = WebApplication.CreateBuilder(args);
-
 var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+bool isDev = builder.Environment.IsDevelopment();
+if (!isDev)
+{
+    builder.Services.Configure<HostOptions>(
+        opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
+}
 
 builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Configuration)
   .Enrich.FromLogContext()
@@ -27,7 +32,7 @@ builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Con
 string PostgresconnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireConnection");
 
-builder.Services.AddHangfire(hangfireConnectionString);
+builder.Services.AddHangfire(hangfireConnectionString,isDev);
 builder.Services.AddInfrastructureServices(builder.Configuration, Assembly.GetExecutingAssembly());
 builder.Services.AddWebServices();
 builder.Services.AddControllers();
@@ -38,7 +43,7 @@ builder.Services.AddSwaggerGen();
 
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-if(builder.Environment.IsDevelopment())
+if (isDev)
 {
     builder.Services.AddCors(options =>
     {
@@ -102,7 +107,7 @@ var app = builder.Build();
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseProblemDetails();
 
-if (app.Environment.IsDevelopment())
+if (isDev)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -114,14 +119,14 @@ else
 
 app.UseHttpsRedirection();
 app.UseRouting();
-if (app.Environment.IsDevelopment()) app.UseCors(MyAllowSpecificOrigins);
+if (isDev) app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHub<NotifsHub>("/notifs");
 app.MapControllers();
 
-if (app.Environment.IsProduction())
+if (!isDev)
 {
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
     {

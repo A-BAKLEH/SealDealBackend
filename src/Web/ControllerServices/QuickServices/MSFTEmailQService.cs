@@ -121,12 +121,12 @@ public class MSFTEmailQService
           .Where(b => b.AgencyId == AgencyId)
           .ToListAsync();
         var agency = await _appDbContext.Agencies.FirstAsync(a => a.Id == AgencyId);
-
+        agency.AzureTenantID = tenantId;
+        bool error = false;
         foreach (var b in brokers)
         {
             foreach (var em in b.ConnectedEmails)
-            {
-                em.hasAdminConsent = true;
+            {               
                 try
                 {
                     await _emailProcessor.CreateEmailSubscriptionAsync(em, false);
@@ -136,22 +136,31 @@ public class MSFTEmailQService
                 {
                     if (ex.ResponseStatusCode == 403)
                     {
-                        _logger.LogError("{tag} agency hadAdminConsent true so tried to create subscribtion but forbidden for connectedEmail {connectedEmail}", TagConstants.handleAdminConsentMsft,em.Email);
-                        agency.HasAdminEmailConsent = false;
-                        em.hasAdminConsent = false;
+                        error = true;
+                        _logger.LogError("{tag} agency hadAdminConsent true so tried to create subscribtion but forbidden for connectedEmail {connectedEmail}", TagConstants.handleAdminConsentMsft, em.Email);
                         //BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
-                        await _appDbContext.SaveChangesAsync();
+                        //await _appDbContext.SaveChangesAsync();
+                        goto LoopEnd;
                     }
+                    else throw;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError("{tag} agency hadAdminConsent true, failed connecting email unknown why. error: {error}", TagConstants.handleAdminConsentMsft, ex.Message + " :" + ex.StackTrace);
                     throw;
                 }
+                em.hasAdminConsent = true;
             }
         }
-        agency.AzureTenantID = tenantId;
-        agency.HasAdminEmailConsent = true;
+        LoopEnd:
+        if(error)
+        {
+            agency.HasAdminEmailConsent = false;
+        }
+        else
+        {
+            agency.HasAdminEmailConsent = true;
+        }           
         await _appDbContext.SaveChangesAsync();
         return brokers.First(b => b.Id == brokerId).ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent, e.isMSFT });
     }

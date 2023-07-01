@@ -183,11 +183,12 @@ public class ListingQService
             await _appDbContext.SaveChangesAsync();
             foreach (var appEvent in AppEvents)
             {
+                if (appEvent.BrokerId == UserId) continue;
                 var eventId = appEvent.Id;
                 var ListingAssigned = new ListingAssigned { AppEventId = eventId };
                 try
                 {
-                    var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned));
+                    var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned, CancellationToken.None));
                 }
                 catch (Exception ex)
                 {
@@ -282,7 +283,7 @@ public class ListingQService
             var ListingAssigned = new ListingAssigned { AppEventId = eventId };
             try
             {
-                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned));
+                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned, CancellationToken.None));
             }
             catch (Exception ex)
             {

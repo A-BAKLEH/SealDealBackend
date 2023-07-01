@@ -34,7 +34,7 @@ public class APProcessor
     /// <param name="ActionPlanId"></param>
     /// <returns></returns>
     [DisableConcurrentExecution(300)]
-    public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId, PerformContext performContext)
+    public async Task DoActionAsync(int LeadId, int ActionId, byte ActionLevel, int ActionPlanId, PerformContext performContext,CancellationToken cancellationToken)
     {
         var ActionPlanAssociation = await _appDbContext.ActionPlanAssociations
             .Include(ass => ass.ActionPlan)
@@ -48,6 +48,12 @@ public class APProcessor
             _logger.LogWarning("{tag} APAssociation is null for LeadId {leadId} and ActionPlanId {actionPlanId}", TagConstants.doAction, LeadId, ActionPlanId);
             return;
         }
+        var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
+        if (CurrentActionTracker.ActionStatus != ActionStatus.ScheduledToStart)
+        {
+            _logger.LogWarning("{tag} tried processing not scheduled action with id {actionId} for lead {leadId} with status {actionTrackerStatus}", TagConstants.doAction, ActionId, LeadId, CurrentActionTracker.ActionStatus.ToString());
+            return;
+        }
         var actions = await _appDbContext.Actions
           .Where(a => a.ActionPlanId == ActionPlanId && (a.ActionLevel == ActionLevel || a.ActionLevel == ActionLevel + 1))
           .Select(a => new ActionExecutingDTO { nextActionDelay = a.NextActionDelay, dataTemplateId = a.DataTemplateId, ActionLevel = a.ActionLevel, Id = a.Id, ActionProperties = a.ActionProperties, ActionType = a.ActionType, BrokerId = a.ActionPlan.BrokerId })
@@ -55,16 +61,9 @@ public class APProcessor
           .AsNoTracking()
           .ToListAsync();
 
-        var lead = ActionPlanAssociation.lead;
-        var CurrentActionTracker = ActionPlanAssociation.ActionTrackers[0];
+        var lead = ActionPlanAssociation.lead;  
         var CurrentAction = actions[0];
         var currentActionLevel = CurrentAction.ActionLevel;
-
-        if (CurrentActionTracker.ActionStatus != ActionStatus.ScheduledToStart)
-        {
-            _logger.LogError("{tag} processing action with id {actionId} for lead {leadId} with status {actionTrackerStatus}", TagConstants.doAction, ActionId, LeadId, CurrentActionTracker.ActionStatus.ToString());
-            return;
-        }
 
         if (CurrentActionTracker.HangfireJobId == null) CurrentActionTracker.HangfireJobId = performContext.BackgroundJob.Id;
         Guid brokerId = lead.BrokerId ?? actions[0].BrokerId;
@@ -123,11 +122,11 @@ public class APProcessor
 
             if (delays != null)
             {
-                NextHangfireJobId = Hangfire.BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId, null), timespan);
+                NextHangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId, null,CancellationToken.None), timespan);
             }
             else
             {
-                NextHangfireJobId = Hangfire.BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId, null));
+                NextHangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(LeadId, NextAction.Id, NextAction.ActionLevel, ActionPlanId, null, CancellationToken.None));
             }
             NextActionTracker.HangfireJobId = NextHangfireJobId;
         }

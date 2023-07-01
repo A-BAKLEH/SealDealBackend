@@ -56,7 +56,7 @@ public class EmailProcessor
     /// <param name="brokerId"></param>
     /// <param name="EmailNumber"></param>
     /// <param name="tenantId"></param>
-    public async Task RenewSubscriptionAsync(string email)
+    public async Task RenewSubscriptionAsync(string email,CancellationToken cancellationToken)
     {
         var connEmail = await _appDbContext.ConnectedEmails.FirstOrDefaultAsync(x => x.Email == email);
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
@@ -85,7 +85,7 @@ public class EmailProcessor
 
         connEmail.SubsExpiryDate = SubsEnds.UtcDateTime;
         var nextRenewalDate = SubsEnds - TimeSpan.FromMinutes(120);
-        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connEmail.Email), nextRenewalDate);
+        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connEmail.Email,CancellationToken.None), nextRenewalDate);
         connEmail.SubsRenewalJobId = RenewalJobId;
         _appDbContext.SaveChanges();
     }
@@ -157,7 +157,7 @@ public class EmailProcessor
 
         //renew 60 minutes before subs Ends
         var renewalTime = SubsEnds - TimeSpan.FromMinutes(120);
-        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connectedEmail.Email), renewalTime);
+        string RenewalJobId = BackgroundJob.Schedule<EmailProcessor>(s => s.RenewSubscriptionAsync(connectedEmail.Email,CancellationToken.None), renewalTime);
         connectedEmail.SubsRenewalJobId = RenewalJobId;
 
         if (save) await _appDbContext.SaveChangesAsync();
@@ -174,7 +174,7 @@ public class EmailProcessor
             string jobId = "";
             try
             {
-                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null), GlobalControl.EmailStartSyncingDelay);
+                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null,CancellationToken.None), GlobalControl.EmailStartSyncingDelay);
             }
             catch (Exception ex)
             {
@@ -231,8 +231,12 @@ public class EmailProcessor
     /// </summary>
     /// <param name = "failedMessages" ></ param >
     /// < returns ></ returns >
-    public async Task<List<Message>> GetFailedMessages(string email)
+    public async Task<List<Message>> GetFailedMessages(string email,CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
         try
         {
             var weekAgo1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(7);
@@ -260,7 +264,7 @@ public class EmailProcessor
     /// </summary>
     /// <param name="connEmailId"></param>
     /// <param name="tenantId"></param>
-    public async Task SyncEmailAsync(string email, PerformContext performContext)
+    public async Task SyncEmailAsync(string email, PerformContext performContext,CancellationToken cancellationToken)
     {
         //TODO Cache
         var connEmail = await _appDbContext.ConnectedEmails
@@ -314,6 +318,10 @@ public class EmailProcessor
 
         bool ReachedFailedMessages = false;
 
+        if(cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
         try
         {
             var messages = await _aDGraphWrapper._graphClient
@@ -345,13 +353,16 @@ public class EmailProcessor
                         messages = await _aDGraphWrapper._graphClient.RequestAdapter.SendAsync(nextPageRequestInformation, (parseNode) => new MessageCollectionResponse());
                     }
                     first = false;
-                    //process messages
+                    //process messages                  
                     var messagesList = messages.Value;
 
                     LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
                     var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
                     totaltokens += toks1;
-
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
                 } while (messages.OdataNextLink != null);
             }
             else LastProcessedTimestamp = DateTimeOffset.UtcNow;
@@ -359,7 +370,11 @@ public class EmailProcessor
             ReachedFailedMessages = true;
             //failed messages
             bool processFailed = false;
-            var failedMessages = await GetFailedMessages(email);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                processFailed = false;
+            }
+            var failedMessages = await GetFailedMessages(email,cancellationToken);
             if (failedMessages != null && failedMessages.Count > 0 && processFailed)
             {
                 if (processFailed)
@@ -928,11 +943,11 @@ public class EmailProcessor
         {
             if (delays != null)
             {
-                HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null), timespan);
+                HangfireJobId = BackgroundJob.Schedule<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null,CancellationToken.None), timespan);
             }
             else
             {
-                HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null));
+                HangfireJobId = BackgroundJob.Enqueue<APProcessor>(p => p.DoActionAsync(lead.Id, firstAction.Id, firstAction.ActionLevel, ap.Id, null,CancellationToken.None));
             }
         }
         catch (Exception ex)

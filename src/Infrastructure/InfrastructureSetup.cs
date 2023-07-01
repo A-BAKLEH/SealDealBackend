@@ -23,7 +23,7 @@ public static class InfrastructureSetup
         services.AddDbContextFactory<AppDbContext>(
         options =>
             options.UseNpgsql(connectionString));
-    public static void AddHangfire(this IServiceCollection services, string connectionString)
+    public static void AddHangfire(this IServiceCollection services, string connectionString, bool isDev)
     {
         services.AddHangfire(configuration => configuration
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
@@ -39,9 +39,19 @@ public static class InfrastructureSetup
             EnableHeavyMigrations = false //not default, put to true when you need to migrate
         }));
 
-        services.AddHangfireServer();
+        if (isDev)
+        {
+            services.AddHangfireServer();
+        }
+        else
+        {
+            services.AddHangfireServer(options =>
+            {
+                options.ShutdownTimeout = TimeSpan.FromSeconds(15);
+                options.WorkerCount = Math.Min(Environment.ProcessorCount * 3,15);
+            });
+        }
     }
-
 
     public static void AddInfrastructureServices(this IServiceCollection services, IConfiguration config, Assembly webAssembly)
     {

@@ -1,14 +1,10 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.BrokerAggregate;
-using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Hangfire.Server;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
-using Microsoft.CodeAnalysis.VisualBasic.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
-using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Web.RealTimeNotifs;
 using EventType = Core.Domain.NotificationAggregate.EventType;
@@ -21,7 +17,7 @@ public class NotifAnalyzer
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ADGraphWrapper _aDGraphWrapper;
     private readonly RealTimeNotifSender _realTimeNotif;
-    public NotifAnalyzer(IDbContextFactory<AppDbContext> contextFactory,RealTimeNotifSender realTimeNotifSender, ADGraphWrapper aDGraphWrapper, ILogger<NotifAnalyzer> logger)
+    public NotifAnalyzer(IDbContextFactory<AppDbContext> contextFactory, RealTimeNotifSender realTimeNotifSender, ADGraphWrapper aDGraphWrapper, ILogger<NotifAnalyzer> logger)
     {
         _realTimeNotif = realTimeNotifSender;
         _logger = logger;
@@ -90,7 +86,7 @@ public class NotifAnalyzer
 
     }
 
-    public async Task<Tuple<Notif?, DateTime?>> AnalyzeEmail(EmailEvent e, DateTime TimeNow, GraphServiceClient graphServiceClient )
+    public async Task<Tuple<Notif?, DateTime?>> AnalyzeEmail(EmailEvent e, DateTime TimeNow, GraphServiceClient graphServiceClient)
     {
         DateTime? newEmailEventAnalyzerLastTimestamp = null;
         //if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromHours(1))
@@ -114,7 +110,7 @@ public class NotifAnalyzer
                         EventId = e.Id,
                         priority = 2
                     };
-                    return new Tuple<Notif?,DateTime?>(notif, newEmailEventAnalyzerLastTimestamp);
+                    return new Tuple<Notif?, DateTime?>(notif, newEmailEventAnalyzerLastTimestamp);
                 }
                 //seen so mark email event as seen
                 else
@@ -122,7 +118,7 @@ public class NotifAnalyzer
                     e.Seen = true;
                     return new Tuple<Notif?, DateTime?>(null, newEmailEventAnalyzerLastTimestamp);
                 }
-                
+
             }
             //else if (e.TimeReceived <= TimeNow - TimeSpan.FromHours(3))//not seen and needs action
             else if (e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))//not seen and needs action
@@ -175,7 +171,7 @@ public class NotifAnalyzer
         }
         return new Tuple<Notif?, DateTime?>(null, newEmailEventAnalyzerLastTimestamp);
     }
-    public async Task AnalyzeNotifsAsync(Guid brokerId, PerformContext performContext)
+    public async Task AnalyzeNotifsAsync(Guid brokerId, PerformContext performContext,CancellationToken cancellationToken)
     {
         using var dbcontext = _contextFactory.CreateDbContext();
         var TimeNow = DateTime.UtcNow;
@@ -232,10 +228,14 @@ public class NotifAnalyzer
             foreach (var e in emailEvents)
             {
                 var res = await AnalyzeEmail(e, TimeNow, dict[e.BrokerEmail]);
-                if(res.Item1 != null) notifs.Add(res.Item1);
+                if (res.Item1 != null) notifs.Add(res.Item1);
                 if (res.Item2 != null) NewEmailEventAnalyzerLastTimestamp = res.Item2;
-            }        
-            if(NewEmailEventAnalyzerLastTimestamp != null) broker.EmailEventAnalyzerLastTimestamp = (DateTime)NewEmailEventAnalyzerLastTimestamp;
+                if(cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+            }
+            if (NewEmailEventAnalyzerLastTimestamp != null) broker.EmailEventAnalyzerLastTimestamp = (DateTime)NewEmailEventAnalyzerLastTimestamp;
         }
 
         var StillUnRepliedEmailEvents = await dbcontext.EmailEvents
@@ -251,6 +251,10 @@ public class NotifAnalyzer
         {
             foreach (var unrepliedEmail in StillUnRepliedEmailEvents)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
                 //check replied-to in graph
                 var resT = await CheckSeenAndRepliedToAsync(dict[unrepliedEmail.BrokerEmail], unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, false, true);
                 var existingNotif = await dbcontext.Notifs.FirstOrDefaultAsync(n => n.BrokerId == brokerId && n.LeadId == unrepliedEmail.LeadId && !n.isSeen && n.NotifType == EventType.UnrepliedEmail && n.EventId == unrepliedEmail.Id);
@@ -299,6 +303,10 @@ public class NotifAnalyzer
         .AsNoTracking()
         .ToListAsync();
 
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
         var currHighestAnalyzedAppEventId = 0;
         UnseenLeadAssignedEventsToAnalyze.ForEach(e =>
             {
@@ -349,14 +357,22 @@ public class NotifAnalyzer
                 NotifType = EventType.UnAssignedLead,
                 priority = 1,
             }));
-            if(unassignedCreatedLeads.Any())
+            if (unassignedCreatedLeads.Any())
                 broker.LastUnassignedLeadIdAnalyzed = unassignedCreatedLeads.Last().Id;
         }
 
         broker.LastSeenAppEventId = NewLastSeenAppEventId;
         broker.AppEventAnalyzerLastId = currHighestAnalyzedAppEventId;
         dbcontext.Notifs.AddRange(notifs);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
         await dbcontext.SaveChangesAsync();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
         //TODO real time notifs, check that email parsing running correctly
         await _realTimeNotif.SendRealTimeNotifsAsync(_logger, brokerId, true, true, notifs, null, null);
     }

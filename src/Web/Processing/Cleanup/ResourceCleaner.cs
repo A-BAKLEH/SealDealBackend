@@ -10,7 +10,7 @@ public class ResourceCleaner
     {
         appDb = appDbContext;
     }
-    public async Task CleanBrokerResourcesAsync(Guid brokerId, PerformContext performContext)
+    public async Task CleanBrokerResourcesAsync(Guid brokerId, PerformContext performContext,CancellationToken cancellationToken)
     {
         await appDb.Notifs
             .Where(n => n.BrokerId == brokerId && n.isSeen)

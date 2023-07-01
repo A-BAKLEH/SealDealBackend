@@ -331,7 +331,7 @@ public class LeadQService
         var leadAssignedEvent = new LeadAssigned { AppEventId = notifId };
         try
         {
-            var HangfireJobId = BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent));
+            var HangfireJobId = BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent,CancellationToken.None));
         }
         catch (Exception ex)
         {
