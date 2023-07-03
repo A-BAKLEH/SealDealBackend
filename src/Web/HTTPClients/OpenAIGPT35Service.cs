@@ -132,7 +132,6 @@ namespace Web.HTTPClients
             OpenAIResponse res;
             try
             {
-
                 var length = message.Body.Content.Length;
                 var text = message.Body.Content;
                 text = EmailReducer.Reduce(text, message.From.EmailAddress.Address);
@@ -160,6 +159,7 @@ namespace Web.HTTPClients
                 var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
                 var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
                 var LeadParsed = JsonSerializer.Deserialize<LeadParsingContent>(GPTCompletionJSON);
+                
 
                 res = new OpenAIResponse
                 {
@@ -176,7 +176,7 @@ namespace Web.HTTPClients
                 {
                     res.HasLead = true;
                     res.content = LeadParsed;
-                }
+                }              
             }
             catch (HttpRequestException e)
             {
@@ -202,6 +202,10 @@ namespace Web.HTTPClients
                 };
                 _logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
                     " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail, e.Message + e.StackTrace);
+            }
+            if (GlobalControl.LogOpenAIEmailParsingObjects)
+            {
+                _logger.LogWarning("{tag} returning object: {@parsedOpenAiResponse}", TagConstants.openAi, res);
             }
             return res;
         }

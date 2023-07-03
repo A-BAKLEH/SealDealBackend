@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Web.ApiModels;
+using Web.Constants;
 using Web.ControllerServices;
 using Web.Processing.EmailAutomation;
 
@@ -29,6 +30,7 @@ public class MsftWebhook : BaseApiController
         {
             return Ok(validationToken);
         }
+        if (!GlobalControl.ProcessEmails) return Ok();
         //return Ok();
         var ProcessedSubsIDs = new List<Guid>();
         //process and return a 2xx response, or store and return 202 accepted if processing takes more than 3 sec

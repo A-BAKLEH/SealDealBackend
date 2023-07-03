@@ -44,7 +44,6 @@ public class RealTimeNotifSender
         {
             if (analyzerNotifs != null && analyzerNotifs.Any())
             {
-                Console.WriteLine("Sending AnalyzerNotifs");
                 await _hubContext.Clients.User(brokerId.ToString())
                     .SendAsync("ReceiveMessage", "0");
                 return;

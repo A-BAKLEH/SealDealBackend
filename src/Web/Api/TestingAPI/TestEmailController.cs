@@ -284,19 +284,13 @@ public class TestEmailController : ControllerBase
           .GetAsync(config =>
           {
               config.QueryParameters.Orderby = new string[] { "receivedDateTime desc" };
-              config.QueryParameters.Top = 15;
+              config.QueryParameters.Top = 25;
               config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
           });
         var messages = messages1.Value;
-        var text = messages[index].Body.Content;
 
-        if (index == 10)
-        {
-
-            string pattern = @"Que pensez-vous de ce renvoi de client potentiel";
-            var indexStart = text.IndexOf(pattern);
-            text = text.Substring(0, indexStart);
-        }
+        //var text = messages[index].Body.Content;
+        var text = messages.Find(m => m.Id == "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAi4j1NAAA").Body.Content;
 
         string prompt = APIConstants.ParseLeadPrompt4 + text;
 
@@ -325,7 +319,6 @@ public class TestEmailController : ControllerBase
         {
             var ess = ex;
         }
-
 
         //TODO handle API error 
         response.EnsureSuccessStatusCode();
@@ -444,6 +437,39 @@ public class TestEmailController : ControllerBase
 
         return Ok();
     }
+
+
+    [HttpGet("getEmail")]
+    public async Task<IActionResult> getEmail()
+    {
+        var emailId = "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAi4i_CwAA";
+        _adGraphWrapper.CreateClient(tenantId);
+        try
+        {
+            var messages1 = await _adGraphWrapper._graphClient
+          .Users["bashar.eskandar@sealdeal.ca"]
+          .MailFolders["Inbox"]
+          .Messages[emailId]
+          .GetAsync(opts => opts.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" }));
+         
+          //  var messages1 = await _adGraphWrapper._graphClient
+          //.Users["bashar.eskandar@sealdeal.ca"]
+          //.MailFolders["Inbox"]
+          //.Messages
+          //.GetAsync(config =>
+          //{
+          //    config.QueryParameters.Filter = $"id eq '{emailId}'";
+          //    config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+          //});
+          //  var messages = messages1.Value;
+        }
+        catch(ODataError er)
+        {
+
+        }
+        return Ok();
+    }
+
 
     [HttpGet("setconnectedEmailLastSyncdate")]
     public async Task<IActionResult> setconnectedEmailLastSyncdate()

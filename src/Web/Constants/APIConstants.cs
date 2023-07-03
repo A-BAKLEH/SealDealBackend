@@ -30,7 +30,7 @@ public class APIConstants
         "last name,phone number,email address,property address he/she inquired about and isolate this property's street address and apartment number." +
         "Also determine the language the email is written in." +
         "Output and format these values as strictly JSON with keys: firstName,lastName,phoneNumber,emailAddress," +
-        "PropertyAddress,StreetAddress,Apartment,Language. Use 'null' for values that do not exist in the email text." +
+        "PropertyAddress,StreetAddress,Apartment,Language. Use 'null' for values that do not exist in the email text,except the Language." +
         " Else if the email is not from a lead,output exactly '{\"NotFound\":1}'.email: ";
 
     public const string TranslateTemplatePrompt = "If the following email template is in French, translate it to" +

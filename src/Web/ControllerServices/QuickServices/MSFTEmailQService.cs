@@ -1,6 +1,5 @@
 ﻿using Core.Config.Constants.LoggingConstants;
 using Core.Constants.ProblemDetailsTitles;
-using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Hangfire;
 using Infrastructure.Data;
@@ -99,16 +98,16 @@ public class MSFTEmailQService
             {
                 if (ex.ResponseStatusCode == 403)
                 {
-                    _logger.LogError("{tag} agency hadAdminConsent true so tried to create subscribtion but forbidden",TagConstants.connectMsftEmail);
+                    _logger.LogError("{tag} agency hadAdminConsent true so tried to create subscribtion but forbidden", TagConstants.connectMsftEmail);
                     broker.Agency.HasAdminEmailConsent = false;
                     connectedEmail.hasAdminConsent = false;
                     //BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, connectedEmail.Email));
                     await _appDbContext.SaveChangesAsync();
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                _logger.LogError("{tag} agency hadAdminConsent true, failed connecting email unknown why. error: {error}", TagConstants.connectMsftEmail,ex.Message + " :" + ex.StackTrace);
+                _logger.LogError("{tag} agency hadAdminConsent true, failed connecting email unknown why. error: {error}", TagConstants.connectMsftEmail, ex.Message + " :" + ex.StackTrace);
                 throw;
             }
         }
@@ -123,10 +122,13 @@ public class MSFTEmailQService
         var agency = await _appDbContext.Agencies.FirstAsync(a => a.Id == AgencyId);
         agency.AzureTenantID = tenantId;
         bool error = false;
+
+        await Task.Delay(1500);//give time to azure to grant permissions
+
         foreach (var b in brokers)
         {
             foreach (var em in b.ConnectedEmails)
-            {               
+            {
                 try
                 {
                     await _emailProcessor.CreateEmailSubscriptionAsync(em, false);
@@ -152,15 +154,15 @@ public class MSFTEmailQService
                 em.hasAdminConsent = true;
             }
         }
-        LoopEnd:
-        if(error)
+    LoopEnd:
+        if (error)
         {
             agency.HasAdminEmailConsent = false;
         }
         else
         {
             agency.HasAdminEmailConsent = true;
-        }           
+        }
         await _appDbContext.SaveChangesAsync();
         return brokers.First(b => b.Id == brokerId).ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent, e.isMSFT });
     }

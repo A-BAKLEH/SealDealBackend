@@ -15,13 +15,9 @@
     <Compile Remove="Filters\**" />
     <Content Remove="Filters\**" />
     <EmbeddedResource Remove="Filters\**" />
-    <None Remove="Filters\**" />
-	  
+    <None Remove="Filters\**" />  
   </ItemGroup>
-	<PropertyGroup Condition="'$(Configuration)'=='Release'">
-		<DebugSymbols>False</DebugSymbols>
-		<DebugType>None</DebugType>
-	</PropertyGroup> 
+	
   <ItemGroup>
     <PackageReference Include="Hangfire.Dashboard.BasicAuthorization" />
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />

@@ -1,7 +1,6 @@
 ﻿
 
 using Core.ExternalServiceInterfaces.StripeInterfaces;
-using Microsoft.Extensions.Configuration;
 using Stripe;
 using Stripe.BillingPortal;
 
@@ -9,7 +8,7 @@ namespace Infrastructure.ExternalServices.Stripe;
 public class StripeBillingPortalService : IStripeBillingPortalService
 {
     public StripeBillingPortalService()
-    {}
+    { }
     public async Task<string> CreateStripeBillingSessionAsync(string AdminStripeId, string returnURL)
     {
         var options = new SessionCreateOptions

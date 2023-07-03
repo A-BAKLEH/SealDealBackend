@@ -1,6 +1,4 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.LeadAggregate;
-using Core.ExternalServiceInterfaces.StripeInterfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -78,7 +76,7 @@ public class AccountController : BaseApiController
             _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
             return Forbid();
         }
-        await _brokerQService.SetaccountLanguage(id,SetLanguage);
+        await _brokerQService.SetaccountLanguage(id, SetLanguage);
         return Ok();
     }
 
@@ -179,7 +177,7 @@ public class AccountController : BaseApiController
             _logger.LogCritical("{tag} inactive User tried to handle admin consented", TagConstants.Inactive);
             return Forbid();
         }
-        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id,brokerTuple.Item1.AgencyId);
+        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id, brokerTuple.Item1.AgencyId);
 
         return Ok(resTuple);
     }

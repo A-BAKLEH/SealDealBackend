@@ -21,6 +21,7 @@ public class StripeCheckoutService : IStripeCheckoutService
         var service = new SessionService();
         var options = new SessionCreateOptions
         {
+            AllowPromotionCodes = true,
             SuccessUrl = CheckoutSuccessURL,
             CancelUrl = CheckoutCancelURL,
             PaymentMethodTypes = new List<string>

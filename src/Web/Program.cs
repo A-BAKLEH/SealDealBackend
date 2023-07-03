@@ -32,7 +32,7 @@ builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Con
 string PostgresconnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireConnection");
 
-builder.Services.AddHangfire(hangfireConnectionString,isDev);
+builder.Services.AddHangfire(hangfireConnectionString, isDev);
 builder.Services.AddInfrastructureServices(builder.Configuration, Assembly.GetExecutingAssembly());
 builder.Services.AddWebServices();
 builder.Services.AddControllers();
@@ -100,13 +100,13 @@ builder.Services.AddProblemDetails(options =>
         Detail = ex.details,
     });
 });
+
 builder.Services.AddSignalR().AddAzureSignalR();
 
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseProblemDetails();
-
 if (isDev)
 {
     app.UseSwagger();
@@ -116,16 +116,13 @@ else
 {
     app.UseHsts();
 }
-
 app.UseHttpsRedirection();
 app.UseRouting();
 if (isDev) app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapHub<NotifsHub>("/notifs");
 app.MapControllers();
-
 if (!isDev)
 {
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
@@ -148,7 +145,6 @@ if (!isDev)
     });
 }
 else app.MapHangfireDashboard();
-
 app.Run();
 //Add-Migration InitialMigrationName -StartupProject Web -Context AppDbContext -Project Infrastructure
 //stripe listen --forward-to https://localhost:7156/api/Webhook/webhook

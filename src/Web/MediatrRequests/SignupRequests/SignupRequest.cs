@@ -6,7 +6,6 @@ using Core.DTOs;
 using Hangfire;
 using Infrastructure.Data;
 using MediatR;
-using NuGet.Protocol.Plugins;
 using Web.ApiModels.APIResponses.Broker;
 using Web.ControllerServices;
 using Web.Processing.Analyzer;
@@ -81,14 +80,14 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
         _appDbContext.Add(agency);
         await _appDbContext.SaveChangesAsync();
 
-        if(_webHostEnv.IsProduction())
+        if (_webHostEnv.IsProduction())
         {
             var recJobOptions = new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc };
             var HangfireAnalyzerId = broker.Id.ToString() + "Analyzer";
             Random rnd = new Random();
-            var minute = rnd.Next(0,59);
+            var minute = rnd.Next(0, 59);
             //analyzer every hour except between 2 and 3 montreal time
-            RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(broker.Id,null,CancellationToken.None), $"{minute} 0-5,7-23 * * *", recJobOptions);
+            RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(broker.Id, null, CancellationToken.None), $"{minute} 0-5,7-23 * * *", recJobOptions);
             var recTask = new BrokerNotifAnalyzerTask
             {
                 HangfireTaskId = HangfireAnalyzerId,
@@ -98,7 +97,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
 
             var HangfireCleanerId = broker.Id.ToString() + "Cleaner";
             minute = rnd.Next(1, 20);
-            
+
             //2:01 to 2:20 AM montreal time CLEANUP
             RecurringJob.AddOrUpdate<ResourceCleaner>(HangfireCleanerId, a => a.CleanBrokerResourcesAsync(broker.Id, null, CancellationToken.None), $"{minute} 6 * * *", recJobOptions);
 

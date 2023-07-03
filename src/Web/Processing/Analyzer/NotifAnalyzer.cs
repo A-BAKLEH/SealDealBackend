@@ -89,8 +89,8 @@ public class NotifAnalyzer
     public async Task<Tuple<Notif?, DateTime?>> AnalyzeEmail(EmailEvent e, DateTime TimeNow, GraphServiceClient graphServiceClient)
     {
         DateTime? newEmailEventAnalyzerLastTimestamp = null;
-        //if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromHours(1))
-        if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))
+        if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromHours(1))
+        //if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))
         {
             newEmailEventAnalyzerLastTimestamp = e.TimeReceived;
             if (!e.NeedsAction)
@@ -120,8 +120,8 @@ public class NotifAnalyzer
                 }
 
             }
-            //else if (e.TimeReceived <= TimeNow - TimeSpan.FromHours(3))//not seen and needs action
-            else if (e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))//not seen and needs action
+            else if (e.TimeReceived <= TimeNow - TimeSpan.FromHours(3))//not seen and needs action
+            //else if (e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))//not seen and needs action
             {
                 //check if seen and replied-to yet
                 var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, e.BrokerEmail, e.Id, e.ConversationId, true, true);
@@ -145,8 +145,8 @@ public class NotifAnalyzer
                 return new Tuple<Notif?, DateTime?>(null, newEmailEventAnalyzerLastTimestamp);
             }
         }
-        //else if (e.Seen && e.NeedsAction && !e.RepliedTo && e.TimeReceived <= TimeNow - TimeSpan.FromHours(3))
-        else if (e.Seen && e.NeedsAction && !e.RepliedTo && e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))
+        else if (e.Seen && e.NeedsAction && !e.RepliedTo && e.TimeReceived <= TimeNow - TimeSpan.FromHours(3))
+        //else if (e.Seen && e.NeedsAction && !e.RepliedTo && e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))
         {
             newEmailEventAnalyzerLastTimestamp = e.TimeReceived;
             //check if replied-to yet
@@ -311,8 +311,8 @@ public class NotifAnalyzer
         UnseenLeadAssignedEventsToAnalyze.ForEach(e =>
             {
                 //unseen LeadAssigned events > 15 mins
-                //if (e.EventTimeStamp <= TimeNow - TimeSpan.FromMinutes(15))
-                if (e.EventTimeStamp <= TimeNow - TimeSpan.FromSeconds(1))
+                if (e.EventTimeStamp <= TimeNow - TimeSpan.FromMinutes(15))
+                //if (e.EventTimeStamp <= TimeNow - TimeSpan.FromSeconds(1))
                 {
                     currHighestAnalyzedAppEventId = e.Id;
                     notifs.Add(new Notif
@@ -340,8 +340,8 @@ public class NotifAnalyzer
             });
 
         //if admin get all unassigned created Leads that have been unassigned for 1 > hours (priority 1)
-        //var NowMinusOneHour = TimeNow - TimeSpan.FromHours(1);
-        var NowMinusOneHour = TimeNow - TimeSpan.FromSeconds(1);
+        var NowMinusOneHour = TimeNow - TimeSpan.FromHours(1);
+        //var NowMinusOneHour = TimeNow - TimeSpan.FromSeconds(1);
         if (broker.isAdmin && !broker.isSolo)
         {
             var unassignedCreatedLeads = await dbcontext.Leads

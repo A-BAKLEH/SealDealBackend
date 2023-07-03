@@ -144,11 +144,74 @@ public class BrokerQService
           $"DELETE FROM \"EmailEvents\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
           $"DELETE FROM \"Leads\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
           $"DELETE FROM \"BrokerListingAssignments\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"RecurrentTasks\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
           $"DELETE FROM \"Brokers\" WHERE \"Id\" = '{brokerDeleteId}';");
 
         //delete template should be by cascade
         //delete tags dont know
 
+        await _appDbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+    }
+
+    public async Task DeleteSoloBrokerWithoutTouchingStripeAsync(Guid brokerDeleteId, int agencyId)
+    {
+        //TODO create a deletion tracking object in a NoSql data store and update it after completion of each step here
+        //try to retrieve it beginning of delete operation
+        using var transaction = await _appDbContext.Database.BeginTransactionAsync();
+
+        //check broker exists, belongs to this agency, is not an admin
+        var agency = await _appDbContext.Agencies
+          .Include(a => a.AgencyBrokers)
+          .ThenInclude(b => b.RecurrentTasks)
+          .FirstAsync(a => a.Id == agencyId);
+
+        //delete from B2C
+        try
+        {
+            await _b2CGraphService.DeleteB2CUserAsync(brokerDeleteId);
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting broker from B2C");
+        }      
+
+        var todoTasks = await _appDbContext.ToDoTasks.Where(t => t.BrokerId == brokerDeleteId && t.IsDone == false)
+          .Select(t => t.HangfireReminderId)
+          .ToListAsync();
+
+        foreach (var jobId in todoTasks)
+        {
+            if (jobId != null) try
+                {
+                    BackgroundJob.Delete(jobId);
+                }
+                catch (Exception) { }
+        }
+        if (agency.AgencyBrokers[0].RecurrentTasks != null && agency.AgencyBrokers[0].RecurrentTasks.Any())
+        {
+            foreach (var task in agency.AgencyBrokers[0].RecurrentTasks)
+            {
+                try
+                {
+                    BackgroundJob.Delete(task.HangfireTaskId);
+                }
+                catch (Exception) { }
+            }
+        }
+        await _appDbContext.Database.ExecuteSqlRawAsync
+          ($"DELETE FROM \"ToDoTasks\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"Notifs\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"AppEvents\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"EmailEvents\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"Leads\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"BrokerListingAssignments\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"RecurrentTasks\" WHERE \"BrokerId\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"Brokers\" WHERE \"Id\" = '{brokerDeleteId}';" +
+          $"DELETE FROM \"Agencies\" WHERE \"Id\" = '{agencyId}';");
+        //delete template should be by cascade
+        //delete tags dont know
         await _appDbContext.SaveChangesAsync();
         await transaction.CommitAsync();
 
