@@ -101,7 +101,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             //2:01 to 2:20 AM montreal time CLEANUP
             RecurringJob.AddOrUpdate<ResourceCleaner>(HangfireCleanerId, a => a.CleanBrokerResourcesAsync(broker.Id, null, CancellationToken.None), $"{minute} 6 * * *", recJobOptions);
 
-            var recTaskCleaner = new BrokerNotifAnalyzerTask
+            var recTaskCleaner = new BrokerCleanupTask
             {
                 HangfireTaskId = HangfireCleanerId,
                 BrokerId = broker.Id

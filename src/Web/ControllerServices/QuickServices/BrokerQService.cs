@@ -7,6 +7,7 @@ using Core.ExternalServiceInterfaces;
 using Core.ExternalServiceInterfaces.StripeInterfaces;
 using Hangfire;
 using Infrastructure.Data;
+using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
 
@@ -18,11 +19,13 @@ public class BrokerQService
     private readonly IB2CGraphService _b2CGraphService;
     private readonly IStripeSubscriptionService _stripeSubscriptionService;
     private readonly ILogger<BrokerQService> _logger;
-    public BrokerQService(AppDbContext appDbContext, ILogger<BrokerQService> logger, IB2CGraphService b2CGraphService, IStripeSubscriptionService stripeSubscriptionService)
+    private readonly ADGraphWrapper _adGraphWrapper;
+    public BrokerQService(AppDbContext appDbContext, ADGraphWrapper aDGraphWrapper, ILogger<BrokerQService> logger, IB2CGraphService b2CGraphService, IStripeSubscriptionService stripeSubscriptionService)
     {
         _appDbContext = appDbContext;
         _b2CGraphService = b2CGraphService;
         _stripeSubscriptionService = stripeSubscriptionService;
+        _adGraphWrapper = aDGraphWrapper;
         _logger = logger;
     }
 
@@ -86,7 +89,9 @@ public class BrokerQService
         //check broker exists, belongs to this agency, is not an admin
         var agency = await _appDbContext.Agencies
           .Include(a => a.AgencyBrokers.Where(b => b.Id == brokerDeleteId && b.isAdmin == false))
-          .ThenInclude(b => b.RecurrentTasks)
+            .ThenInclude(b => b.RecurrentTasks)
+          .Include(a => a.AgencyBrokers.Where(b => b.Id == brokerDeleteId && b.isAdmin == false))
+            .ThenInclude(b => b.ConnectedEmails)
           .FirstAsync(a => a.Id == AgencyId);
         if (agency == null || agency.AgencyBrokers.First(b => b.Id == brokerDeleteId) == null
           || agency.AgencyBrokers.First(b => b.Id == brokerDeleteId).isAdmin) throw new CustomBadRequestException("invalid", ProblemDetailsTitles.InvalidInput);
@@ -132,7 +137,24 @@ public class BrokerQService
             {
                 try
                 {
-                    BackgroundJob.Delete(task.HangfireTaskId);
+                    RecurringJob.RemoveIfExists(task.HangfireTaskId);
+                }
+                catch (Exception) { }
+            }
+        }
+        if (agency.AgencyBrokers[0].ConnectedEmails != null && agency.AgencyBrokers[0].ConnectedEmails.Any())
+        {
+            foreach (var task in agency.AgencyBrokers[0].ConnectedEmails)
+            {
+                try
+                {
+                    if(task.GraphSubscriptionId != null)
+                    {
+                        var client = _adGraphWrapper.CreateExtraClient(task.tenantId);
+                        await client.Subscriptions[task.GraphSubscriptionId.ToString()].DeleteAsync();
+                    }                   
+                    if (task.SubsRenewalJobId != null) BackgroundJob.Delete(task.SubsRenewalJobId);
+                    if (task.SyncJobId != null) BackgroundJob.Delete(task.SyncJobId);
                 }
                 catch (Exception) { }
             }
@@ -152,7 +174,6 @@ public class BrokerQService
 
         await _appDbContext.SaveChangesAsync();
         await transaction.CommitAsync();
-
     }
 
     public async Task DeleteSoloBrokerWithoutTouchingStripeAsync(Guid brokerDeleteId, int agencyId)
@@ -164,7 +185,9 @@ public class BrokerQService
         //check broker exists, belongs to this agency, is not an admin
         var agency = await _appDbContext.Agencies
           .Include(a => a.AgencyBrokers)
-          .ThenInclude(b => b.RecurrentTasks)
+            .ThenInclude(b => b.RecurrentTasks)
+          .Include(a => a.AgencyBrokers)
+            .ThenInclude(b => b.ConnectedEmails)
           .FirstAsync(a => a.Id == agencyId);
 
         //delete from B2C
@@ -172,10 +195,10 @@ public class BrokerQService
         {
             await _b2CGraphService.DeleteB2CUserAsync(brokerDeleteId);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting broker from B2C");
-        }      
+        }
 
         var todoTasks = await _appDbContext.ToDoTasks.Where(t => t.BrokerId == brokerDeleteId && t.IsDone == false)
           .Select(t => t.HangfireReminderId)
@@ -195,7 +218,25 @@ public class BrokerQService
             {
                 try
                 {
-                    BackgroundJob.Delete(task.HangfireTaskId);
+                    RecurringJob.RemoveIfExists(task.HangfireTaskId);
+                }
+                catch (Exception) { }
+            }
+        }
+
+        if (agency.AgencyBrokers[0].ConnectedEmails != null && agency.AgencyBrokers[0].ConnectedEmails.Any())
+        {
+            foreach (var task in agency.AgencyBrokers[0].ConnectedEmails)
+            {
+                try
+                {
+                    if (task.GraphSubscriptionId != null)
+                    {
+                        var client = _adGraphWrapper.CreateExtraClient(task.tenantId);
+                        await client.Subscriptions[task.GraphSubscriptionId.ToString()].DeleteAsync();
+                    }
+                    if (task.SubsRenewalJobId != null) BackgroundJob.Delete(task.SubsRenewalJobId);
+                    if (task.SyncJobId != null) BackgroundJob.Delete(task.SyncJobId);
                 }
                 catch (Exception) { }
             }

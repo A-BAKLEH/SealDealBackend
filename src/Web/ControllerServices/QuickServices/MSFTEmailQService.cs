@@ -122,9 +122,7 @@ public class MSFTEmailQService
         var agency = await _appDbContext.Agencies.FirstAsync(a => a.Id == AgencyId);
         agency.AzureTenantID = tenantId;
         bool error = false;
-
-        await Task.Delay(1500);//give time to azure to grant permissions
-
+        await Task.Delay(4500);//give time to azure to grant permissions
         foreach (var b in brokers)
         {
             foreach (var em in b.ConnectedEmails)
