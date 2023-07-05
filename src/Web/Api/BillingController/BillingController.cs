@@ -37,7 +37,6 @@ public class BillingController : BaseApiController
               AgencyStripeId = brokerTuple.Item1.Agency.AdminStripeId,
               returnURL = req.ReturnUrl
           });
-        _logger.LogInformation("{tag} created Billing portal for user", TagConstants.BillingPortal);
         return Ok(new BillingPortalResponse
         {
             portalURL = portalURL

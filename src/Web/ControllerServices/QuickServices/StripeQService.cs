@@ -16,19 +16,6 @@ public class StripeQService
     }
     public async Task<dynamic> GetInvoicesAsync(Guid brokerId)
     {
-        if (GlobalControl.OurIds.Contains(brokerId))
-        {
-            var res = new List<dynamic>
-            {
-                new {Total = 69,
-                    Currency = "testLol",
-                    PeriodStart = DateTime.Now,
-                    PeriodEnd = DateTime.Now,
-                    Status = "paid",
-                    PaidAt = DateTime.Now},
-            };
-            return res;
-        }
         var broker = await dbContext.Brokers
             .Select(b => new { b.Agency.AdminStripeId, b.Id,b.Agency.StripeSubscriptionId })
             .FirstOrDefaultAsync(b => b.Id == brokerId);

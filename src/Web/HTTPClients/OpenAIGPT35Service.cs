@@ -130,11 +130,13 @@ namespace Web.HTTPClients
         public async Task<OpenAIResponse?> ParseEmailAsync(Message message, string brokerEmail, bool FromLeadProvider = false)
         {
             OpenAIResponse res;
+            string reason = "";
+            int length = 0;
             try
             {
-                var length = message.Body.Content.Length;
                 var text = message.Body.Content;
                 text = EmailReducer.Reduce(text, message.From.EmailAddress.Address);
+                length = text.Length;
                 string prompt = APIConstants.ParseLeadPrompt4 + text;
 
                 StringContent jsonContent = new(
@@ -151,7 +153,7 @@ namespace Web.HTTPClients
                 "application/json");
 
                 HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
-
+                reason = response.ReasonPhrase  ?? "";
                 //TODO handle API error 
                 response.EnsureSuccessStatusCode();
 
@@ -176,7 +178,10 @@ namespace Web.HTTPClients
                 {
                     res.HasLead = true;
                     res.content = LeadParsed;
-                }              
+                }
+                if(GlobalControl.LogAllEmailsLengthsOpenAi)
+                    _logger.LogInformation("{tag} text length messageID {messageID}" +
+                                               " and brokerEmail {brokerEmail} from sender {senderEmail}, hasLead is {hasLead}, length {messLength}", TagConstants.openAi, message.Id, brokerEmail,message.From.EmailAddress.Address,res.HasLead ,length);
             }
             catch (HttpRequestException e)
             {
@@ -187,9 +192,9 @@ namespace Web.HTTPClients
                     ErrorType = e.GetType(),
                     ProcessedMessage = message
                 };
-                _logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
-                    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail,
-                    e.Message + " code: " + e.StatusCode + " " + e.StackTrace);
+                _logger.LogError("{tag} GPT 3.5 httpexception, email parsing error for messageID {messageID}" +
+                    " and brokerEmail {brokerEmail} from sender {senderEmail} and length {messLength} and error {Error}", TagConstants.openAi, message.Id, brokerEmail,
+                    message.From.EmailAddress.Address,length,"reasonPhrase: " + reason ?? "" + " code: " + e.StatusCode);
             }
             catch (Exception e)
             {
@@ -200,12 +205,16 @@ namespace Web.HTTPClients
                     ErrorType = e.GetType(),
                     ProcessedMessage = message
                 };
-                _logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
-                    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail, e.Message + e.StackTrace);
+                _logger.LogError("{tag} GPT 3.5 exception, email parsing error for messageID {messageID}" +
+                    " and brokerEmail {brokerEmail} from sender {senderEmail} and length {messLength} and error {Error}", TagConstants.openAi, message.Id, brokerEmail,
+                    message.From.EmailAddress.Address, length,
+                    e.Message + e.StackTrace);
             }
             if (GlobalControl.LogOpenAIEmailParsingObjects)
             {
-                _logger.LogWarning("{tag} returning object: {@parsedOpenAiResponse}", TagConstants.openAi, res);
+                if(res.content == null) _logger.LogWarning("{tag} returning content object null,haslead {hasLead}, success {success}", TagConstants.openAi, res.HasLead, res.Success);
+                else _logger.LogWarning("{tag} returning content object: {@openAiContent},haslead {hasLead}, success {success}", TagConstants.openAi, res.content, res.HasLead, res.Success);
+
             }
             return res;
         }

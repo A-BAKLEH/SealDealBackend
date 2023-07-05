@@ -1,9 +1,6 @@
 ﻿using Core.Constants;
-using Core.Domain.BrokerAggregate;
-using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.TasksAggregate;
 using Hangfire;
-using Hangfire.Server;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +10,6 @@ using Web.ApiModels.RequestDTOs.Admin;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.Processing.Analyzer;
-using Web.Processing.Cleanup;
 using Web.Processing.EmailAutomation;
 
 namespace Web.Api.TestingAPI;
@@ -74,11 +70,13 @@ public class TestProdController : ControllerBase
         GlobalControl.ProcessEmails = dto.ProcessEmails;
         GlobalControl.ProcessFailedEmailsParsing = dto.ProcessFailedEmailsParsing;
         GlobalControl.LogOpenAIEmailParsingObjects = dto.LogOpenAIEmailParsingObjects;
+        GlobalControl.LogAllEmailsLengthsOpenAi = dto.LogAllEmailsLengthsOpenAi;
         var res = new ControlDTO
         {
             ProcessEmails = GlobalControl.ProcessEmails,
             ProcessFailedEmailsParsing = GlobalControl.ProcessFailedEmailsParsing,
-            LogOpenAIEmailParsingObjects = GlobalControl.LogOpenAIEmailParsingObjects
+            LogOpenAIEmailParsingObjects = GlobalControl.LogOpenAIEmailParsingObjects,
+            LogAllEmailsLengthsOpenAi = GlobalControl.LogAllEmailsLengthsOpenAi
         };
         return Ok(res);
     }
@@ -90,7 +88,8 @@ public class TestProdController : ControllerBase
         {
             ProcessEmails = GlobalControl.ProcessEmails,
             ProcessFailedEmailsParsing = GlobalControl.ProcessFailedEmailsParsing,
-            LogOpenAIEmailParsingObjects = GlobalControl.LogOpenAIEmailParsingObjects
+            LogOpenAIEmailParsingObjects = GlobalControl.LogOpenAIEmailParsingObjects,
+            LogAllEmailsLengthsOpenAi = GlobalControl.LogAllEmailsLengthsOpenAi
         };
         return Ok(res);
     }
@@ -149,16 +148,16 @@ public class TestProdController : ControllerBase
         _adGraphWrapper.CreateClient(emailconn.tenantId);
         await _adGraphWrapper._graphClient.Subscriptions[emailconn.GraphSubscriptionId.ToString()].DeleteAsync();
         Hangfire.BackgroundJob.Delete(emailconn.SubsRenewalJobId);
-        if(emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
+        if (emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
         var broker = await appDb.Brokers
             .Include(b => b.RecurrentTasks).FirstAsync(b => b.Id == emailconn.BrokerId);
         foreach (var item in broker.RecurrentTasks)
         {
-            if(item is BrokerNotifAnalyzerTask)
+            if (item is BrokerNotifAnalyzerTask)
             {
                 RecurringJob.RemoveIfExists(item.HangfireTaskId);
                 broker.RecurrentTasks.Remove(item);
-            }       
+            }
         }
         await appDb.SaveChangesAsync();
         return Ok();
@@ -213,24 +212,35 @@ public class TestProdController : ControllerBase
             BrokerId = brokerId
         };
         appDb.Add(recTask);
-
-        if(connectedEmail.Email == "christopher.g@cpgrealty.ca")
-        {
-            var HangfireCleanerId = brokerId.ToString() + "Cleaner";
-            minute = rnd.Next(1, 20);
-            //2:01 to 2:20 AM montreal time CLEANUP
-            RecurringJob.AddOrUpdate<ResourceCleaner>(HangfireCleanerId, a => a.CleanBrokerResourcesAsync(brokerId, null, CancellationToken.None), $"{minute} 6 * * *", recJobOptions);
-            var recTaskCleaner = new BrokerCleanupTask
-            {
-                HangfireTaskId = HangfireCleanerId,
-                BrokerId = brokerId
-            };
-            appDb.Add(recTaskCleaner);
-        }
         await appDb.SaveChangesAsync();
         return Ok();
     }
 
+
+    /// <summary>
+    /// removes graph api subs except the one in the database
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="email"></param>
+    /// <returns></returns>
+    [HttpDelete("CleanSubs/{key}/{email}")]
+    public async Task<IActionResult> CleanSubs(string key, string email)
+    {
+        if (key != passwd) return Ok("nope");
+        var emailconn = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email);
+        _adGraphWrapper.CreateClient(emailconn.tenantId);
+        var Subs1 = await _adGraphWrapper._graphClient.Subscriptions.GetAsync();
+        var subs = Subs1.Value;
+        foreach (var item in subs)
+        {
+            if (emailconn.GraphSubscriptionId.ToString() != item.Id)
+            {
+                await _adGraphWrapper._graphClient.Subscriptions[item.Id].DeleteAsync();
+                _logger.LogInformation($"deleting subs {item.Id}");
+            }
+        }
+        return Ok();
+    }
     //in case you wanna mnually set up payment info of an account
     //[HttpGet("Chris/{key}/{agencyId}")]
     //public async Task<IActionResult> SetupChris(string key,int agencyId)

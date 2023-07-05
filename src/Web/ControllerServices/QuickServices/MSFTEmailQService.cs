@@ -91,7 +91,7 @@ public class MSFTEmailQService
         {
             try
             {
-                await _emailProcessor.CreateEmailSubscriptionAsync(connectedEmail);
+                await _emailProcessor.CreateEmailSubscriptionAsync(connectedEmail);//calls save dbContext
                 await _emailProcessor.CreateOutlookEmailCategoriesAsync(connectedEmail);
             }
             catch (ODataError ex)
@@ -116,13 +116,12 @@ public class MSFTEmailQService
     public async Task<dynamic> DummyMethodHandleAdminConsentAsync(string tenantId, Guid brokerId, int AgencyId)
     {
         var brokers = await _appDbContext.Brokers
-          .Include(b => b.ConnectedEmails.Where(e => e.tenantId == tenantId && e.isMSFT))
+          .Include(b => b.ConnectedEmails.Where(e => e.tenantId == tenantId && e.isMSFT && !e.hasAdminConsent))
           .Where(b => b.AgencyId == AgencyId)
           .ToListAsync();
         var agency = await _appDbContext.Agencies.FirstAsync(a => a.Id == AgencyId);
         agency.AzureTenantID = tenantId;
         bool error = false;
-        await Task.Delay(4500);//give time to azure to grant permissions
         foreach (var b in brokers)
         {
             foreach (var em in b.ConnectedEmails)

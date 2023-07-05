@@ -143,9 +143,23 @@ public class EmailProcessor
 
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         //will validate through the webhook before returning the subscription here
-
-        var CreatedSubs = await _aDGraphWrapper._graphClient.Subscriptions.PostAsync(subs);
-
+        Subscription? CreatedSubs;
+        byte count = 0;
+    Loop1:
+        try
+        {
+            count++;
+            CreatedSubs = await _aDGraphWrapper._graphClient.Subscriptions.PostAsync(subs);
+        }
+        catch (ODataError ex)
+        {
+            if (ex.ResponseStatusCode == 403 && count <= 3)
+            {
+                await Task.Delay(2000);
+                goto Loop1;
+            }
+            else throw;
+        }
         //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work
         //will have to consider current leads in the system, current listings assigned, websites from which
         //emails will be parsed to detect new leads
@@ -171,9 +185,9 @@ public class EmailProcessor
         {
             var connEmail = await _appDbContext.ConnectedEmails.FirstOrDefaultAsync(e => e.GraphSubscriptionId == SubsId);
             //'lock' obtained by putting subsID as key in dictionary
-            if(connEmail == null)
+            if (connEmail == null)
             {
-                _logger.LogError("{tag} null connEmail with subsId {susbId}" , "CheckEmailSyncAsync",SubsId);
+                _logger.LogError("{tag} null connEmail with subsId {susbId}", "CheckEmailSyncAsync", SubsId);
                 return;
             }
             string jobId = "";
@@ -265,6 +279,17 @@ public class EmailProcessor
             return null;
         }
     }
+
+    public static bool EmailSenderIgnore(string senderAddress)
+    {
+        if (GlobalControl.ProcessingIgnoreEmails.Contains(senderAddress)) return true;
+        var domain = senderAddress.Split('@')[1];
+        foreach (var domainIgnore in GlobalControl.ProcessingIgnoreDomains)
+        {
+            if (domain == domainIgnore) return true;
+        }
+        return false;
+    }
     /// <summary>
     /// fetch all emails from last sync date and process them
     /// </summary>
@@ -289,14 +314,14 @@ public class EmailProcessor
         {
             if (performContext.BackgroundJob.Id != connEmail.SyncJobId)
             {
-                _logger.LogCritical("{tag} sync email job's connectedEmail syncJobId {dbSyncJobID} not equal to actual jobId {currentJobId}.", TagConstants.syncEmail, connEmail.SyncJobId, performContext.BackgroundJob.Id);
+                _logger.LogWarning("{tag} sync email job's connectedEmail syncJobId {dbSyncJobID} not equal to actual jobId {currentJobId}.", TagConstants.syncEmail, connEmail.SyncJobId, performContext.BackgroundJob.Id);
                 StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
                 return;
             }
         }
         else
         {
-            _logger.LogCritical("{tag} sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
+            _logger.LogWarning("{tag} sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
             StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
             return;
         }
@@ -318,7 +343,7 @@ public class EmailProcessor
 
         var date = lastSync.ToString("o");
         int totaltokens = 0;
-        int pageSize = 15;
+        int pageSize = 8;
 
         DateTimeOffset LastProcessedTimestamp = lastSync;
         var ReprocessMessages = new List<Message>();
@@ -526,7 +551,7 @@ public class EmailProcessor
     /// <param name="SoloBroker"></param>
     /// <param name="brokerEmail"></param>
     /// <returns>number of tokens used</returns>
-    public async Task<int> ProcessMessagesAsync(List<Message> messages, BrokerEmailProcessingDTO brokerDTO, List<Message> ReprocessMessages)
+    public async Task<int> ProcessMessagesAsync(List<Message> messagesUnfiltered, BrokerEmailProcessingDTO brokerDTO, List<Message> ReprocessMessages)
     {
         using var localdbContext = _contextFactory.CreateDbContext();
         var LeadIDsToStopActionPlan = new List<int>();
@@ -534,6 +559,7 @@ public class EmailProcessor
         var KnownLeadEmailEvents = new List<EmailEvent>();
         var KnownLeadTasks = new List<Tuple<Task<EmailEvent?>, Message>>();
 
+        var messages = messagesUnfiltered.Where(m => !EmailSenderIgnore(m.From.EmailAddress.Address));
         var groupedMessagesBySender = messages.GroupBy(m => m.From.EmailAddress.Address);
 
         var GroupedleadProviderEmails = groupedMessagesBySender.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
@@ -686,7 +712,7 @@ public class EmailProcessor
                 //TODO change error message if email discarded
                 var errMessage = UnknownDBRecordsTask.Item1?.Exception?.Message ?? "null message";
                 var stackTrace = UnknownDBRecordsTask.Item1?.Exception?.InnerException?.StackTrace ?? "null stackTrace";
-                _logger.LogError("{tag} Unknown sender dbRecordsCreation for {messageId} and error {Error}", TagConstants.createDbRecordsResults, UnknownDBRecordsTask.Item2, errMessage  + stackTrace);
+                _logger.LogError("{tag} Unknown sender dbRecordsCreation for {messageId} and error {Error}", TagConstants.createDbRecordsResults, UnknownDBRecordsTask.Item2, errMessage + stackTrace);
             }
             else
             {
@@ -1270,7 +1296,8 @@ public class EmailProcessor
 
         if (!result.Success)
         {
-            _logger.LogError("{tag} HandleTaskResult adding to ReprocessMessages, open ai parsing did not succeed. email parsing json: {@openAiLeadJson}.", "HandleTaskResult", result);
+            _logger.LogError("{tag} HandleTaskResult adding to ReprocessMessages, open ai parsing did not succeed." +
+                " email parsing props: message : '{errorMessage}' and  type: '{errorType}'.", "HandleTaskResult", result.ErrorMessage, result.ErrorType);
             //TODO check error type to discard email if needed
             ReprocessMessages.Add(message);
         }
@@ -1281,7 +1308,8 @@ public class EmailProcessor
         else if (result.HasLead && result.content == null)
         {
             //error its null
-            _logger.LogError("{tag} HandleTaskResult has lead but result.content is null, open ai parsing did not succeed. email parsing json: {@openAiLeadJson}.", "HandleTaskResult", result);
+            _logger.LogError("{tag} HandleTaskResult has lead but result.content is null, open ai parsing did not succeed." +
+                " for messageId {messageId}.", "HandleTaskResult", result.ProcessedMessage.Id);
         }
         else
         {

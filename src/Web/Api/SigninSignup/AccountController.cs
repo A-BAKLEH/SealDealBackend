@@ -145,25 +145,25 @@ public class AccountController : BaseApiController
     /// </summary>
     /// <param name="dto"></param>
     /// <returns></returns>
-    [HttpGet("ConnectedEmail/MSFT/AdminConsent/Verify/{email}")]
-    public async Task<IActionResult> VerifyAdminConsentedMSFT(string email)
-    {
-        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
-        if (!brokerTuple.Item2)
-        {
-            _logger.LogCritical("{tag} inactive User tried to handle admin consented", TagConstants.Inactive);
-            return Forbid();
-        }
-        var resTuple = await _MSFTEmailQService.HandleAdminConsentedAsync(id, email);
+    //[HttpGet("ConnectedEmail/MSFT/AdminConsent/Verify/{email}")]
+    //public async Task<IActionResult> VerifyAdminConsentedMSFT(string email)
+    //{
+    //    var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+    //    var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+    //    if (!brokerTuple.Item2)
+    //    {
+    //        _logger.LogCritical("{tag} inactive User tried to handle admin consented", TagConstants.Inactive);
+    //        return Forbid();
+    //    }
+    //    var resTuple = await _MSFTEmailQService.HandleAdminConsentedAsync(id, email);
 
-        if (resTuple.Item2)
-        {
-            return Ok(resTuple.Item1);
-        }
+    //    if (resTuple.Item2)
+    //    {
+    //        return Ok(resTuple.Item1);
+    //    }
 
-        return NoContent();
-    }
+    //    return NoContent();
+    //}
 
 
     [HttpGet("ConnectedEmail/MSFT/AdminConsent/{tenantId}")]
@@ -172,7 +172,7 @@ public class AccountController : BaseApiController
         //TODO redo this method
         var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
-        if (!brokerTuple.Item2)
+        if (!brokerTuple.Item2 || !brokerTuple.Item3)
         {
             _logger.LogCritical("{tag} inactive User tried to handle admin consented", TagConstants.Inactive);
             return Forbid();
@@ -181,8 +181,6 @@ public class AccountController : BaseApiController
 
         return Ok(resTuple);
     }
-
-
 
     [HttpGet("ConnectedEmail")]
     public async Task<IActionResult> GetEmailsConnected()
