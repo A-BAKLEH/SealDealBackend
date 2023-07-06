@@ -282,6 +282,7 @@ public class EmailProcessor
 
     public static bool EmailSenderIgnore(string senderAddress)
     {
+        senderAddress = senderAddress.ToLower();
         if (GlobalControl.ProcessingIgnoreEmails.Contains(senderAddress)) return true;
         var domain = senderAddress.Split('@')[1];
         foreach (var domainIgnore in GlobalControl.ProcessingIgnoreDomains)

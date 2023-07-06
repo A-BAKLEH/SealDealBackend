@@ -18,7 +18,7 @@ public static class GlobalControl
 
     public static List<string> ProcessingIgnoreEmails = new()
     {
-        "immocontact@telmatik.com"
+        "immocontact@telmatik.com","info@oaciq.com"
     };
 
     public static List<string> ProcessingIgnoreDomains = new()
