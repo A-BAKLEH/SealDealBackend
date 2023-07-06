@@ -39,7 +39,7 @@ public class StripeWebhookController : BaseApiController
             if (stripeEvent.Type == Events.CheckoutSessionCompleted)
             {
                 var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-                _logger.BeginScope("{tag} received {webhookEvent} event with CheckoutSessionId {checkoutSessionId}" +
+                _logger.LogInformation("{tag} received {webhookEvent} event with CheckoutSessionId {checkoutSessionId}" +
                   " and SubscriptionId {subscriptionId}", TagConstants.Webhook, "CheckoutSessionCompleted", session.Id, session.SubscriptionId);
 
                 await _mediator.Send(new CheckoutSessionCompletedRequest
@@ -51,26 +51,16 @@ public class StripeWebhookController : BaseApiController
             }
             else if (stripeEvent.Type == Events.CustomerSubscriptionUpdated)
             {
-                var subscription = stripeEvent.Data.Object as Subscription;
-                _logger.BeginScope("{tag} received {webhookEvent} event with " +
-                  "SubscriptionId {subscriptionId} and new Subscription Status {subscriptionStatus}", TagConstants.Webhook, "SubscriptionUpdated", subscription.Id, subscription.Status);
-                await _mediator.Send(new SubscriptionUpdatedRequest
-                {
-                    SubscriptionId = subscription.Id,
-                    SubsStatus = subscription.Status,
-                    currPeriodEnd = subscription.CurrentPeriodEnd,
-                    quantity = subscription.Items.Data[0].Quantity
-                });
-            }
-            else if (stripeEvent.Type == Events.InvoicePaymentFailed)
-            {
-                //TODO handle payment failure
-
-            }
-            else if (stripeEvent.Type == Events.PaymentIntentPaymentFailed)
-            {
-                //TODO handle payment failure
-
+            //    var subscription = stripeEvent.Data.Object as Subscription;
+            //    _logger.LogInformation("{tag} received {webhookEvent} event with " +
+            //      "SubscriptionId {subscriptionId} and new Subscription Status {subscriptionStatus}", TagConstants.Webhook, "SubscriptionUpdated", subscription.Id, subscription.Status);
+            //    await _mediator.Send(new SubscriptionUpdatedRequest
+            //    {
+            //        SubscriptionId = subscription.Id,
+            //        SubsStatus = subscription.Status,
+            //        currPeriodEnd = subscription.CurrentPeriodEnd,
+            //        quantity = subscription.Items.Data[0].Quantity
+            //    });
             }
             else
             {

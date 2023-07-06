@@ -6,7 +6,7 @@ namespace Core.Domain.AgencyAggregate;
 
 public enum StripeSubscriptionStatus
 {
-    SubscriptionCancelled, Active, NoStripeSubscription, SubscriptionPaused, CreatedWaitingForStatus
+    SubscriptionCancelled, Active, NoStripeSubscription, SubscriptionPaused, CreatedWaitingForStatus, Trial
 }
 
 public class Agency : Entity<int>

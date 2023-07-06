@@ -53,7 +53,7 @@ public class AccountController : BaseApiController
         var brokerTuple = await this._authorizeService.AuthorizeUser(id);
         if (!brokerTuple.Item2)
         {
-            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive, id);
+            _logger.LogWarning("{tag} inactive User", TagConstants.Inactive);
             return Forbid();
         }
         var dto = await this._authorizeService.VerifyAccountAsync(id);

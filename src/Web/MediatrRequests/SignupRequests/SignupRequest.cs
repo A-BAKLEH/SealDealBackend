@@ -86,8 +86,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             var HangfireAnalyzerId = broker.Id.ToString() + "Analyzer";
             Random rnd = new Random();
             var minute = rnd.Next(0, 59);
-            //analyzer every hour except between 2 and 3 montreal time
-            RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(broker.Id, null, CancellationToken.None), $"{minute} 0-5,7-23 * * *", recJobOptions);
+            //analyzer every hour except between 2 and 4 montreal time
+            RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(broker.Id, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
             var recTask = new BrokerNotifAnalyzerTask
             {
                 HangfireTaskId = HangfireAnalyzerId,
