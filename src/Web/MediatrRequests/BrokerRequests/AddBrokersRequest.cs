@@ -107,7 +107,7 @@ public class AddBrokersRequestHandler : IRequestHandler<AddBrokersRequest, List<
             var brokerCreated = new BrokerCreated { AppEventId = appEventId };
             try
             {
-                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated, CancellationToken.None));
+                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(brokerCreated,null, CancellationToken.None));
                 _logger.LogInformation("{tag} broker with Id {brokerId} has Email sending jobId {hangfireJobId}", TagConstants.AddBrokersRequest, b.Id, HangfireJobId);
             }
             catch (Exception ex)

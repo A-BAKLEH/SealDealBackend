@@ -188,7 +188,7 @@ public class ListingQService
                 var ListingAssigned = new ListingAssigned { AppEventId = eventId };
                 try
                 {
-                    var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned, CancellationToken.None));
+                    var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned,null, CancellationToken.None));
                 }
                 catch (Exception ex)
                 {
@@ -283,7 +283,7 @@ public class ListingQService
             var ListingAssigned = new ListingAssigned { AppEventId = eventId };
             try
             {
-                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned, CancellationToken.None));
+                var HangfireJobId = Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(ListingAssigned,null, CancellationToken.None));
             }
             catch (Exception ex)
             {

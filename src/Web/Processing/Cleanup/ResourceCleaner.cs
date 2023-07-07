@@ -1,6 +1,7 @@
 ﻿using Hangfire.Server;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Serilog.Context;
 
 namespace Web.Processing.Cleanup;
 public class ResourceCleaner
@@ -10,13 +11,17 @@ public class ResourceCleaner
     {
         appDb = appDbContext;
     }
-    public async Task CleanBrokerResourcesAsync(Guid brokerId, PerformContext performContext,CancellationToken cancellationToken)
+    public async Task CleanBrokerResourcesAsync(Guid brokerId, PerformContext performContext, CancellationToken cancellationToken)
     {
-        await appDb.Notifs
+        using (LogContext.PushProperty("hanfireJobId", performContext.BackgroundJob.Id))
+        using (LogContext.PushProperty("UserId", brokerId.ToString()))
+        {
+            await appDb.Notifs
             .Where(n => n.BrokerId == brokerId && n.isSeen)
             .ExecuteDeleteAsync();
-        await appDb.EmailEvents
-            .Where(e => e.BrokerId == brokerId && e.Seen && (!e.NeedsAction || (e.NeedsAction && e.RepliedTo)))
-            .ExecuteDeleteAsync();
+            await appDb.EmailEvents
+                .Where(e => e.BrokerId == brokerId && e.Seen && (!e.NeedsAction || (e.NeedsAction && e.RepliedTo)))
+                .ExecuteDeleteAsync();
+        }
     }
 }

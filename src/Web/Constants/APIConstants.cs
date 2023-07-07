@@ -55,9 +55,9 @@ public class APIConstants
     public const string TranslateSubjectPrompt = "Translate the following email subject to" +
         " {0}. Do not change any words enclosed between '$' characters.Strictly output the translation. Here is the email subject: ";
 
-    //property address of interest
-    //(get 'StreetAddress' and 'Apartment' from 'PropertyAddress')
-    public const int PromptTokensCount = 100; //TODO update later
+
+    public const int PromptTokensCount = 142;
+    public const int StrictPromptTokens = 286;
 
     public const string SealDealTenantId = "d0a40b73-985f-48ee-b349-93b8a06c8384";
 }

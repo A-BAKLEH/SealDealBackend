@@ -10,6 +10,7 @@ using Microsoft.Graph.Models;
 using Web.ApiModels.RequestDTOs.Admin;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
+using Web.Outbox.Config;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 
@@ -81,6 +82,7 @@ public class TestProdController : ControllerBase
         };
         return Ok(res);
     }
+
     [HttpGet("ControlVars/{key}")]
     public async Task<IActionResult> ControlVars(string key)
     {
@@ -261,6 +263,30 @@ public class TestProdController : ControllerBase
         RecurringJob.AddOrUpdate<NotifAnalyzer>(job2, a => a.AnalyzeNotifsAsync(id2, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
         return Ok();
     }
+
+    [HttpGet("ScheduleOutboxDict/{key}")]
+    public async Task<IActionResult> ScheduleOutboxDict(string key)
+    {
+        if (key != passwd) return Ok("nope");
+        var exists = await appDb.OutboxDictsTasks.AnyAsync();
+
+        if (exists) return Ok("already exists");
+        var HangfireoutboxTaskId = Guid.NewGuid().ToString();
+        RecurringJob.AddOrUpdate<OutboxCleaner>(HangfireoutboxTaskId, a => a.CleanOutbox(null,CancellationToken.None), "*/6 * * * *");
+        var outboxTask = new OutboxDictsTask { HangfireTaskId = HangfireoutboxTaskId };
+        appDbContext.Add(outboxTask);
+        await appDbContext.SaveChangesAsync();
+        return Ok();
+    }
+
+    [HttpGet("CountOutboxDict/{key}")]
+    public IActionResult geteOutboxDictCount(string key)
+    {
+        if (key != passwd) return Ok("nope");
+        var c = OutboxMemCache.SchedulingErrorDict.Count;
+        return Ok(c);
+    }
+
     //in case you wanna mnually set up payment info of an account
     //[HttpGet("Chris/{key}/{agencyId}")]
     //public async Task<IActionResult> SetupChris(string key,int agencyId)

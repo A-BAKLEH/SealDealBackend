@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
+using Serilog.Context;
 using System.Net.Mail;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
@@ -314,202 +315,206 @@ public class EmailProcessor
     public async Task SyncEmailAsync(string email, PerformContext performContext, CancellationToken cancellationToken)
     {
         //TODO Cache
-        var connEmail = await _appDbContext.ConnectedEmails
+        using (LogContext.PushProperty("hanfireJobId", performContext.BackgroundJob.Id))
+        using (LogContext.PushProperty("brokerEmail", email))
+        {
+            var connEmail = await _appDbContext.ConnectedEmails
           .Select(e => new { e.SyncJobId, e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Language, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
           .FirstAsync(x => x.Email == email);
 
-        var brokerStartActionPlans = await _appDbContext.ActionPlans
-            .Include(ap => ap.Actions.Where(a => a.ActionLevel == 1))
-            .Where(ap => ap.BrokerId == connEmail.BrokerId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou))
-            .AsNoTracking()
-            .ToListAsync();
+            var brokerStartActionPlans = await _appDbContext.ActionPlans
+                .Include(ap => ap.Actions.Where(a => a.ActionLevel == 1))
+                .Where(ap => ap.BrokerId == connEmail.BrokerId && ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou))
+                .AsNoTracking()
+                .ToListAsync();
 
-        _aDGraphWrapper.CreateClient(connEmail.tenantId);
+            _aDGraphWrapper.CreateClient(connEmail.tenantId);
 
-        if (StaticEmailConcurrencyHandler.EmailParsingdict.TryGetValue((Guid)connEmail.GraphSubscriptionId, out var s))
-        {
-            if (performContext.BackgroundJob.Id != connEmail.SyncJobId)
+            if (StaticEmailConcurrencyHandler.EmailParsingdict.TryGetValue((Guid)connEmail.GraphSubscriptionId, out var s))
             {
-                _logger.LogWarning("{tag} sync email job's connectedEmail syncJobId {dbSyncJobID} not equal to actual jobId {currentJobId}.", TagConstants.syncEmail, connEmail.SyncJobId, performContext.BackgroundJob.Id);
+                if (performContext.BackgroundJob.Id != connEmail.SyncJobId)
+                {
+                    _logger.LogWarning("{tag} sync email job's connectedEmail syncJobId {dbSyncJobID} not equal to actual jobId {currentJobId}.", TagConstants.syncEmail, connEmail.SyncJobId, performContext.BackgroundJob.Id);
+                    StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
+                    return;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("{tag} sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
                 StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
                 return;
             }
-        }
-        else
-        {
-            _logger.LogWarning("{tag} sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
-            StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
-            return;
-        }
 
-        var brokerDTO = new BrokerEmailProcessingDTO
-        { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
-        if (brokerStartActionPlans.Count == 1) brokerDTO.brokerStartActionPlans = brokerStartActionPlans;
-        else brokerDTO.brokerStartActionPlans = new();
+            var brokerDTO = new BrokerEmailProcessingDTO
+            { Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
+            if (brokerStartActionPlans.Count == 1) brokerDTO.brokerStartActionPlans = brokerStartActionPlans;
+            else brokerDTO.brokerStartActionPlans = new();
 
-        DateTimeOffset lastSync;
-        if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow - TimeSpan.FromSeconds(30);
-        else
-            lastSync = (DateTimeOffset)connEmail.LastSync + TimeSpan.FromSeconds(1);
+            DateTimeOffset lastSync;
+            if (connEmail.LastSync == null) lastSync = DateTimeOffset.UtcNow - TimeSpan.FromSeconds(30);
+            else
+                lastSync = (DateTimeOffset)connEmail.LastSync + TimeSpan.FromSeconds(1);
 
 
-        //TODO deal with when lastSync and FirstSync is null it means this is the first sync
+            //TODO deal with when lastSync and FirstSync is null it means this is the first sync
 
-        bool error = false;
+            bool error = false;
 
-        var date = lastSync.ToString("o");
-        int totaltokens = 0;
-        int pageSize = 8;
+            var date = lastSync.ToString("o");
+            int totaltokens = 0;
+            int pageSize = 8;
 
-        DateTimeOffset LastProcessedTimestamp = lastSync;
-        var ReprocessMessages = new List<Message>();
+            DateTimeOffset LastProcessedTimestamp = lastSync;
+            var ReprocessMessages = new List<Message>();
 
-        bool ReachedFailedMessages = false;
+            bool ReachedFailedMessages = false;
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-        try
-        {
-            var messages = await _aDGraphWrapper._graphClient
-            .Users[connEmail.Email]
-            .MailFolders["Inbox"]
-            .Messages
-            .GetAsync(config =>
-            {
-                config.QueryParameters.Top = pageSize;
-                config.QueryParameters.Select = new string[] { "id", "from", "subject", "isRead", "conversationId", "receivedDateTime", "replyTo", "body", "categories" };
-                config.QueryParameters.Filter = $"receivedDateTime gt {date}";
-                config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
-                config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-            });
-
-            if (messages.Value.Any())
-            {
-                bool first = true;
-                do
-                {
-                    if (!first)
-                    {
-                        var nextPageRequestInformation = new RequestInformation
-                        {
-                            HttpMethod = Method.GET,
-                            UrlTemplate = messages.OdataNextLink,
-                        };
-                        nextPageRequestInformation.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-                        messages = await _aDGraphWrapper._graphClient.RequestAdapter.SendAsync(nextPageRequestInformation, (parseNode) => new MessageCollectionResponse());
-                    }
-                    first = false;
-                    //process messages                  
-                    var messagesList = messages.Value;
-
-                    LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
-                    var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
-                    totaltokens += toks1;
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
-                } while (messages.OdataNextLink != null);
-            }
-            else LastProcessedTimestamp = DateTimeOffset.UtcNow;
-
-            ReachedFailedMessages = true;
-            //failed messages
-            bool processFailed = GlobalControl.ProcessFailedEmailsParsing;
             if (cancellationToken.IsCancellationRequested)
             {
-                processFailed = false;
+                return;
             }
-            var failedMessages = await GetFailedMessages(email, cancellationToken);
-            if (failedMessages != null && failedMessages.Count > 0)
+            try
             {
-                if (processFailed)
+                var messages = await _aDGraphWrapper._graphClient
+                .Users[connEmail.Email]
+                .MailFolders["Inbox"]
+                .Messages
+                .GetAsync(config =>
                 {
-                    var faultedReprocess = new List<Message>();
-                    var toks = await ProcessMessagesAsync(failedMessages, brokerDTO, faultedReprocess);
-                    totaltokens += toks;
-                    var success = failedMessages.Where(m => !faultedReprocess.Contains(m));
-                    foreach (var markSuccessMessage in success)
+                    config.QueryParameters.Top = pageSize;
+                    config.QueryParameters.Select = new string[] { "id", "from", "subject", "isRead", "conversationId", "receivedDateTime", "replyTo", "body", "categories" };
+                    config.QueryParameters.Filter = $"receivedDateTime gt {date}";
+                    config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+                    config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+                });
+
+                if (messages.Value.Any())
+                {
+                    bool first = true;
+                    do
                     {
-                        await _aDGraphWrapper._graphClient.Users[email]
-                        .Messages[markSuccessMessage.Id]
-                        .PatchAsync(new Message
+                        if (!first)
                         {
-                            SingleValueExtendedProperties = new()
+                            var nextPageRequestInformation = new RequestInformation
                             {
-                                new SingleValueLegacyExtendedProperty
-                                {
-                                    Id = APIConstants.ReprocessMessExtendedPropId,
-                                    Value = "0"
-                                }
-                            }
-                        });
-                    }
-                    foreach (var FailedSecondTime in faultedReprocess)
-                    {
-                        _logger.LogError("{tag} email with id {emailId} failed processing twice for email {email}", "emailProcessingFailed2ndTime", FailedSecondTime.Id, brokerDTO.BrokerEmail);
-                        await _aDGraphWrapper._graphClient.Users[email]
-                        .Messages[FailedSecondTime.Id]
-                        .PatchAsync(new Message
+                                HttpMethod = Method.GET,
+                                UrlTemplate = messages.OdataNextLink,
+                            };
+                            nextPageRequestInformation.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+                            messages = await _aDGraphWrapper._graphClient.RequestAdapter.SendAsync(nextPageRequestInformation, (parseNode) => new MessageCollectionResponse());
+                        }
+                        first = false;
+                        //process messages                  
+                        var messagesList = messages.Value;
+
+                        LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
+                        var toks1 = await ProcessMessagesAsync(messagesList, brokerDTO, ReprocessMessages);
+                        totaltokens += toks1;
+                        if (cancellationToken.IsCancellationRequested)
                         {
-                            SingleValueExtendedProperties = new()
-                            {
-                                new SingleValueLegacyExtendedProperty
-                                {
-                                    Id = APIConstants.ReprocessMessExtendedPropId,
-                                    Value = "0"
-                                }
-                            }
-                        });
-                    }
+                            break;
+                        }
+                    } while (messages.OdataNextLink != null);
                 }
-                else //if not processing failed messages, mark those who were marked as such as not failed
+                else LastProcessedTimestamp = DateTimeOffset.UtcNow;
+
+                ReachedFailedMessages = true;
+                //failed messages
+                bool processFailed = GlobalControl.ProcessFailedEmailsParsing;
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    foreach (var markSuccessMessage in failedMessages)
+                    processFailed = false;
+                }
+                var failedMessages = await GetFailedMessages(email, cancellationToken);
+                if (failedMessages != null && failedMessages.Count > 0)
+                {
+                    if (processFailed)
                     {
-                        await _aDGraphWrapper._graphClient.Users[email]
-                        .Messages[markSuccessMessage.Id]
-                        .PatchAsync(new Message
+                        var faultedReprocess = new List<Message>();
+                        var toks = await ProcessMessagesAsync(failedMessages, brokerDTO, faultedReprocess);
+                        totaltokens += toks;
+                        var success = failedMessages.Where(m => !faultedReprocess.Contains(m));
+                        foreach (var markSuccessMessage in success)
                         {
-                            SingleValueExtendedProperties = new()
+                            await _aDGraphWrapper._graphClient.Users[email]
+                            .Messages[markSuccessMessage.Id]
+                            .PatchAsync(new Message
                             {
+                                SingleValueExtendedProperties = new()
+                                {
                                 new SingleValueLegacyExtendedProperty
                                 {
                                     Id = APIConstants.ReprocessMessExtendedPropId,
                                     Value = "0"
                                 }
-                            }
-                        });
+                                }
+                            });
+                        }
+                        foreach (var FailedSecondTime in faultedReprocess)
+                        {
+                            _logger.LogError("{tag} email with id {emailId} failed processing twice for email {email}", "emailProcessingFailed2ndTime", FailedSecondTime.Id, brokerDTO.BrokerEmail);
+                            await _aDGraphWrapper._graphClient.Users[email]
+                            .Messages[FailedSecondTime.Id]
+                            .PatchAsync(new Message
+                            {
+                                SingleValueExtendedProperties = new()
+                                {
+                                new SingleValueLegacyExtendedProperty
+                                {
+                                    Id = APIConstants.ReprocessMessExtendedPropId,
+                                    Value = "0"
+                                }
+                                }
+                            });
+                        }
+                    }
+                    else //if not processing failed messages, mark those who were marked as such as not failed
+                    {
+                        foreach (var markSuccessMessage in failedMessages)
+                        {
+                            await _aDGraphWrapper._graphClient.Users[email]
+                            .Messages[markSuccessMessage.Id]
+                            .PatchAsync(new Message
+                            {
+                                SingleValueExtendedProperties = new()
+                                {
+                                new SingleValueLegacyExtendedProperty
+                                {
+                                    Id = APIConstants.ReprocessMessExtendedPropId,
+                                    Value = "0"
+                                }
+                                }
+                            });
+                        }
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCritical("{tag} sync email job failed with error {error}", TagConstants.syncEmail, ex.Message + ": " + ex.StackTrace);
-            await _appDbContext.ConnectedEmails.Where(e => e.Email == email)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
-                .SetProperty(e => e.SyncScheduled, false)
-                .SetProperty(e => e.LastSync, LastProcessedTimestamp.UtcDateTime));
-            if (GlobalControl.ProcessFailedEmailsParsing) await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
-            StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
-            return;
-        }
+            catch (Exception ex)
+            {
+                _logger.LogCritical("{tag} sync email job failed with error {error}", TagConstants.syncEmail, ex.Message + ": " + ex.StackTrace);
+                await _appDbContext.ConnectedEmails.Where(e => e.Email == email)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
+                    .SetProperty(e => e.SyncScheduled, false)
+                    .SetProperty(e => e.LastSync, LastProcessedTimestamp.UtcDateTime));
+                if (GlobalControl.ProcessFailedEmailsParsing) await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
+                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
+                return;
+            }
 
-        try
-        {
-            await _appDbContext.ConnectedEmails.Where(e => e.Email == email)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
-                .SetProperty(e => e.SyncScheduled, false)
-                .SetProperty(e => e.LastSync, LastProcessedTimestamp.UtcDateTime));
-            if (GlobalControl.ProcessFailedEmailsParsing) await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
-            StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("{tag} Error updating fields at end of email sync with error {error}", TagConstants.syncEmail, ex.Message + ":" + ex.StackTrace);
+            try
+            {
+                await _appDbContext.ConnectedEmails.Where(e => e.Email == email)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(e => e.OpenAITokensUsed, e => e.OpenAITokensUsed + totaltokens)
+                    .SetProperty(e => e.SyncScheduled, false)
+                    .SetProperty(e => e.LastSync, LastProcessedTimestamp.UtcDateTime));
+                if (GlobalControl.ProcessFailedEmailsParsing) await TagFailedMessages(ReprocessMessages, brokerDTO.BrokerEmail);
+                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("{tag} Error updating fields at end of email sync with error {error}", TagConstants.syncEmail, ex.Message + ":" + ex.StackTrace);
+            }
         }
     }
 
@@ -586,7 +591,7 @@ public class EmailProcessor
             string fromEmailAddress = emailsGrouping.Key;
             foreach (var email in emailsGrouping)
             {
-                LeadProviderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, true));
+                LeadProviderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, true));
                 LeadProviderTaskMessages.Add(email);
             }
         }
@@ -636,7 +641,7 @@ public class EmailProcessor
                     //TODO take into consideration that this unknown sender might send multiple messages
                     if (email.Body.Content.Length < 4000)
                     {
-                        UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, false));
+                        UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, false));
                         UnknownSenderTaskMessages.Add(email);
                     }
                 }

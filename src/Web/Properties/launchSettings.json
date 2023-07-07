@@ -24,6 +24,15 @@
       },
       "applicationUrl": "https://localhost:7156;http://localhost:5156"
     },
+    "Admin": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Admin"
+      },
+      "applicationUrl": "https://localhost:7156;http://localhost:5156"
+    },
     "test Prod": {
       "commandName": "Project",
       "launchBrowser": false,

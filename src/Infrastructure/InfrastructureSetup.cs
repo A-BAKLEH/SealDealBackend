@@ -23,7 +23,7 @@ public static class InfrastructureSetup
         services.AddDbContextFactory<AppDbContext>(
         options =>
             options.UseNpgsql(connectionString));
-    public static void AddHangfire(this IServiceCollection services, string connectionString, bool isDev)
+    public static void AddHangfire(this IServiceCollection services, string connectionString, bool isDev, bool isAdmin, bool isProd)
     {
         services.AddHangfire(configuration => configuration
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
@@ -43,13 +43,17 @@ public static class InfrastructureSetup
         {
             services.AddHangfireServer();
         }
-        else
+        else if(isProd)
         {
             services.AddHangfireServer(options =>
             {
                 options.ShutdownTimeout = TimeSpan.FromSeconds(15);
                 options.WorkerCount = Math.Min(Environment.ProcessorCount * 3,15);
             });
+        }
+        else
+        {
+            //dont add processing in admin mode
         }
     }
 

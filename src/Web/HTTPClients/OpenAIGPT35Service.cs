@@ -127,17 +127,20 @@ namespace Web.HTTPClients
         /// <param name="emailbody"></param>
         /// <param name="leadProvider"></param>
         /// <returns></returns>
-        public async Task<OpenAIResponse?> ParseEmailAsync(Message message, string brokerEmail, bool FromLeadProvider = false)
+        public async Task<OpenAIResponse?> ParseEmailAsync(Message message, string brokerEmail, string brokerFirstName, string brokerLastName, bool FromLeadProvider = false)
         {
             OpenAIResponse res;
-            string reason = "";
             int length = 0;
             try
             {
                 var text = message.Body.Content;
                 text = EmailReducer.Reduce(text, message.From.EmailAddress.Address.ToLower());
                 length = text.Length;
-                string prompt = APIConstants.ParseLeadPrompt4 + text;
+
+                var input = APIConstants.MyNameIs + brokerFirstName + " " + brokerLastName + APIConstants.IamBrokerWithEmail
+                    + brokerEmail + APIConstants.VeryStrictGPTPrompt + text;
+
+                string prompt = input;
 
                 StringContent jsonContent = new(
                 JsonSerializer.Serialize(new
@@ -153,7 +156,6 @@ namespace Web.HTTPClients
                 "application/json");
 
                 HttpResponseMessage response = await _httpClient.PostAsync("", content: jsonContent);
-                reason = response.ReasonPhrase  ?? "";
                 //TODO handle API error 
                 response.EnsureSuccessStatusCode();
 
@@ -161,27 +163,25 @@ namespace Web.HTTPClients
                 var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
                 var GPTCompletionJSON = rawResponse.choices[0].message.content.Replace("\n", "");
                 var LeadParsed = JsonSerializer.Deserialize<LeadParsingContent>(GPTCompletionJSON);
-                
 
                 res = new OpenAIResponse
                 {
                     Success = true,
-                    ProcessedMessage = message
+                    ProcessedMessage = message,
+                    EmailTokensUsed = rawResponse.usage.prompt_tokens - APIConstants.StrictPromptTokens
                 };
-                //email doesnt contain lead
                 if (LeadParsed.NotFound == 1)
                 {
                     res.HasLead = false;
-                    res.EmailTokensUsed = rawResponse.usage.prompt_tokens - APIConstants.PromptTokensCount;
                 }
                 else
                 {
                     res.HasLead = true;
                     res.content = LeadParsed;
                 }
-                if(GlobalControl.LogAllEmailsLengthsOpenAi)
+                if (GlobalControl.LogAllEmailsLengthsOpenAi)
                     _logger.LogInformation("{tag} text length messageID {messageID}" +
-                                               " and brokerEmail {brokerEmail} from sender {senderEmail}, hasLead is {hasLead}, length {messLength}", TagConstants.openAi, message.Id, brokerEmail,message.From.EmailAddress.Address,res.HasLead ,length);
+                                               " and brokerEmail {brokerEmail} from sender {senderEmail}, hasLead is {hasLead}, length {messLength}", TagConstants.openAi, message.Id, brokerEmail, message.From.EmailAddress.Address, res.HasLead, length);
             }
             catch (HttpRequestException e)
             {
@@ -194,7 +194,7 @@ namespace Web.HTTPClients
                 };
                 _logger.LogError("{tag} GPT 3.5 httpexception, email parsing error for messageID {messageID}" +
                     " and brokerEmail {brokerEmail} from sender {senderEmail} and length {messLength} and error {Error}", TagConstants.openAi, message.Id, brokerEmail,
-                    message.From.EmailAddress.Address,length,"reasonPhrase: " + reason ?? "" + " code: " + e.StatusCode);
+                    message.From.EmailAddress.Address, length, " code: " + e.StatusCode);
             }
             catch (Exception e)
             {
@@ -212,7 +212,7 @@ namespace Web.HTTPClients
             }
             if (GlobalControl.LogOpenAIEmailParsingObjects)
             {
-                if(res.content == null) _logger.LogWarning("{tag} returning content object null,haslead {hasLead}, success {success}", TagConstants.openAi, res.HasLead, res.Success);
+                if (res.content == null) _logger.LogWarning("{tag} returning content object null,haslead {hasLead}, success {success}", TagConstants.openAi, res.HasLead, res.Success);
                 else _logger.LogWarning("{tag} returning content object: {@openAiContent},haslead {hasLead}, success {success}", TagConstants.openAi, res.content, res.HasLead, res.Success);
 
             }

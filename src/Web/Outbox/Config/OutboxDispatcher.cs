@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿using Hangfire.Server;
+using MediatR;
+using Serilog.Context;
 
 namespace Web.Outbox.Config;
 
@@ -9,8 +11,12 @@ public class OutboxDispatcher
     {
         _mediator = mediator;
     }
-    public async Task Dispatch(EventBase Event, CancellationToken cancellationToken)
+    public async Task Dispatch(EventBase Event, PerformContext performContext, CancellationToken cancellationToken)
     {
-        await _mediator.Publish(Event);
+        using (LogContext.PushProperty("appEventId", Event.AppEventId))
+        using (LogContext.PushProperty("hanfireJobId", performContext.BackgroundJob.Id))
+        {
+            await _mediator.Publish(Event);
+        }
     }
 }

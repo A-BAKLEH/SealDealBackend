@@ -18,7 +18,6 @@ using Web.Config;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
-using Web.Processing;
 using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 using Web.RealTimeNotifs;
@@ -67,15 +66,6 @@ public class TestController : ControllerBase
     {
         return Ok();
     }
-
-    [HttpGet("testQuickcSlow")]
-    public async Task<IActionResult> testQuickSlow()
-    {
-        BackgroundJob.Enqueue<TestProcessor>(x => x.testQuick(CancellationToken.None));
-        BackgroundJob.Enqueue<TestProcessor>(x => x.testSlow(CancellationToken.None));
-        return Ok();
-    }
-
 
     [HttpGet("testHub")]
     public async Task<IActionResult> testHub()

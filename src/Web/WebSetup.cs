@@ -24,7 +24,6 @@ namespace Web
             services.AddScoped<RealTimeNotifSender>();
             services.AddScoped<NotifAnalyzer>();
             services.AddScoped<NotificationService>();
-            services.AddScoped<TestProcessor>();
 
             services.AddScoped<StripeQService>();
             services.AddScoped<AuthorizationService>();

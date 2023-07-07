@@ -1,4 +1,6 @@
 ﻿using Core.Config.Constants.LoggingConstants;
+using Hangfire.Server;
+using Serilog.Context;
 
 namespace Web.Outbox.Config;
 
@@ -9,32 +11,35 @@ public class OutboxCleaner
     {
         _logger = logger;
     }
-    public void CleanOutbox(CancellationToken cancellationToken)
+    public void CleanOutbox(PerformContext performContext, CancellationToken cancellationToken)
     {
-        var remove = new List<int>();
-        foreach (var pair in OutboxMemCache.SchedulingErrorDict)
+        using (LogContext.PushProperty("hanfireJobId", performContext.BackgroundJob.Id))
         {
-            try
+            var remove = new List<int>();
+            foreach (var pair in OutboxMemCache.SchedulingErrorDict)
             {
-                Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(pair.Value, CancellationToken.None));
-            }
-            catch (Exception ex)
-            {
-                if (pair.Value is BrokerCreated)
+                try
                 {
-                    _logger.LogCritical("{tag} brokerCreated event with eventId {eventId} failed scheduling hangfire." +
-                        " Send password manually. error : {error}", TagConstants.OutboxCleaner, pair.Key, ex.Message);
+                    Hangfire.BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(pair.Value, null, CancellationToken.None));
+                }
+                catch (Exception ex)
+                {
+                    if (pair.Value is BrokerCreated)
+                    {
+                        _logger.LogCritical("{tag} brokerCreated event with eventId {eventId} failed scheduling hangfire." +
+                            " Send password manually. error : {error}", TagConstants.OutboxCleaner, pair.Key, ex.Message);
+                    }
+                }
+                finally
+                {
+                    remove.Add(pair.Key);
                 }
             }
-            finally
+            foreach (var key in remove)
             {
-                remove.Add(pair.Key);
+                OutboxMemCache.SchedulingErrorDict.Remove(key, out var asd);
             }
+            _logger.LogWarning("{tag} there were {failedOutboxCount} failed events in hangfire outbox", TagConstants.OutboxCleaner, remove.Count);
         }
-        foreach (var key in remove)
-        {
-            OutboxMemCache.SchedulingErrorDict.Remove(key, out var asd);
-        }
-        _logger.LogWarning("{tag} there were {failedOutboxCount} failed events in hangfire outbox", TagConstants.OutboxCleaner, remove.Count);
     }
 }

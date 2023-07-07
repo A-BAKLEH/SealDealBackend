@@ -16,8 +16,12 @@ using Web.RealTimeNotifs;
 
 var builder = WebApplication.CreateBuilder(args);
 var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
 bool isDev = builder.Environment.IsDevelopment();
-if (!isDev)
+bool isProd = builder.Environment.IsProduction();
+bool isAdmin = builder.Environment.EnvironmentName == "Admin";
+
+if (isProd)
 {
     builder.Services.Configure<HostOptions>(
         opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
@@ -32,7 +36,7 @@ builder.Host.UseSerilog((_, config) => config.ReadFrom.Configuration(builder.Con
 string PostgresconnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var hangfireConnectionString = builder.Configuration.GetConnectionString("HangfireConnection");
 
-builder.Services.AddHangfire(hangfireConnectionString, isDev);
+builder.Services.AddHangfire(hangfireConnectionString, isDev,isAdmin,isProd);
 builder.Services.AddInfrastructureServices(builder.Configuration, Assembly.GetExecutingAssembly());
 builder.Services.AddWebServices();
 builder.Services.AddControllers();
@@ -43,7 +47,7 @@ builder.Services.AddSwaggerGen();
 
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-if (isDev)
+if (isDev || isAdmin)
 {
     builder.Services.AddCors(options =>
     {
@@ -101,13 +105,13 @@ builder.Services.AddProblemDetails(options =>
     });
 });
 
-builder.Services.AddSignalR().AddAzureSignalR();
+if(isProd) builder.Services.AddSignalR().AddAzureSignalR();
 
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseProblemDetails();
-if (isDev)
+if (isDev || isAdmin)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -118,12 +122,15 @@ else
 }
 app.UseHttpsRedirection();
 app.UseRouting();
-if (isDev) app.UseCors(MyAllowSpecificOrigins);
+if (isDev || isAdmin) app.UseCors(MyAllowSpecificOrigins);
+
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapHub<NotifsHub>("/notifs");
+
+if(isProd) app.MapHub<NotifsHub>("/notifs");
+
 app.MapControllers();
-if (!isDev)
+if (isProd)
 {
     app.UseHangfireDashboard("/hangfire", new DashboardOptions
     {
