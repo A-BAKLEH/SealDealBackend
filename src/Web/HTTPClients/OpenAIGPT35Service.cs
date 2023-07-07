@@ -135,7 +135,7 @@ namespace Web.HTTPClients
             try
             {
                 var text = message.Body.Content;
-                text = EmailReducer.Reduce(text, message.From.EmailAddress.Address);
+                text = EmailReducer.Reduce(text, message.From.EmailAddress.Address.ToLower());
                 length = text.Length;
                 string prompt = APIConstants.ParseLeadPrompt4 + text;
 

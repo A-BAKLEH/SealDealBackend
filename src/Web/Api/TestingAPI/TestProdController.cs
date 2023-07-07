@@ -1,4 +1,5 @@
 ﻿using Core.Constants;
+using Core.Domain.BrokerAggregate;
 using Core.Domain.TasksAggregate;
 using Hangfire;
 using Infrastructure.Data;
@@ -204,8 +205,8 @@ public class TestProdController : ControllerBase
         var HangfireAnalyzerId = brokerId.ToString() + "Analyzer";
         Random rnd = new Random();
         var minute = rnd.Next(0, 59);
-        //analyzer every hour except between 2 and 3 montreal time
-        RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(brokerId, null, CancellationToken.None), $"{minute} 0-5,7-23 * * *", recJobOptions);
+        //analyzer every hour except between 2 and 4 montreal time
+        RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(brokerId, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
         var recTask = new BrokerNotifAnalyzerTask
         {
             HangfireTaskId = HangfireAnalyzerId,
@@ -239,6 +240,25 @@ public class TestProdController : ControllerBase
                 _logger.LogInformation($"deleting subs {item.Id}");
             }
         }
+        return Ok();
+    }
+    [HttpGet("AnalyzerTime/{key}")]
+    public async Task<IActionResult> AnalyzerTime(string key)
+    {
+        if (key != passwd) return Ok("nope");
+        var job1 = "1c96b780-953a-463b-a17f-71400166309cAnalyzer";
+        var job2 = "35a8e010-b2ad-4d75-a93c-e6595b35f0dfAnalyzer";
+
+        var recJobOptions = new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc };
+
+        Random rnd = new Random();
+        var minute = rnd.Next(0, 59);
+        var id1 = Guid.Parse("1c96b780-953a-463b-a17f-71400166309c");
+        RecurringJob.AddOrUpdate<NotifAnalyzer>(job1, a => a.AnalyzeNotifsAsync(id1, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
+
+        minute = rnd.Next(0, 59);
+        var id2 = Guid.Parse("35a8e010-b2ad-4d75-a93c-e6595b35f0df");
+        RecurringJob.AddOrUpdate<NotifAnalyzer>(job2, a => a.AnalyzeNotifsAsync(id2, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
         return Ok();
     }
     //in case you wanna mnually set up payment info of an account

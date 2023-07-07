@@ -289,10 +289,14 @@ public class TestEmailController : ControllerBase
           });
         var messages = messages1.Value;
 
-        //var text = messages[index].Body.Content;
-        var text = messages.Find(m => m.Id == "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAi4j1NAAA").Body.Content;
-
-        string prompt = APIConstants.ParseLeadPrompt4 + text;
+        var text = messages[index].Body.Content;
+        //text = EmailReducer.Reduce(text, "lead@realtor.ca");
+        //var text = messages.Find(m => m.Id == "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAi4j1NAAA").Body.Content;
+        var length = text.Length;
+        var input = APIConstants.MyNameIs + "bashar eskandar" + APIConstants.IamBrokerWithEmail + "bashar.eskandar@sealdeal.ca"
+            + APIConstants.VeryStrictGPTPrompt + text;
+        
+        string prompt = input;
 
         StringContent jsonContent = new(
         JsonSerializer.Serialize(new

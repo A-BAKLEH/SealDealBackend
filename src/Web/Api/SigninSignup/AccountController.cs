@@ -2,6 +2,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Graph.Models.ODataErrors;
 using System.Security.Claims;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
@@ -177,9 +178,19 @@ public class AccountController : BaseApiController
             _logger.LogCritical("{tag} inactive User tried to handle admin consented", TagConstants.Inactive);
             return Forbid();
         }
-        var resTuple = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id, brokerTuple.Item1.AgencyId);
-
-        return Ok(resTuple);
+        dynamic? res = null;
+        try
+        {
+            res = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id, brokerTuple.Item1.AgencyId);
+        }
+        catch(ODataError err)
+        {
+            _logger.LogError("{tag} retrying from controller with error {errorMessage}","handleAdminConsentController", err.Error.Message);
+            await Task.Delay(2000);
+            res = await _MSFTEmailQService.DummyMethodHandleAdminConsentAsync(tenantId, id, brokerTuple.Item1.AgencyId);
+            _logger.LogInformation("{tag} success after retrying from controller", "handleAdminConsentController");
+        }       
+        return Ok(res);
     }
 
     [HttpGet("ConnectedEmail")]

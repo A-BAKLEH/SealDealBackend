@@ -4,7 +4,7 @@ public static class EmailReducer
 {
     public static string Reduce(string text, string leadProvider)
     {
-        if(leadProvider == "Lead@realtor.ca")
+        if(leadProvider == "lead@realtor.ca")
         {
             string pattern = @"Que pensez-vous de ce renvoi de client potentiel";
             var indexStart = text.IndexOf(pattern);

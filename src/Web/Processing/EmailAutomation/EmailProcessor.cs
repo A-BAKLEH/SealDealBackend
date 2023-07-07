@@ -156,9 +156,23 @@ public class EmailProcessor
             if (ex.ResponseStatusCode == 403 && count <= 3)
             {
                 await Task.Delay(2000);
+                SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
+                subs = new Subscription
+                {
+                    ChangeType = "created",
+                    ClientState = VariousCons.MSFtWebhookSecret,
+                    ExpirationDateTime = SubsEnds,
+                    NotificationUrl = _configurationSection["MainAPI"] + "/MsftWebhook/Webhook",
+                    Resource = $"users/{connectedEmail.Email}/mailFolders/inbox/messages"
+                };
                 goto Loop1;
             }
-            else throw;
+            else
+            {
+                _logger.LogError("{tag} errorMessage {errorMessage} with counter {counter}", "handleAdminConsent", ex.Error.Message, count);
+                throw;
+            }
+
         }
         //TODO run the analyzer to sync? see how the notifs creator and email analyzer will work
         //will have to consider current leads in the system, current listings assigned, websites from which
@@ -280,9 +294,10 @@ public class EmailProcessor
         }
     }
 
-    public static bool EmailSenderIgnore(string senderAddress)
+    public static bool EmailSenderIgnore(string senderAddress, string brokerAddress)
     {
         senderAddress = senderAddress.ToLower();
+        if (brokerAddress == senderAddress) return true;
         if (GlobalControl.ProcessingIgnoreEmails.Contains(senderAddress)) return true;
         var domain = senderAddress.Split('@')[1];
         foreach (var domainIgnore in GlobalControl.ProcessingIgnoreDomains)
@@ -560,7 +575,7 @@ public class EmailProcessor
         var KnownLeadEmailEvents = new List<EmailEvent>();
         var KnownLeadTasks = new List<Tuple<Task<EmailEvent?>, Message>>();
 
-        var messages = messagesUnfiltered.Where(m => !EmailSenderIgnore(m.From.EmailAddress.Address));
+        var messages = messagesUnfiltered.Where(m => !EmailSenderIgnore(m.From.EmailAddress.Address, brokerDTO.BrokerEmail));
         var groupedMessagesBySender = messages.GroupBy(m => m.From.EmailAddress.Address);
 
         var GroupedleadProviderEmails = groupedMessagesBySender.Where(g => GlobalControl.LeadProviderEmails.Contains(g.Key));
@@ -619,8 +634,11 @@ public class EmailProcessor
                 foreach (var email in messageGrp)
                 {
                     //TODO take into consideration that this unknown sender might send multiple messages
-                    UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, false));
-                    UnknownSenderTaskMessages.Add(email);
+                    if (email.Body.Content.Length < 4000)
+                    {
+                        UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, false));
+                        UnknownSenderTaskMessages.Add(email);
+                    }
                 }
             }
         }
