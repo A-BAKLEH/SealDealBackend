@@ -39,7 +39,7 @@ public class OutboxCleaner
             {
                 OutboxMemCache.SchedulingErrorDict.Remove(key, out var asd);
             }
-            _logger.LogWarning("{tag} there were {failedOutboxCount} failed events in hangfire outbox", TagConstants.OutboxCleaner, remove.Count);
+            if(remove.Count > 0) _logger.LogWarning("{tag} there were {failedOutboxCount} failed events in hangfire outbox", TagConstants.OutboxCleaner, remove.Count);
         }
     }
 }
