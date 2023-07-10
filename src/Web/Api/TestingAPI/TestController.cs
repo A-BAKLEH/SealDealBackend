@@ -60,10 +60,29 @@ public class TestController : ControllerBase
         hub = hubContext;
     }
 
-
-    [HttpGet("testShutdown")]
-    public async Task<IActionResult> testShutdown()
+    [HttpGet("fixLeadStatusesDev")]
+    public async Task<IActionResult> FixLeadStatussss()
     {
+        var appEvent = await _appDbContext.AppEvents.FirstAsync(e => e.Id == 79);
+        appEvent.Props["OldLeadStatus"] = "Hot";
+        _appDbContext.Entry(appEvent).State = EntityState.Modified;
+        _appDbContext.Entry(appEvent).Property(e => e.Props).IsModified = true;
+        await _appDbContext.SaveChangesAsync();
+        await _appDbContext.Database.ExecuteSqlRawAsync
+            (
+              "UPDATE \"Leads\" SET \"LeadStatus\"='Hot' Where \"LeadStatus\"='New';"
+            );
+        return Ok();
+    }
+
+    [HttpGet("clearDatabase")]
+    public async Task<IActionResult> clearDatabase()
+    {
+        var brokers = await _appDbContext.Brokers.ToListAsync();
+        foreach (var item in brokers)
+        {
+            await _brokerTagsQService.DeleteSoloBrokerWithoutTouchingStripeAsync(item.Id,item.AgencyId);
+        }  
         return Ok();
     }
 
