@@ -12,7 +12,7 @@ public class UpdateLeadDTO
     //options: Buyer Renter Unknown
     public string? LeadType { get; set; }
 
-    //options : New, Active, Client, Closed, Dead
+    //options : Hot, Active, Delayed, Cold,Closed, Dead
     public string? LeadStatus { get; set; }
     public string? Areas { get; set; }
     public string? leadNote { get; set; }

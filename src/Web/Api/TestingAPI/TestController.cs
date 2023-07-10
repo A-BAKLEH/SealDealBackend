@@ -227,7 +227,7 @@ public class TestController : ControllerBase
             BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"),
             Listing = listing,
             Budget = 1000,
-            LeadStatus = LeadStatus.New,
+            LeadStatus = LeadStatus.Hot,
             Note = new Note { NotesText = "wlasdfjasdogihoig" },
             Tags = new List<Tag> { new Tag { BrokerId = Guid.Parse("B01427D3-E653-48B5-B2F2-DED2B6C895F7"), TagName = "wlakTagTaggedlmaoNerd" } },
             AppEvents = new List<AppEvent>

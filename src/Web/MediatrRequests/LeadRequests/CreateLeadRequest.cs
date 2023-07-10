@@ -59,7 +59,7 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
             Areas = dto.Areas,
             leadType = leadtype,
             source = LeadSource.manual,
-            LeadStatus = LeadStatus.New,
+            LeadStatus = LeadStatus.Hot,
             ListingId = dto.ListingOfInterstId,
         };
         if (request.createLeadDTO.language != null && Enum.TryParse<Language>(request.createLeadDTO.language, true, out var language))

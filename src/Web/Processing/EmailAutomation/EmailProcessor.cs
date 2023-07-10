@@ -1167,7 +1167,7 @@ public class EmailProcessor
             EntryDate = DateTime.UtcNow - TimeSpan.FromSeconds(1),
             leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
-            LeadStatus = LeadStatus.New,
+            LeadStatus = LeadStatus.Hot,
             LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true } },
             Language = lang,
         };

@@ -9,7 +9,7 @@ namespace Core.Domain.LeadAggregate;
 
 public enum LeadStatus
 {
-    New, Active, Client, Closed, Dead
+    Hot, Active, Slow, Cold, Closed, Dead
 }
 
 public enum Language
@@ -46,7 +46,7 @@ public class Lead : Entity<int>
     /// always onctains Creator Name and Id, try siteName/lead provider name
     /// </summary>
     public Dictionary<string, string> SourceDetails { get; set; } = new();
-    public LeadStatus LeadStatus { get; set; } = LeadStatus.New;
+    public LeadStatus LeadStatus { get; set; } = LeadStatus.Hot;
     /// <summary>
     /// just a string for now, dont use areasOfInterest
     /// </summary>

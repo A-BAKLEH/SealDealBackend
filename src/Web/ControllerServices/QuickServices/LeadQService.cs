@@ -256,26 +256,32 @@ public class LeadQService
             .Where(l => l.EntryDate >= UTCstartDay).Count();
         var newLeadsYesterday = leads.Where(l => l.EntryDate >= UTCStartYesterday && l.EntryDate < UTCstartDay).Count();
 
-        var newLeads = 0;
+        var hotLeads = 0;
         var activeLeads = 0;
-        var clientLeads = 0;
-        var deadLeads = 0;
+        var slowLeads = 0;
+        var coldLeads = 0;
+        var closedLeads = 0;
+        var DeadLeads = 0;
 
         leads.ForEach(l =>
         {
-            if (l.LeadStatus == LeadStatus.New) newLeads++;
+            if (l.LeadStatus == LeadStatus.Hot) hotLeads++;
             else if (l.LeadStatus == LeadStatus.Active) activeLeads++;
-            else if (l.LeadStatus == LeadStatus.Client) clientLeads++;
-            else deadLeads++;
+            else if (l.LeadStatus == LeadStatus.Slow) slowLeads++;
+            else if (l.LeadStatus == LeadStatus.Cold) coldLeads++;
+            else if (l.LeadStatus == LeadStatus.Closed) closedLeads++;
+            else DeadLeads++;
         });
         var res = new DsahboardLeadStatusdto
         {
-            NewLeadsTotal = newLeads,
-            newLeadsToday = newLeadsToday,
-            newLeadsYesterday = newLeadsYesterday,
+            NewLeadsToday = newLeadsToday,
+            NewLeadsYesterday = newLeadsYesterday,
+            HotLeads = hotLeads,
             activeLeads = activeLeads,
-            clientLeads = clientLeads,
-            deadLeads = deadLeads
+            slowLeads = slowLeads,
+            coldLeads = coldLeads,
+            closedLeads = closedLeads,
+            deadLeads = DeadLeads
         };
         return res;
     }
@@ -331,7 +337,7 @@ public class LeadQService
         var leadAssignedEvent = new LeadAssigned { AppEventId = notifId };
         try
         {
-            var HangfireJobId = BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent,null,CancellationToken.None));
+            var HangfireJobId = BackgroundJob.Enqueue<OutboxDispatcher>(x => x.Dispatch(leadAssignedEvent, null, CancellationToken.None));
         }
         catch (Exception ex)
         {

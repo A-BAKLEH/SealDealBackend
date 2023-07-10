@@ -1,5 +1,6 @@
 ﻿using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Web.Config;
 
 namespace Web.Api.TestingAPI;
@@ -23,5 +24,20 @@ public class LocalController : ControllerBase
     {
         var count = _dbcontext.Brokers.Count();
         return Ok(count);
+    }
+
+    [HttpGet("fixLeadStatuses")]
+    public async Task<IActionResult> FixLeadStatus()
+    {
+        var appEvent = await _dbcontext.AppEvents.FirstAsync(e => e.Id == 79);
+        appEvent.Props["OldLeadStatus"] = "Hot";
+        _dbcontext.Entry(appEvent).State = EntityState.Modified;
+        _dbcontext.Entry(appEvent).Property(e => e.Props).IsModified = true;
+        await _dbcontext.SaveChangesAsync();
+        await _dbcontext.Database.ExecuteSqlRawAsync
+            (
+              "UPDATE \"Leads\" SET \"LeadStatus\"='Hot' Where \"LeadStatus\"='New';"
+            );
+        return Ok();
     }
 }
