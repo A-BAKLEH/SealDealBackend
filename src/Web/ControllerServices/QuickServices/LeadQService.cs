@@ -72,7 +72,12 @@ public class LeadQService
             }
         }
 
-        if (dto.PhoneNumber != null) lead.PhoneNumber = dto.PhoneNumber;
+        if (dto.PhoneNumber != null)
+        {
+            dto.PhoneNumber = string.Concat(dto.PhoneNumber.
+                Where(c => !char.IsWhiteSpace(c) && c != '(' && c != ')' && c != '-' && c != '_'));
+            lead.PhoneNumber = dto.PhoneNumber;
+        }        
         if (dto.LeadStatus != null)
         {
             if (Enum.TryParse<LeadStatus>(dto.LeadStatus, true, out var leadStatus)) lead.LeadStatus = leadStatus;

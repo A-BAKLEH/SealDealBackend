@@ -9,6 +9,7 @@ using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Hangfire.Server;
+using Humanizer;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
@@ -1158,6 +1159,13 @@ public class EmailProcessor
             if (parsedContent.Language.ToLower().Contains("en")) lang = Language.English;
             else if (parsedContent.Language.ToLower().Contains("fr")) lang = Language.French;
         }
+
+        if (parsedContent.phoneNumber != null)
+        {
+            parsedContent.phoneNumber = string.Concat(parsedContent.phoneNumber.
+                Where(c => !char.IsWhiteSpace(c) && c != '(' && c != ')' && c != '-' && c != '_'));
+        }
+
         var lead = new Lead
         {
             AgencyId = brokerDTO.AgencyId,

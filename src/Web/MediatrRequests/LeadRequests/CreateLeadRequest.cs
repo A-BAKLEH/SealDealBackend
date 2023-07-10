@@ -45,7 +45,11 @@ public class CreateLeadRequestHandler : IRequestHandler<CreateLeadRequest, LeadF
         var brokerToAssignToId = dto.AssignToSelf ? request.BrokerWhoRequested.Id : dto.AssignToBrokerId;
         if ((!request.BrokerWhoRequested.isAdmin || request.BrokerWhoRequested.isSolo) && dto.AssignToSelf == false)
             throw new CustomBadRequestException("lead has to be assigned to self for broker who is not admin", ProblemDetailsTitles.AssignToSelf);
-
+        if(dto.PhoneNumber != null)
+        {
+            dto.PhoneNumber = string.Concat(dto.PhoneNumber.
+                Where(c => !char.IsWhiteSpace(c) && c != '(' && c != ')' && c != '-' && c != '_'));
+        }
         var timestamp = DateTime.UtcNow;
         var lead = new Lead
         {
