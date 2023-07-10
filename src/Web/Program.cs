@@ -105,7 +105,7 @@ builder.Services.AddProblemDetails(options =>
     });
 });
 
-if(isProd) builder.Services.AddSignalR().AddAzureSignalR();
+builder.Services.AddSignalR().AddAzureSignalR();
 
 var app = builder.Build();
 
@@ -127,7 +127,7 @@ if (isDev || isAdmin) app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 
-if(isProd) app.MapHub<NotifsHub>("/notifs");
+app.MapHub<NotifsHub>("/notifs");
 
 app.MapControllers();
 if (isProd)
