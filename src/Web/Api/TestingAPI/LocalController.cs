@@ -29,7 +29,7 @@ public class LocalController : ControllerBase
     [HttpGet("fixLeadStatuses")]
     public async Task<IActionResult> FixLeadStatus()
     {
-        var appEvent = await _dbcontext.AppEvents.FirstAsync(e => e.Id == 79);
+        var appEvent = await _dbcontext.AppEvents.FirstAsync(e => e.Id == 89);
         appEvent.Props["OldLeadStatus"] = "Hot";
         _dbcontext.Entry(appEvent).State = EntityState.Modified;
         _dbcontext.Entry(appEvent).Property(e => e.Props).IsModified = true;
