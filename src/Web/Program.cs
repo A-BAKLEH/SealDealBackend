@@ -154,4 +154,4 @@ if (isProd)
 else app.MapHangfireDashboard();
 app.Run();
 //Add-Migration InitialMigrationName -StartupProject Web -Context AppDbContext -Project Infrastructure
-//stripe listen --forward-to https://localhost:7156/api/Webhook/webhook
+//stripe listen --forward-to https://localhost:7156/api/StripeWebhook/webhook

@@ -42,4 +42,5 @@ public static class GlobalControl
 
 
     public static bool LogAllEmailsLengthsOpenAi = true;
+    public static bool LogAnalyzerSteps = false;
 }

@@ -7,4 +7,5 @@ public class ControlDTO
     public bool ProcessFailedEmailsParsing { get; set; } = true;
     public bool LogOpenAIEmailParsingObjects { get; set; } = false;
     public bool LogAllEmailsLengthsOpenAi { get; set; } = false;
+    public bool LogAnalyzerSteps { get; set; } = false;
 }

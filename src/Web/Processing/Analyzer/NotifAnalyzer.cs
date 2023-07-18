@@ -87,7 +87,7 @@ public class NotifAnalyzer
 
     }
 
-    public async Task<Tuple<Notif?, DateTime?>> AnalyzeEmail(EmailEvent e, DateTime TimeNow, GraphServiceClient graphServiceClient)
+    public async Task<Tuple<Notif?, DateTime?>?> AnalyzeEmail(EmailEvent e, DateTime TimeNow, GraphServiceClient graphServiceClient)
     {
         DateTime? newEmailEventAnalyzerLastTimestamp = null;
         if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromHours(1))
@@ -98,6 +98,10 @@ public class NotifAnalyzer
             {
                 //just see if seen yet
                 var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, e.BrokerEmail, e.Id, null, true, false);
+                if (resT == null)
+                {
+                    return null;
+                }
                 //not seen
                 if (!resT.Item1)
                 {
@@ -126,6 +130,10 @@ public class NotifAnalyzer
             {
                 //check if seen and replied-to yet
                 var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, e.BrokerEmail, e.Id, e.ConversationId, true, true);
+                if (resT == null)
+                {
+                    return null;
+                }
                 e.Seen = resT.Item1;
                 e.RepliedTo = resT.Item2;
                 if (!resT.Item1 || !resT.Item2)
@@ -152,6 +160,10 @@ public class NotifAnalyzer
             newEmailEventAnalyzerLastTimestamp = e.TimeReceived;
             //check if replied-to yet
             var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, e.BrokerEmail, e.Id, e.ConversationId, false, true);
+            if (resT == null)
+            {
+                return null;
+            }
             e.RepliedTo = resT.Item2;
             if (!resT.Item2)
             {
@@ -234,6 +246,11 @@ public class NotifAnalyzer
                     foreach (var e in emailEvents)
                     {
                         var res = await AnalyzeEmail(e, TimeNow, dict[e.BrokerEmail]);
+                        if (res == null)
+                        {
+                            dbcontext.Remove(e);
+                            continue;
+                        }
                         if (res.Item1 != null) notifs.Add(res.Item1);
                         if (res.Item2 != null) NewEmailEventAnalyzerLastTimestamp = res.Item2;
                         if (cancellationToken.IsCancellationRequested)
@@ -244,8 +261,9 @@ public class NotifAnalyzer
                     if (NewEmailEventAnalyzerLastTimestamp != null) broker.EmailEventAnalyzerLastTimestamp = (DateTime)NewEmailEventAnalyzerLastTimestamp;
                 }
 
+                //still unseen too
                 var StillUnRepliedEmailEvents = await dbcontext.EmailEvents
-                    .Where(e => e.BrokerId == brokerId && e.Seen && e.NeedsAction && !e.RepliedTo && e.TimeReceived < broker.EmailEventAnalyzerLastTimestamp)
+                    .Where(e => e.BrokerId == brokerId && (!e.Seen || (e.Seen && e.NeedsAction && !e.RepliedTo)) && e.TimeReceived < broker.EmailEventAnalyzerLastTimestamp)
                     .OrderBy(e => e.TimeReceived)
                     .ToListAsync();
                 emails = StillUnRepliedEmailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
@@ -261,36 +279,85 @@ public class NotifAnalyzer
                         {
                             return;
                         }
-                        //check replied-to in graph
-                        var resT = await CheckSeenAndRepliedToAsync(dict[unrepliedEmail.BrokerEmail], unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, false, true);
-                        var existingNotif = await dbcontext.Notifs.FirstOrDefaultAsync(n => n.BrokerId == brokerId && n.LeadId == unrepliedEmail.LeadId && !n.isSeen && n.NotifType == EventType.UnrepliedEmail && n.EventId == unrepliedEmail.Id);
+                        Tuple<bool, bool>? resT = null;
+                        var seen = unrepliedEmail.Seen;
+                        var needsAction = unrepliedEmail.NeedsAction;
+                        var repliedTo = unrepliedEmail.RepliedTo;
 
-                        //replied to
-                        if (resT.Item2)
+                        if (!seen) // unseen
                         {
-                            unrepliedEmail.RepliedTo = true;
-                            if (existingNotif != null) existingNotif.isSeen = true;
+                            resT = await CheckSeenAndRepliedToAsync(dict[unrepliedEmail.BrokerEmail], unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, true, false);
+                            if (resT == null)
+                            {
+                                dbcontext.Remove(unrepliedEmail);
+                                continue;
+                            }
+                            var existingNotifs = await dbcontext.Notifs
+                                .Where(n => n.BrokerId == brokerId && n.LeadId == unrepliedEmail.LeadId && !n.isSeen && n.NotifType == EventType.UnSeenEmail && n.EventId == unrepliedEmail.Id)
+                                .ToListAsync();
+                            //if seen
+                            if (resT.Item1)
+                            {
+                                unrepliedEmail.Seen = true;
+                                if (existingNotifs != null)
+                                {
+                                    foreach (var existingNotif in existingNotifs)
+                                    {
+                                        existingNotif.isSeen = true;
+                                    }
+                                }
+                            }
+                            else //not seen, doesnt need action
+                            {
+                                notifs.Add(
+                                    new Notif
+                                    {
+                                        BrokerId = unrepliedEmail.BrokerId,
+                                        LeadId = unrepliedEmail.LeadId,
+                                        NotifType = EventType.UnSeenEmail,
+                                        CreatedTimeStamp = DateTime.UtcNow,
+                                        isSeen = false,
+                                        EventId = unrepliedEmail.Id,
+                                        priority = 2
+                                    });
+                            }
                         }
-                        //still unreplied to
-                        else if (existingNotif != null)
+                        else //seen and needs Action and not replied to
                         {
-                            if (unrepliedEmail.TimesReplyNeededReminded >= 2)
+                            resT = await CheckSeenAndRepliedToAsync(dict[unrepliedEmail.BrokerEmail], unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, false, true);
+                            if (resT == null)
+                            {
+                                dbcontext.Remove(unrepliedEmail);
+                                continue;
+                            }
+                            var existingNotif = await dbcontext.Notifs.FirstOrDefaultAsync(n => n.BrokerId == brokerId && n.LeadId == unrepliedEmail.LeadId && !n.isSeen && n.NotifType == EventType.UnrepliedEmail && n.EventId == unrepliedEmail.Id);
+                            //replied to
+                            if (resT.Item2)
                             {
                                 unrepliedEmail.RepliedTo = true;
+                                if (existingNotif != null) existingNotif.isSeen = true;
                             }
-                            else
+                            //still unreplied to
+                            else if (existingNotif != null)
                             {
-                                notifs.Add(new Notif
+                                if (unrepliedEmail.TimesReplyNeededReminded >= 2)
                                 {
-                                    BrokerId = brokerId,
-                                    LeadId = unrepliedEmail.LeadId,
-                                    NotifType = EventType.UnrepliedEmail,
-                                    CreatedTimeStamp = DateTime.UtcNow,
-                                    isSeen = false,
-                                    EventId = unrepliedEmail.Id,
-                                    priority = 2
-                                });
-                                unrepliedEmail.TimesReplyNeededReminded++;
+                                    unrepliedEmail.RepliedTo = true;
+                                }
+                                else
+                                {
+                                    notifs.Add(new Notif
+                                    {
+                                        BrokerId = brokerId,
+                                        LeadId = unrepliedEmail.LeadId,
+                                        NotifType = EventType.UnrepliedEmail,
+                                        CreatedTimeStamp = DateTime.UtcNow,
+                                        isSeen = false,
+                                        EventId = unrepliedEmail.Id,
+                                        priority = 2
+                                    });
+                                    unrepliedEmail.TimesReplyNeededReminded++;
+                                }
                             }
                         }
                     }

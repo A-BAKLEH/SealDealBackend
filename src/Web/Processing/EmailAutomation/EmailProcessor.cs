@@ -640,7 +640,7 @@ public class EmailProcessor
                 foreach (var email in messageGrp)
                 {
                     //TODO take into consideration that this unknown sender might send multiple messages
-                    if (email.Body.Content.Length < 4000)
+                    if (email.Body.Content.Length < 8000)
                     {
                         UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, false));
                         UnknownSenderTaskMessages.Add(email);
@@ -1052,6 +1052,13 @@ public class EmailProcessor
     public async Task<EmailparserDBRecrodsRes> FetchListingAndCreateDBRecordsAsync(LeadParsingContent parsedContent, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO, Message message)
     {
         using var context = _contextFactory.CreateDbContext();
+
+        parsedContent.emailAddress = parsedContent.emailAddress?.ToLower() == "null" ? null : parsedContent.emailAddress;
+        parsedContent.StreetAddress = parsedContent.StreetAddress?.ToLower() == "null" ? null : parsedContent.StreetAddress;
+        parsedContent.PropertyAddress = parsedContent.PropertyAddress?.ToLower() == "null" ? null : parsedContent.PropertyAddress;
+        parsedContent.Apartment = parsedContent.Apartment?.ToLower() == "null" ? null : parsedContent.Apartment;
+        parsedContent.Language = parsedContent.Language?.ToLower() == "null" ? null : parsedContent.Language;
+        parsedContent.phoneNumber = parsedContent.phoneNumber?.ToLower() == "null" ? null : parsedContent.phoneNumber;
 
         var result = new EmailparserDBRecrodsRes();
         string LeadEmail = "";

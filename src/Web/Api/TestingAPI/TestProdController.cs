@@ -50,6 +50,22 @@ public class TestProdController : ControllerBase
         emailProcessor = _emailProcessor;
     }
 
+    [HttpGet("fixLeadStatusesProd/{key}")]
+    //public async Task<IActionResult> FixLeadStatusProd(string key)
+    //{
+    //    if (key != passwd) return Ok("nope");
+    //    var appEvent = await appDb.AppEvents.FirstAsync(e => e.Id == 89);
+    //    appEvent.Props["OldLeadStatus"] = "Hot";
+    //    appDb.Entry(appEvent).State = EntityState.Modified;
+    //    appDb.Entry(appEvent).Property(e => e.Props).IsModified = true;
+    //    await appDb.SaveChangesAsync();
+    //    await appDb.Database.ExecuteSqlRawAsync
+    //        (
+    //          "UPDATE \"Leads\" SET \"LeadStatus\"='Hot' Where \"LeadStatus\"='New';"
+    //        );
+    //    return Ok();
+    //}
+
     [HttpGet("liveLol/{key}")]
     public async Task<IActionResult> livelol(string key)
     {
@@ -73,13 +89,17 @@ public class TestProdController : ControllerBase
         GlobalControl.ProcessFailedEmailsParsing = dto.ProcessFailedEmailsParsing;
         GlobalControl.LogOpenAIEmailParsingObjects = dto.LogOpenAIEmailParsingObjects;
         GlobalControl.LogAllEmailsLengthsOpenAi = dto.LogAllEmailsLengthsOpenAi;
+        GlobalControl.LogAnalyzerSteps = dto.LogAnalyzerSteps;
+
         var res = new ControlDTO
         {
             ProcessEmails = GlobalControl.ProcessEmails,
             ProcessFailedEmailsParsing = GlobalControl.ProcessFailedEmailsParsing,
             LogOpenAIEmailParsingObjects = GlobalControl.LogOpenAIEmailParsingObjects,
-            LogAllEmailsLengthsOpenAi = GlobalControl.LogAllEmailsLengthsOpenAi
+            LogAllEmailsLengthsOpenAi = GlobalControl.LogAllEmailsLengthsOpenAi,
+            LogAnalyzerSteps = GlobalControl.LogAnalyzerSteps
         };
+
         return Ok(res);
     }
 
@@ -92,7 +112,8 @@ public class TestProdController : ControllerBase
             ProcessEmails = GlobalControl.ProcessEmails,
             ProcessFailedEmailsParsing = GlobalControl.ProcessFailedEmailsParsing,
             LogOpenAIEmailParsingObjects = GlobalControl.LogOpenAIEmailParsingObjects,
-            LogAllEmailsLengthsOpenAi = GlobalControl.LogAllEmailsLengthsOpenAi
+            LogAllEmailsLengthsOpenAi = GlobalControl.LogAllEmailsLengthsOpenAi,
+            LogAnalyzerSteps = GlobalControl.LogAnalyzerSteps
         };
         return Ok(res);
     }
@@ -244,40 +265,40 @@ public class TestProdController : ControllerBase
         }
         return Ok();
     }
-    [HttpGet("AnalyzerTime/{key}")]
-    public async Task<IActionResult> AnalyzerTime(string key)
-    {
-        if (key != passwd) return Ok("nope");
-        var job1 = "1c96b780-953a-463b-a17f-71400166309cAnalyzer";
-        var job2 = "35a8e010-b2ad-4d75-a93c-e6595b35f0dfAnalyzer";
+    //[HttpGet("AnalyzerTime/{key}")]
+    //public async Task<IActionResult> AnalyzerTime(string key)
+    //{
+    //    if (key != passwd) return Ok("nope");
+    //    var job1 = "1c96b780-953a-463b-a17f-71400166309cAnalyzer";
+    //    var job2 = "35a8e010-b2ad-4d75-a93c-e6595b35f0dfAnalyzer";
 
-        var recJobOptions = new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc };
+    //    var recJobOptions = new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc };
 
-        Random rnd = new Random();
-        var minute = rnd.Next(0, 59);
-        var id1 = Guid.Parse("1c96b780-953a-463b-a17f-71400166309c");
-        RecurringJob.AddOrUpdate<NotifAnalyzer>(job1, a => a.AnalyzeNotifsAsync(id1, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
+    //    Random rnd = new Random();
+    //    var minute = rnd.Next(0, 59);
+    //    var id1 = Guid.Parse("1c96b780-953a-463b-a17f-71400166309c");
+    //    RecurringJob.AddOrUpdate<NotifAnalyzer>(job1, a => a.AnalyzeNotifsAsync(id1, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
 
-        minute = rnd.Next(0, 59);
-        var id2 = Guid.Parse("35a8e010-b2ad-4d75-a93c-e6595b35f0df");
-        RecurringJob.AddOrUpdate<NotifAnalyzer>(job2, a => a.AnalyzeNotifsAsync(id2, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
-        return Ok();
-    }
+    //    minute = rnd.Next(0, 59);
+    //    var id2 = Guid.Parse("35a8e010-b2ad-4d75-a93c-e6595b35f0df");
+    //    RecurringJob.AddOrUpdate<NotifAnalyzer>(job2, a => a.AnalyzeNotifsAsync(id2, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
+    //    return Ok();
+    //}
 
-    [HttpGet("ScheduleOutboxDict/{key}")]
-    public async Task<IActionResult> ScheduleOutboxDict(string key)
-    {
-        if (key != passwd) return Ok("nope");
-        var exists = await appDb.OutboxDictsTasks.AnyAsync();
+    //[HttpGet("ScheduleOutboxDict/{key}")]
+    //public async Task<IActionResult> ScheduleOutboxDict(string key)
+    //{
+    //    if (key != passwd) return Ok("nope");
+    //    var exists = await appDb.OutboxDictsTasks.AnyAsync();
 
-        if (exists) return Ok("already exists");
-        var HangfireoutboxTaskId = Guid.NewGuid().ToString();
-        RecurringJob.AddOrUpdate<OutboxCleaner>(HangfireoutboxTaskId, a => a.CleanOutbox(null,CancellationToken.None), "*/6 * * * *");
-        var outboxTask = new OutboxDictsTask { HangfireTaskId = HangfireoutboxTaskId };
-        appDbContext.Add(outboxTask);
-        await appDbContext.SaveChangesAsync();
-        return Ok();
-    }
+    //    if (exists) return Ok("already exists");
+    //    var HangfireoutboxTaskId = Guid.NewGuid().ToString();
+    //    RecurringJob.AddOrUpdate<OutboxCleaner>(HangfireoutboxTaskId, a => a.CleanOutbox(null,CancellationToken.None), "*/6 * * * *");
+    //    var outboxTask = new OutboxDictsTask { HangfireTaskId = HangfireoutboxTaskId };
+    //    appDbContext.Add(outboxTask);
+    //    await appDbContext.SaveChangesAsync();
+    //    return Ok();
+    //}
 
     [HttpGet("CountOutboxDict/{key}")]
     public IActionResult geteOutboxDictCount(string key)
