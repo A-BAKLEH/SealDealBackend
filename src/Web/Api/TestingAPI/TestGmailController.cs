@@ -28,7 +28,7 @@ public class TestGmailController : ControllerBase
     [HttpGet("refresh")]
     public async Task<IActionResult> refreshAsync()
     {
-        var acces_token = await RefreshAccessTokenAsync(currentRefreshToken);
+        var acces_token = await RefreshAccessTokenAsync1(currentRefreshToken);
         return Ok(acces_token);
     }
 
@@ -110,7 +110,7 @@ public class TestGmailController : ControllerBase
     /// refresh token and return new access token
     /// </summary>
     /// <returns></returns>
-    private async Task<string?> RefreshAccessTokenAsync(string refresToken)
+    private async Task<string?> RefreshAccessTokenAsync1(string refresToken)
     {
         var endpoint = "https://oauth2.googleapis.com/token";
         var data = new[]

@@ -9,8 +9,6 @@ public class ConnectedEmail : EntityBase
     /// in order of connection, 1 being the first
     /// </summary>
     public byte EmailNumber { get; set; }
-    public bool hasAdminConsent { get; set; }
-    public string tenantId { get; set; }
     public Broker Broker { get; set; }
 
     /// <summary>
@@ -22,9 +20,17 @@ public class ConnectedEmail : EntityBase
     /// </summary>
     public string Email { get; set; }
     public bool isMSFT { get; set; }
+    public bool hasAdminConsent { get; set; }
+    public string tenantId { get; set; }
     public Guid? GraphSubscriptionId { get; set; }
+    //Might need a new property here for GmailNotifs subscription Id
     public DateTime? SubsExpiryDate { get; set; }
     public string? SubsRenewalJobId { get; set; }
+
+    //----------Gmail-----------
+    public string? GmailRefreshToken { get; set; }
+    public string? GmailAccessToken { get; set; }
+    public string? GmailTokenRefreshJobId { get; set; }
 
     //------------------generic email parsing properties------------------
     /// <summary>

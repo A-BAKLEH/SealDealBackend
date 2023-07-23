@@ -16,3 +16,8 @@ public class GoogleResDTO
     public string scope { get; set; }
     public string token_type { get; set; }
 }
+
+public class GoogleProfileDTO
+{
+    public string emailAddress { get; set; }
+}
