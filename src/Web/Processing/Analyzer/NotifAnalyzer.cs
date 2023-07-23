@@ -262,8 +262,9 @@ public class NotifAnalyzer
                 }
 
                 //still unseen too
+                var timeToInclude = broker.EmailEventAnalyzerLastTimestamp + TimeSpan.FromSeconds(1);
                 var StillUnRepliedEmailEvents = await dbcontext.EmailEvents
-                    .Where(e => e.BrokerId == brokerId && (!e.Seen || (e.Seen && e.NeedsAction && !e.RepliedTo)) && e.TimeReceived < broker.EmailEventAnalyzerLastTimestamp)
+                    .Where(e => e.BrokerId == brokerId && (!e.Seen || (e.Seen && e.NeedsAction && !e.RepliedTo)) && e.TimeReceived < timeToInclude)
                     .OrderBy(e => e.TimeReceived)
                     .ToListAsync();
                 emails = StillUnRepliedEmailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
@@ -337,8 +338,8 @@ public class NotifAnalyzer
                                 unrepliedEmail.RepliedTo = true;
                                 if (existingNotif != null) existingNotif.isSeen = true;
                             }
-                            //still unreplied to
-                            else if (existingNotif != null)
+                            //still unreplied to and no notif to display for it
+                            else if (!resT.Item2 && existingNotif == null)
                             {
                                 if (unrepliedEmail.TimesReplyNeededReminded >= 2)
                                 {

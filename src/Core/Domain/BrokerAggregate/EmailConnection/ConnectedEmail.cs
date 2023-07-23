@@ -26,6 +26,7 @@ public class ConnectedEmail : EntityBase
     public DateTime? SubsExpiryDate { get; set; }
     public string? SubsRenewalJobId { get; set; }
 
+    //------------------generic email parsing properties------------------
     /// <summary>
     /// when true, sync will happen shortly 
     /// </summary>

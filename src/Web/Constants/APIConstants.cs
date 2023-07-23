@@ -35,6 +35,7 @@ public class APIConstants
 
     public const string MyNameIs = "My name is ";
     public const string IamBrokerWithEmail = ". I am a real-estate broker and my email address is ";
+
     public const string VeryStrictGPTPrompt = ". I received the email message mentioned below. I am only interested" +
         " in this email message if it contains information about a new lead who wishes to hire me as a real-estate broker, or a lead" +
         " who is inquiring about a property I listed for sale or rent. If this is the case, extract this lead's first name, " +
@@ -42,8 +43,8 @@ public class APIConstants
         "Also determine the language the email is written in. Output and format these values as strictly JSON with keys: firstName," +
         "lastName,phoneNumber,emailAddress,PropertyAddress,StreetAddress,Apartment,Language. Use 'null' for values that do not exist in the email text," +
         " except the Language. Also use 'null' for values that you are not >95% confident about. If the email message is not about a new lead and therefore" +
-        " not of interest to me, output exactly '{\"NotFound\":1}'.For example, if the email message is about a lead, but this lead's email address" +
-        "is not mentioned, then the value for key 'emailAddress' in your response shoud be 'null'. If the email message is a communication,news letter or" +
+        " not of interest to me, output exactly '{\"NotFound\":1}'.For example, if the email message is about a new lead, but this lead's email address" +
+        "is not mentioned, then the value for key 'emailAddress' in your response shoud be 'null'. If the email message is about a communication,news letter,event or" +
         "advertisement that relates to real-estate, then it does not interest me and you should again output '{\"NotFound\":1}'." +
         " Here is the email message I received: ";
 

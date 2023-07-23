@@ -11,6 +11,9 @@ public class ConnectEmailDTO
     [EmailAddress]
     public string Email { get; set; }
 
+    /// <summary>
+    /// msft tenantId
+    /// </summary>
     [Required(AllowEmptyStrings = false)]
     public string TenantId { get; set; }
 
