@@ -1,8 +1,10 @@
-﻿using Infrastructure.Data;
+﻿using Azure;
+using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Web.ApiModels.RequestDTOs.Google;
 using Web.Config;
 
 namespace Web.Api.TestingAPI;
@@ -91,6 +93,15 @@ public class TestGmailController : ControllerBase
 
             var llol = response;
         }
+
+        var url = "https://gmail.googleapis.com/gmail/v1/users/me/profile?key=" + "AIzaSyCWMcBYvbuNCqpQmhHuC-xyQ4J3Vy0ejuw";
+        var _httpClient1 = new HttpClient();
+        _httpClient1.BaseAddress = new Uri(url);
+        _httpClient1.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        _httpClient1.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", acces_token);
+        var response2 = await _httpClient1.GetAsync("");
+        var jsonResponse2 = await response2.Content.ReadAsStringAsync();
+
         var return1 = new { acces_token };
         return Ok(return1);
     }
@@ -132,16 +143,16 @@ public class TestGmailController : ControllerBase
             return null;
         }
     }
-    public class CodeSendingDTO
-    {
-        public string code { get; set; }
-    }
-    public class GoogleResDTO
-    {
-        public string access_token { get; set; }
-        public int expires_in { get; set; }
-        public string refresh_token { get; set; }
-        public string scope { get; set; }
-        public string token_type { get; set; }
-    }
+    //public class CodeSendingDTO
+    //{
+    //    public string code { get; set; }
+    //}
+    //public class GoogleResDTO
+    //{
+    //    public string access_token { get; set; }
+    //    public int expires_in { get; set; }
+    //    public string refresh_token { get; set; }
+    //    public string scope { get; set; }
+    //    public string token_type { get; set; }
+    //}
 }

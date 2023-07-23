@@ -2,10 +2,12 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Graph.Models.ODataErrors;
 using System.Security.Claims;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
+using Web.ApiModels.RequestDTOs.Google;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
@@ -19,17 +21,22 @@ public class AccountController : BaseApiController
     private readonly MSFTEmailQService _MSFTEmailQService;
     private readonly BrokerQService _brokerQService;
     private readonly StripeQService _stripeQService;
+    private readonly Gmailservice _gmailservice;
+    const string HeaderKeyName = "X-Requested-With";
+    const string HeaderValue = "XmlHttpRequest";
     public AccountController(AuthorizationService authorizeService,
       IMediator mediator,
       ILogger<AccountController> logger,
       MSFTEmailQService mSFTEmailQService,
       BrokerQService brokerQService,
-      StripeQService stripeQService) : base(authorizeService, mediator)
+      StripeQService stripeQService,
+      Gmailservice gmailservice) : base(authorizeService, mediator)
     {
         _logger = logger;
         _MSFTEmailQService = mSFTEmailQService;
         _brokerQService = brokerQService;
         _stripeQService = stripeQService;
+        _gmailservice = gmailservice;
     }
 
     [HttpGet("StripeInvoices")]
@@ -117,6 +124,32 @@ public class AccountController : BaseApiController
             var res = await _MSFTEmailQService.ConnectEmail(id, dto.Email, dto.TenantId, dto.AssignLeadsAuto);
             return Ok(res);
         }
+        return Ok();
+    }
+
+
+    /// <summary>
+    /// will also check and handle admin consent if its given
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPost("ConnectedEmail/GmailConnect")]
+    public async Task<IActionResult> ConnectEmailGmail([FromBody] CodeSendingDTO dto)
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
+            return Forbid();
+        }
+
+        if (!Request.Headers.TryGetValue(HeaderKeyName, out StringValues headerValue) || headerValue != HeaderValue)
+        {
+            return BadRequest();
+        }
+
+
         return Ok();
     }
 

@@ -4,7 +4,6 @@ using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
 using Web.HTTPClients;
 using Web.Outbox.Config;
-using Web.Processing;
 using Web.Processing.ActionPlans;
 using Web.Processing.Analyzer;
 using Web.Processing.Cleanup;
@@ -39,6 +38,7 @@ namespace Web
             services.AddScoped<ToDoTaskQService>();
             services.AddScoped<EmailProcessor>();
             services.AddScoped<MSFTEmailQService>();
+            services.AddScoped<Gmailservice>();
             services.AddScoped<OutboxDispatcher>();
             services.AddSingleton<IExecutionContextAccessor, ExecutionContextAccessor>();
 
