@@ -4,6 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Azure.Identity" Version="1.8" />
+    <PackageVersion Include="Google.Apis.Auth" Version="1.61.0" />
+    <PackageVersion Include="Google.Apis.Gmail.v1" Version="1.61.0.3105" />
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.0" />
     <PackageVersion Include="Hangfire.Dashboard.BasicAuthorization" Version="1.0.2" />
     <PackageVersion Include="Hangfire.SqlServer" Version="1.8.0" />
@@ -14,6 +16,7 @@
     <PackageVersion Include="Microsoft.Build.Framework" Version="17.6.3" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.1.1" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.4" />
+    <PackageVersion Include="MimeKitLite" Version="4.1.0.1" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.4" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />

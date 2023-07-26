@@ -1,11 +1,9 @@
 ﻿using Core.Config.Constants.LoggingConstants;
 using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.BrokerAggregate.EmailConnection;
-using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
 using SharedKernel.Exceptions;
 using Web.Processing.EmailAutomation;
@@ -28,7 +26,7 @@ public class MSFTEmailQService
     public async Task<dynamic> GetConnectedEmails(Guid brokerId)
     {
         var connectedEmails = await _appDbContext.ConnectedEmails
-          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email, e.AssignLeadsAuto,e.isMSFT,e.GmailAccessToken })
+          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email, e.AssignLeadsAuto, e.isMSFT, e.AccessToken })
           .Where(c => c.BrokerId == brokerId)
           .ToListAsync();
         return (dynamic)connectedEmails;
@@ -176,56 +174,56 @@ public class MSFTEmailQService
     /// <param name="email"></param>
     /// <param name="TenantId"></param>
     /// <returns></returns>
-    public async Task<Tuple<dynamic, bool>> HandleAdminConsentedAsync(Guid brokerId, string email)
-    {
-        //UNUSED for now
-        var broker = await _appDbContext.Brokers
-          .Include(b => b.Agency)
-          .Include(b => b.ConnectedEmails)
-          .FirstAsync(b => b.Id == brokerId);
+    //public async Task<Tuple<dynamic, bool>> HandleAdminConsentedAsync(Guid brokerId, string email)
+    //{
+    //    //UNUSED for now
+    //    var broker = await _appDbContext.Brokers
+    //      .Include(b => b.Agency)
+    //      .Include(b => b.ConnectedEmails)
+    //      .FirstAsync(b => b.Id == brokerId);
 
-        var tenantId = broker.ConnectedEmails.First(e => e.Email == email).tenantId;
+    //    var tenantId = broker.ConnectedEmails.First(e => e.Email == email).tenantId;
 
-        try
-        {
-            foreach (var e in broker.ConnectedEmails)
-            {
-                if (e.tenantId == tenantId && e.GraphSubscriptionId == null)
-                {
-                    await _emailProcessor.CreateEmailSubscriptionAsync(e, false);
-                    e.hasAdminConsent = true;
-                }
+    //    try
+    //    {
+    //        foreach (var e in broker.ConnectedEmails)
+    //        {
+    //            if (e.tenantId == tenantId && e.GraphSubscriptionId == null)
+    //            {
+    //                await _emailProcessor.CreateEmailSubscriptionAsync(e, false);
+    //                e.hasAdminConsent = true;
+    //            }
 
-            }
-        }
-        catch (ServiceException ex)
-        {
-            if (ex.ResponseStatusCode == 403)
-            {
-                if (broker.Agency.HasAdminEmailConsent)
-                {
-                    _logger.LogError("HandleAdminConsent: agency hadAdminConsent true so tried to create subsription but forbidden");
-                    broker.Agency.HasAdminEmailConsent = false;
-                    BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, email));
-                    await _appDbContext.SaveChangesAsync();
-                }
-                return new Tuple<dynamic, bool>(null, false);
-            }
-            else throw;
-        }
-        if (!broker.Agency.HasAdminEmailConsent) broker.Agency.HasAdminEmailConsent = true;
-        if (broker.Agency.AzureTenantID == null) broker.Agency.AzureTenantID = tenantId;
+    //        }
+    //    }
+    //    catch (ServiceException ex)
+    //    {
+    //        if (ex.ResponseStatusCode == 403)
+    //        {
+    //            if (broker.Agency.HasAdminEmailConsent)
+    //            {
+    //                _logger.LogError("HandleAdminConsent: agency hadAdminConsent true so tried to create subsription but forbidden");
+    //                broker.Agency.HasAdminEmailConsent = false;
+    //                BackgroundJob.Enqueue<EmailProcessor>(s => s.HandleAdminConsentConflict(broker.Id, email));
+    //                await _appDbContext.SaveChangesAsync();
+    //            }
+    //            return new Tuple<dynamic, bool>(null, false);
+    //        }
+    //        else throw;
+    //    }
+    //    if (!broker.Agency.HasAdminEmailConsent) broker.Agency.HasAdminEmailConsent = true;
+    //    if (broker.Agency.AzureTenantID == null) broker.Agency.AzureTenantID = tenantId;
 
-        //TODO later maybe hangfire handle all broker emails in the tenant automatically when admin consent is confirmed
-        // for any person
+    //    //TODO later maybe hangfire handle all broker emails in the tenant automatically when admin consent is confirmed
+    //    // for any person
 
-        //in case endpoint executed somehow while email(s) already had admin consent and graph subscription
-        var written = await _appDbContext.SaveChangesAsync();
-        if (written > 0)
-        {
-            var ReturnedEmails = broker.ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent });
-            return new Tuple<dynamic, bool>(ReturnedEmails, true);
-        }
-        return new Tuple<dynamic, bool>(null, false);
-    }
+    //    //in case endpoint executed somehow while email(s) already had admin consent and graph subscription
+    //    var written = await _appDbContext.SaveChangesAsync();
+    //    if (written > 0)
+    //    {
+    //        var ReturnedEmails = broker.ConnectedEmails.Select(e => new { e.Email, e.hasAdminConsent });
+    //        return new Tuple<dynamic, bool>(ReturnedEmails, true);
+    //    }
+    //    return new Tuple<dynamic, bool>(null, false);
+    //}
 }

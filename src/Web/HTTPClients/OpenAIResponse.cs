@@ -1,5 +1,5 @@
-﻿using Microsoft.Graph;
-using Microsoft.Graph.Models;
+﻿using static Web.Processing.EmailAutomation.EmailProcessor;
+using MsftMessage = Microsoft.Graph.Models.Message;
 
 namespace Web.HTTPClients
 {
@@ -14,7 +14,8 @@ namespace Web.HTTPClients
         public Type? ErrorType { get; set; }
         public LeadParsingContent? content { get; set; }
         public int EmailTokensUsed { get; set; }
-        public Message ProcessedMessage { get; set; }
+        public MsftMessage? ProcessedMessageMSFT { get; set; }
+        public GmailMessageDecoded? ProcessedMessageGMAIL { get; set; }
     }
 
     public class GPTRequest

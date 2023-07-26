@@ -11,6 +11,8 @@ namespace Core.DTOs.ProcessingDTOs
         public string brokerFirstName { get; set; }
         public string brokerLastName { get; set; }
         public string BrokerEmail { get; set; }
+        public bool isMsft { get; set; }
+        public string? accessToken { get; set; }     
         public bool AssignLeadsAuto { get; set; }
         public bool isAdmin { get; set; }
         public bool isSolo { get; set; }

@@ -1,11 +1,17 @@
-﻿using Azure;
+﻿using Google.Apis.Auth.OAuth2;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Requests;
+using Google.Apis.Services;
 using Infrastructure.Data;
+using Infrastructure.Migrations;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
-using System.Net.Http.Headers;
-using System.Text.Json;
-using Web.ApiModels.RequestDTOs.Google;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using System.Text;
 using Web.Config;
+using Web.ControllerServices.QuickServices;
+using Web.ControllerServices.StaticMethods;
+using GmailMessage = Google.Apis.Gmail.v1.Data.Message;
 
 namespace Web.Api.TestingAPI;
 
@@ -15,144 +21,174 @@ public class TestGmailController : ControllerBase
 {
     private readonly ILogger<TestGmailController> _logger;
     private readonly AppDbContext _dbcontext;
+    private readonly MyGmailQService _myGmail;
     private static readonly string HeaderKeyName = "X-Requested-With";
     private static readonly string HeaderValue = "XmlHttpRequest";
     private static string currentRefreshToken = "1//01TYIZZM6-jeUCgYIARAAGAESNwF-L9IrH62JyJKdlfY6tLcV2hn3sqJ2iclDdEHVKa7koHfuyiUAMqHRelD2-dd2wKB8Q8bJI44";
-    public TestGmailController(ILogger<TestGmailController> logger, AppDbContext appDbContext)
+    public TestGmailController(ILogger<TestGmailController> logger, AppDbContext appDbContext, MyGmailQService myGmailQService)
     {
         _logger = logger;
         _dbcontext = appDbContext;
+        _myGmail = myGmailQService;
     }
-
 
     [HttpGet("refresh")]
+    public async Task<IActionResult> Refresh()
+    {
+        var connEmail = await _dbcontext.ConnectedEmails
+           .FirstAsync(e => e.Email == "shawarmamonster99@gmail.com");
+
+        await _myGmail.RefreshAccessTokenAsync(connEmail.Email, connEmail.BrokerId, null, CancellationToken.None);
+        return Ok();
+    }
+
+    [HttpGet("test")]
     public async Task<IActionResult> refreshAsync()
     {
-        var acces_token = await RefreshAccessTokenAsync1(currentRefreshToken);
-        return Ok(acces_token);
+        var connEmail = await _dbcontext.ConnectedEmails
+            .FirstAsync(e => e.Email == "shawarmamonster99@gmail.com");
+        var time = "Eastern Standard Time";
+
+        //var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+        //result.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, result.TimeCreated);
+
+        //var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+        //createToDoTaskDTO.dueTime = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, createToDoTaskDTO.dueTime);
+
+
+        GoogleCredential cred = GoogleCredential.FromAccessToken(connEmail.AccessToken);
+        var _GmailService = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
+
+        var yest = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
+        var yestUnix = yest.ToUnixTimeSeconds();
+
+        var weekAgo = DateTimeOffset.UtcNow - TimeSpan.FromDays(7);
+        var weekAgoUnix = weekAgo.ToUnixTimeSeconds();
+
+        var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(time);
+
+        var dateAfter = new DateTime(2023, 7, 25, 3, 35, 0) - TimeSpan.FromSeconds(5);
+        DateTimeOffset offset = MyTimeZoneConverter.ConvertToUTC(timeZoneInfo, dateAfter);
+        var todayEpoch = offset.ToUnixTimeSeconds();
+
+        //SUPPORTS PAGE TOKENS
+        var messRequest = _GmailService.Users.Messages.List("me");
+        messRequest.IncludeSpamTrash = false;
+        messRequest.LabelIds = new string[] { "INBOX" };
+        messRequest.MaxResults = 20;
+        messRequest.Q = $"category:primary";
+        var res = await messRequest.ExecuteAsync();
+
+        var gmailMessages = new List<GmailMessage>(res.Messages.Count);
+        var request = new BatchRequest(_GmailService);
+        res.Messages.ToList().ForEach(m =>
+        {
+            var getRequest = _GmailService.Users.Messages.Get("me", m.Id);
+            getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Full;
+            request.Queue<GmailMessage>(getRequest,
+             (content, error, i, message) =>
+             {
+                 _logger.LogInformation("i {i}",i);
+                 //gmailMessages[i] = content;
+                 gmailMessages.Insert(i, content);
+             });
+        });
+        // Execute the batch request
+        await request.ExecuteAsync();
+
+        int i = 0;
+        gmailMessages.ForEach((m) =>
+            {
+                var t = DateTimeOffset.FromUnixTimeMilliseconds(m.InternalDate.Value).UtcDateTime;
+                var o = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, t);
+                _logger.LogInformation("index {index} date {date}", i, o);
+                i++;
+            });
+        
+        var bytes1 = WebEncoders.Base64UrlDecode(gmailMessages[0].Payload.Parts.First(p => p.MimeType == "text/plain").Body.Data);
+        //var bytes = Convert.FromBase64String(gmailMessages[0].Payload.Parts.First(p => p.MimeType == "text/plain").Body.Data);
+        //var decodedNotif = Encoding.UTF8.GetString(bytes);
+        var decodedNotif1 = Encoding.UTF8.GetString(bytes1);
+        gmailMessages.Sort((x, y) => x.InternalDate.Value.CompareTo(y.InternalDate.Value));
+
+        return Ok();
+
+
+        //    var his = connEmail.historyId;
+        //    var parsedHis = ulong.Parse(his);
+
+        //    var gmailHistoriesRequest = _GmailService.Users.History
+        //        .List("me");
+        //    gmailHistoriesRequest.StartHistoryId = ulong.Parse(connEmail.historyId);
+        //    gmailHistoriesRequest.LabelId = "INBOX";
+        //    gmailHistoriesRequest.MaxResults = 7;
+        //    gmailHistoriesRequest.HistoryTypes = UsersResource.HistoryResource.ListRequest.HistoryTypesEnum.MessageAdded;
+
+        //    ListHistoryResponse? histories = null;
+        //    try
+        //    {
+        //        histories = await gmailHistoriesRequest.ExecuteAsync();
+        //    }
+        //    catch (Exception ex) // todo try expired historyId
+        //    {
+        //        if (ex is HttpRequestException)
+        //        {
+        //            _logger.LogWarning("{tag} sync email job failed with error {error}", TagConstants.syncEmail, ex.Message + ": " + ex.StackTrace);
+        //        }
+        //        else
+        //        {
+        //            throw;
+        //        }
+        //    }
+
+        //    bool first = true;
+        //    string originalHistoryId = connEmail.historyId;
+        //    if (histories == null || histories.History == null || histories.History.Count == 0) return Ok();
+        //    do
+        //    {
+        //        if (!first)
+        //        {
+        //            gmailHistoriesRequest = _GmailService.Users.History
+        //                .List("me");
+        //            gmailHistoriesRequest.PageToken = histories.NextPageToken;
+        //            gmailHistoriesRequest.StartHistoryId = ulong.Parse(originalHistoryId); //TODO not sure if this token or the updated one
+        //            gmailHistoriesRequest.LabelId = "INBOX";
+        //            gmailHistoriesRequest.MaxResults = 7;
+        //            gmailHistoriesRequest.HistoryTypes = UsersResource.HistoryResource.ListRequest.HistoryTypesEnum.MessageAdded;
+        //            histories = await gmailHistoriesRequest.ExecuteAsync();
+        //        }
+        //        first = false;
+        //        //only NEW messages in INBOX since last historyID stored in the databased
+        //        var gmailMessagesIDs = histories.History.SelectMany(h => h.MessagesAdded.Select(m => m.Message)).ToList();
+        //        //message contains only ID and ThreadId
+        //        var request = new BatchRequest(_GmailService);
+
+        //        var gmailMessages = new List<GmailMessage>(gmailMessagesIDs.Count);
+
+        //        gmailMessagesIDs.ForEach(m =>
+        //        {
+        //            var getRequest = _GmailService.Users.Messages.Get("me", m.Id);
+        //            getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Full;
+        //            request.Queue<GmailMessage>(getRequest,
+        //             (content, error, i, message) =>
+        //             {
+        //                 gmailMessages[i] = content;
+        //             });
+        //        });
+        //        // Execute the batch request
+        //        await request.ExecuteAsync();
+        //        gmailMessages.Sort((x, y) => x.InternalDate.Value.CompareTo(y.InternalDate.Value));
+
+
+        //        connEmail.historyId = histories.HistoryId.ToString();
+        //        var lastMessageTime = gmailMessages.Last().InternalDate.Value;
+
+        //        var LastProcessedTimestamp = DateTimeOffset.FromUnixTimeMilliseconds(lastMessageTime);
+        //    }
+        //    while (histories.NextPageToken != null);
+
+
+
+        //    return Ok();
     }
-
-    [HttpPost]
-    public async Task<IActionResult> PostQueryAsync([FromBody] CodeSendingDTO dto)
-    {
-
-        if (!Request.Headers.TryGetValue(HeaderKeyName, out StringValues headerValue) || headerValue != HeaderValue)
-        {
-            return BadRequest();
-        }
-
-        var acces_token = "";
-        using (StreamReader reader = new StreamReader(Request.Body))
-        {
-            string content = await reader.ReadToEndAsync();
-            Console.WriteLine(content);
-
-            var code = dto.code;
-            Console.WriteLine("code: " + code);
-            //using StringContent jsonContent = new(
-            //    JsonSerializer.Serialize(new
-            //    {
-            //        code = code,
-            //        client_id = "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com",
-            //        client_secret = "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",
-            //        grant_type = "authorization_code",
-            //        redirect_uri = "https://localhost:7212/WeatherForecast/code",
-            //    }),
-            //    Encoding.UTF8,
-            //    "application/x-www-form-urlencoded");
-
-            var data = new[]
-            {
-                    new KeyValuePair<string, string>("code", code),
-                    new KeyValuePair<string, string>("client_id", "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com"),
-                    new KeyValuePair<string, string>("client_secret", "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"),
-                    new KeyValuePair<string, string>("grant_type", "authorization_code"),
-                    new KeyValuePair<string, string>("redirect_uri", @"http://localhost:3000")
-            };
-
-            var _httpClient = new HttpClient();
-            _httpClient.BaseAddress = new Uri("https://oauth2.googleapis.com/token");
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            HttpResponseMessage response = null;
-            try
-            {
-                response = await _httpClient.PostAsync("", new FormUrlEncodedContent(data));
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                var dto1 = JsonSerializer.Deserialize<GoogleResDTO>(jsonResponse);
-                _logger.LogInformation(dto1.access_token);
-                _logger.LogInformation(dto1.expires_in.ToString());
-                _logger.LogInformation(dto1.token_type);
-                _logger.LogInformation(dto1.scope);
-                _logger.LogInformation(dto1.refresh_token);
-                acces_token = dto1.access_token;
-            }
-            catch (Exception ex)
-            {
-                var ess = ex;
-            }
-
-            var llol = response;
-        }
-
-        var url = "https://gmail.googleapis.com/gmail/v1/users/me/profile?key=" + "AIzaSyCWMcBYvbuNCqpQmhHuC-xyQ4J3Vy0ejuw";
-        var _httpClient1 = new HttpClient();
-        _httpClient1.BaseAddress = new Uri(url);
-        _httpClient1.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        _httpClient1.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", acces_token);
-        var response2 = await _httpClient1.GetAsync("");
-        var jsonResponse2 = await response2.Content.ReadAsStringAsync();
-
-        var return1 = new { acces_token };
-        return Ok(return1);
-    }
-
-    /// <summary>
-    /// refresh token and return new access token
-    /// </summary>
-    /// <returns></returns>
-    private async Task<string?> RefreshAccessTokenAsync1(string refresToken)
-    {
-        var endpoint = "https://oauth2.googleapis.com/token";
-        var data = new[]
-            {
-                    new KeyValuePair<string, string>("refresh_token", refresToken),
-                    new KeyValuePair<string, string>("client_id", "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com"),
-                    new KeyValuePair<string, string>("client_secret", "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"),
-                    new KeyValuePair<string, string>("grant_type", "refresh_token"),
-            };
-
-        var _httpClient = new HttpClient();
-        _httpClient.BaseAddress = new Uri(endpoint);
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        HttpResponseMessage response = null;
-        try
-        {
-            response = await _httpClient.PostAsync("", new FormUrlEncodedContent(data));
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            var dto1 = JsonSerializer.Deserialize<GoogleResDTO>(jsonResponse);
-            _logger.LogInformation("regfreshing acces token");
-            _logger.LogInformation(dto1.access_token);
-            _logger.LogInformation(dto1.expires_in.ToString());
-            _logger.LogInformation(dto1.token_type);
-            _logger.LogInformation(dto1.scope);
-            return dto1.access_token;
-        }
-        catch (Exception ex)
-        {
-            var ess = ex;
-            return null;
-        }
-    }
-    //public class CodeSendingDTO
-    //{
-    //    public string code { get; set; }
-    //}
-    //public class GoogleResDTO
-    //{
-    //    public string access_token { get; set; }
-    //    public int expires_in { get; set; }
-    //    public string refresh_token { get; set; }
-    //    public string scope { get; set; }
-    //    public string token_type { get; set; }
-    //}
 }

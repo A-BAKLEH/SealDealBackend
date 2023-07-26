@@ -1,12 +1,15 @@
 ﻿using Core.Config.Constants.LoggingConstants;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2.Responses;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Graph.Models.ODataErrors;
-using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Text.Json;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.ApiModels.RequestDTOs.Google;
@@ -23,7 +26,8 @@ public class AccountController : BaseApiController
     private readonly MSFTEmailQService _MSFTEmailQService;
     private readonly BrokerQService _brokerQService;
     private readonly StripeQService _stripeQService;
-    private readonly Gmailservice _gmailservice;
+    private readonly MyGmailQService _gmailservice;
+    private readonly IHttpClientFactory _httpClientFactory;
     const string HeaderKeyName = "X-Requested-With";
     const string HeaderValue = "XmlHttpRequest";
     public AccountController(AuthorizationService authorizeService,
@@ -32,13 +36,15 @@ public class AccountController : BaseApiController
       MSFTEmailQService mSFTEmailQService,
       BrokerQService brokerQService,
       StripeQService stripeQService,
-      Gmailservice gmailservice) : base(authorizeService, mediator)
+      MyGmailQService gmailservice,
+      IHttpClientFactory httpClientFactory) : base(authorizeService, mediator)
     {
         _logger = logger;
         _MSFTEmailQService = mSFTEmailQService;
         _brokerQService = brokerQService;
         _stripeQService = stripeQService;
         _gmailservice = gmailservice;
+        _httpClientFactory = httpClientFactory;
     }
 
     [HttpGet("StripeInvoices")]
@@ -130,6 +136,8 @@ public class AccountController : BaseApiController
     }
 
 
+
+    //----------------test ---------------
     /// <summary>
     /// will also check and handle admin consent if its given
     /// </summary>
@@ -151,37 +159,88 @@ public class AccountController : BaseApiController
             return BadRequest();
         }
 
-        var data = new[]
-            {
-                    new KeyValuePair<string, string>("code", dto.code),
-                    new KeyValuePair<string, string>("client_id", "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com"),
-                    new KeyValuePair<string, string>("client_secret", "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"),
-                    new KeyValuePair<string, string>("grant_type", "authorization_code"),
-                    new KeyValuePair<string, string>("redirect_uri", @"http://localhost:3000")
-            };
 
-        var _httpClient = new HttpClient();
-        _httpClient.BaseAddress = new Uri("https://oauth2.googleapis.com/token");
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        HttpResponseMessage? response = null;
-        response = await _httpClient.PostAsync("", new FormUrlEncodedContent(data));
-        var jsonResponse = await response.Content.ReadAsStringAsync();
-        var dto1 = JsonSerializer.Deserialize<GoogleResDTO>(jsonResponse);
+        var clientSecrets = new ClientSecrets
+        {
+            ClientId = "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com",
+            ClientSecret = "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"
+        };
+        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        {
+            ClientSecrets = clientSecrets,
+        });
 
-        var url = "https://gmail.googleapis.com/gmail/v1/users/me/profile?key=" + "AIzaSyCWMcBYvbuNCqpQmhHuC-xyQ4J3Vy0ejuw";
-        var _httpClient1 = new HttpClient();
-        _httpClient1.BaseAddress = new Uri(url);
-        _httpClient1.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        _httpClient1.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dto1.access_token);
-        var response2 = await _httpClient1.GetAsync("");
-        var jsonResponse2 = await response2.Content.ReadAsStringAsync();
-        var Emaildto = JsonSerializer.Deserialize<GoogleProfileDTO>(jsonResponse2);
+        TokenResponse token = await flow.ExchangeCodeForTokenAsync("lol", dto.code, "http://localhost:3000", CancellationToken.None);
+        UserCredential cred = new UserCredential(flow, "me", token);
+        string accessToken = token.AccessToken;
+        string refrehToken = token.RefreshToken;
 
-        await _gmailservice.ConnectGmailAsync(id, Emaildto.emailAddress, dto1.refresh_token, dto1.access_token);
+        var service = new GmailService(
+            new BaseClientService.Initializer { HttpClientInitializer = cred });
 
-        var return1 = new { dto1.access_token };
+        var profile = await service.Users.GetProfile("me").ExecuteAsync();
+
+        await _gmailservice.ConnectGmailAsync(id, profile.EmailAddress, refrehToken, accessToken);
+
+        var return1 = new { access_token = accessToken };
         return Ok(return1);
     }
+
+    //---------------test------------------
+
+
+    ///// <summary>
+    ///// will also check and handle admin consent if its given
+    ///// </summary>
+    ///// <param name="dto"></param>
+    ///// <returns></returns>
+    //[HttpPost("ConnectedEmail/GmailConnect")]
+    //public async Task<IActionResult> ConnectEmailGmail([FromBody] CodeSendingDTO dto)
+    //{
+    //    var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+    //    var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+    //    if (!brokerTuple.Item2)
+    //    {
+    //        _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
+    //        return Forbid();
+    //    }
+
+    //    if (!Request.Headers.TryGetValue(HeaderKeyName, out StringValues headerValue) || headerValue != HeaderValue)
+    //    {
+    //        return BadRequest();
+    //    }
+
+    //    var data = new[]
+    //        {
+    //                new KeyValuePair<string, string>("code", dto.code),
+    //                new KeyValuePair<string, string>("client_id", "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com"),
+    //                new KeyValuePair<string, string>("client_secret", "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"),
+    //                new KeyValuePair<string, string>("grant_type", "authorization_code"),
+    //                new KeyValuePair<string, string>("redirect_uri", @"http://localhost:3000")
+    //        };
+
+    //    var _httpClient = _httpClientFactory.CreateClient("TokenGmail");
+
+    //    HttpResponseMessage? response = null;
+    //    response = await _httpClient.PostAsync("", new FormUrlEncodedContent(data));
+    //    var jsonResponse = await response.Content.ReadAsStringAsync();
+    //    var dto1 = JsonSerializer.Deserialize<GoogleResDTO>(jsonResponse);
+
+    //    //TODO check if you need the api key
+    //    var url = "https://gmail.googleapis.com/gmail/v1/users/me/profile?key=" + "AIzaSyCWMcBYvbuNCqpQmhHuC-xyQ4J3Vy0ejuw";
+    //    var _httpClient1 = _httpClientFactory.CreateClient();
+    //    _httpClient1.BaseAddress = new Uri(url);
+    //    _httpClient1.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    //    _httpClient1.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dto1.access_token);
+    //    var response2 = await _httpClient1.GetAsync("");
+    //    var jsonResponse2 = await response2.Content.ReadAsStringAsync();
+    //    var Emaildto = JsonSerializer.Deserialize<GoogleProfileDTO>(jsonResponse2);
+
+    //    await _gmailservice.ConnectGmailAsync(id, Emaildto.emailAddress, dto1.refresh_token, dto1.access_token);
+
+    //    var return1 = new { dto1.access_token };
+    //    return Ok(return1);
+    //}
 
     [HttpGet("ConnectedEmail/GmailConnect/AccessToken/{email}")]
     public async Task<IActionResult> GetTokenGmail(string email)

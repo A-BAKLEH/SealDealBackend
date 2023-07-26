@@ -1,4 +1,6 @@
-﻿using SharedKernel;
+﻿using Microsoft.Net.Http.Headers;
+using SharedKernel;
+using System.Net.Http.Headers;
 using Web.Config;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
@@ -38,11 +40,11 @@ namespace Web
             services.AddScoped<ToDoTaskQService>();
             services.AddScoped<EmailProcessor>();
             services.AddScoped<MSFTEmailQService>();
-            services.AddScoped<Gmailservice>();
             services.AddScoped<OutboxDispatcher>();
             services.AddSingleton<IExecutionContextAccessor, ExecutionContextAccessor>();
 
             services.AddHttpClient<OpenAIGPT35Service>();
+            services.AddScoped<MyGmailQService>();
         }
     }
 }

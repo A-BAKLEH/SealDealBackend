@@ -1,4 +1,6 @@
-﻿namespace Web.ApiModels.RequestDTOs.Google;
+﻿using System.Numerics;
+
+namespace Web.ApiModels.RequestDTOs.Google;
 
 public class GoogleDTOs
 {
@@ -20,4 +22,23 @@ public class GoogleResDTO
 public class GoogleProfileDTO
 {
     public string emailAddress { get; set; }
+}
+
+public class GoogleWatchResultDTO
+{
+    public string historyId { get; set; }
+}
+public class GoogleWebhookDTO
+{
+    public GmailMessage message { get; set; }
+
+    public class GmailMessage
+    {
+        public string data { get; set; }
+    }
+    public class GmailWebhookNotif
+    {
+        public ulong historyId { get; set; }
+        public string emailAddress { get; set; }
+    }
 }

@@ -56,7 +56,7 @@ public class MsftWebhook : BaseApiController
                     ProcessedSubsIDs.Add(SubsId);
 
                     var tenantId = notification.tenantId;
-                    var syncTask = _emailProcessor.CheckEmailSyncAsync(SubsId, tenantId);
+                    var syncTask = _emailProcessor.CheckEmailSyncAsync(true,SubsId, tenantId);
                     HangfireSchedulingTasks.Add(syncTask);
                 }
                 Task.WaitAll(HangfireSchedulingTasks.ToArray());

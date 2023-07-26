@@ -130,37 +130,37 @@ public class TestController : ControllerBase
     [HttpGet("startmailprocessor")]
     public async Task<IActionResult> startmailprocessor()
     {
-        var SubsId = Guid.Parse("149CFB0A-0B0D-423A-B5E9-0F99E143EF07");
-        if (StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
-        {
-            var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
-            //'lock' obtained by putting subsID as key in dictionary
-            string jobId = "";
-            try
-            {
-                jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null, CancellationToken.None), GlobalControl.EmailStartSyncingDelay);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("{place} error scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
-                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
-                return Ok();
-            }
-            try
-            {
-                connEmail.SyncScheduled = true;
-                connEmail.SyncJobId = jobId;
-                await _appDbContext.SaveChangesAsync();
-                _logger.LogInformation("{place} scheduled email parsing with", "savingEmailParseing");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("{place} error saving db after scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+        //var SubsId = Guid.Parse("149CFB0A-0B0D-423A-B5E9-0F99E143EF07");
+        //if (StaticEmailConcurrencyHandler.EmailParsingdict.TryAdd(SubsId, true))
+        //{
+        //    var connEmail = await _appDbContext.ConnectedEmails.FirstAsync(e => e.GraphSubscriptionId == SubsId);
+        //    //'lock' obtained by putting subsID as key in dictionary
+        //    string jobId = "";
+        //    try
+        //    {
+        //        jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null, CancellationToken.None), GlobalControl.EmailStartSyncingDelay);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError("{place} error scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
+        //        StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
+        //        return Ok();
+        //    }
+        //    try
+        //    {
+        //        connEmail.SyncScheduled = true;
+        //        connEmail.SyncJobId = jobId;
+        //        await _appDbContext.SaveChangesAsync();
+        //        _logger.LogInformation("{place} scheduled email parsing with", "savingEmailParseing");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError("{place} error saving db after scheduling email parsing with error {error}", "ScheduleEmailParseing", ex.Message);
 
-                BackgroundJob.Delete(jobId);
-                StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
-            }
-        }
+        //        BackgroundJob.Delete(jobId);
+        //        StaticEmailConcurrencyHandler.EmailParsingdict.TryRemove(SubsId, out var s);
+        //    }
+        //}
         return Ok();
     }
     [HttpGet("testaddress")]

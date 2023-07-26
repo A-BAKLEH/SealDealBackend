@@ -23,14 +23,17 @@ public class ConnectedEmail : EntityBase
     public bool hasAdminConsent { get; set; }
     public string tenantId { get; set; }
     public Guid? GraphSubscriptionId { get; set; }
-    //Might need a new property here for GmailNotifs subscription Id
     public DateTime? SubsExpiryDate { get; set; }
+    /// <summary>
+    /// for gmail, this is recurrent job that calls Watch every day
+    /// </summary>
     public string? SubsRenewalJobId { get; set; }
 
     //----------Gmail-----------
-    public string? GmailRefreshToken { get; set; }
-    public string? GmailAccessToken { get; set; }
-    public string? GmailTokenRefreshJobId { get; set; }
+    public string? RefreshToken { get; set; }
+    public string? AccessToken { get; set; }
+    public string? TokenRefreshJobId { get; set; }
+    public string? historyId { get; set; }
 
     //------------------generic email parsing properties------------------
     /// <summary>
