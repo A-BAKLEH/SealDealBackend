@@ -103,7 +103,7 @@ public class NotifAnalyzer
                         })
                         .ExecuteAsync();
                     //for deleted messages
-                    if (messages == null || messages.Messages.Count == 0) return new Tuple<bool, bool>(true, true);
+                    if (messages == null || messages.Messages == null || messages.Messages.Count == 0) return new Tuple<bool, bool>(true, true);
                     var messs = messages.Messages.ToList();
                     bool replied = messs.Count > 1 && messs.Any(m => EmailProcessor.ConvertGmailHeaderFieldToPeople(m.Payload.Headers.FirstOrDefault(h => h.Name == "From")?.Value).First().Address == brokerEmail);
                     bool? originalSeen = messs.FirstOrDefault(m => m.Id == messageId)?.LabelIds.Contains("UNREAD");
@@ -244,6 +244,10 @@ public class NotifAnalyzer
                 {
                     _logger.LogWarning("{tag} broker {brokerId} does not exist", "analyzer", brokerId);
                     return;
+                }
+                if(broker.EmailEventAnalyzerLastTimestamp < broker.Created )
+                {
+                    broker.EmailEventAnalyzerLastTimestamp = broker.Created;
                 }
                 var notifs = new List<Notif>();
 

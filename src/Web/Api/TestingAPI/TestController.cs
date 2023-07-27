@@ -188,7 +188,7 @@ public class TestController : ControllerBase
     [HttpGet("StartAnalyzer")]
     public async Task<IActionResult> StartAnalyzer()
     {
-        var found = await _appDbContext.Brokers.FirstAsync(b => b.isAdmin);
+        var found = await _appDbContext.Brokers.FirstAsync(b => b.Id == Guid.Parse("b8108e16-1f37-4400-9d47-fe6f344c452a"));
         Hangfire.BackgroundJob.Enqueue<NotifAnalyzer>(x => x.AnalyzeNotifsAsync(found.Id, null, CancellationToken.None));
         return Ok();
     }

@@ -47,8 +47,11 @@ public class EmailProcessor
     private readonly RealTimeNotifSender _realTimeNotif;
     private GmailService? _GmailService;
     private readonly IConfigurationSection _GmailSection;
+    private readonly IWebHostEnvironment _webHostEnv;
     public EmailProcessor(AppDbContext appDbContext, IConfiguration config,
-        ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, RealTimeNotifSender realTimeNotif, ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
+        ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service,
+        IWebHostEnvironment env,
+        RealTimeNotifSender realTimeNotif, ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
     {
         _appDbContext = appDbContext;
         _logger = logger;
@@ -58,6 +61,7 @@ public class EmailProcessor
         _GmailSection = config.GetSection("Gmail");
         _contextFactory = contextFactory;
         _realTimeNotif = realTimeNotif;
+        _webHostEnv = env;
     }
 
     public void HandleAdminConsentConflict(Guid brokerId, string email)
@@ -598,7 +602,7 @@ public class EmailProcessor
 
         var emailEvent = new EmailEvent
         {
-            Id = msftMessage.Id,
+            Id = messageId,
             BrokerId = brokerDTO.Id,
             LeadParsedFromEmail = true,
             BrokerEmail = brokerDTO.BrokerEmail,
@@ -1120,7 +1124,7 @@ public class EmailProcessor
                 string jobId = "";
                 try
                 {
-                    jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null, CancellationToken.None), GlobalControl.EmailStartSyncingDelay);
+                    jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null, CancellationToken.None), GlobalControl.EmailStartSyncingDelayMsft);
                 }
                 catch (Exception ex)
                 {
@@ -1159,7 +1163,7 @@ public class EmailProcessor
                 string jobId = "";
                 try
                 {
-                    jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null, CancellationToken.None), GlobalControl.EmailStartSyncingDelay);
+                    jobId = BackgroundJob.Schedule<EmailProcessor>(e => e.SyncEmailAsync(connEmail.Email, null, CancellationToken.None), GlobalControl.EmailStartSyncingDelayGmail);
                 }
                 catch (Exception ex)
                 {
@@ -1211,6 +1215,7 @@ public class EmailProcessor
     /// <param name="tenantId"></param>
     public async Task SyncEmailAsync(string email, PerformContext performContext, CancellationToken cancellationToken)
     {
+        if (_webHostEnv.IsDevelopment()) _logger.LogInformation("started procesing");
         //TODO Cache
         using (LogContext.PushProperty("hanfireJobId", performContext.BackgroundJob.Id))
         using (LogContext.PushProperty("brokerEmail", email))
@@ -1239,7 +1244,7 @@ public class EmailProcessor
                 }
                 else
                 {
-                    _logger.LogWarning("{tag} sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
+                    _logger.LogWarning("{tag} Msft  sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
                     StaticEmailConcurrencyHandler.EmailParsingdictMSFT.TryRemove((Guid)connEmail.GraphSubscriptionId, out var ss);
                     return;
                 }
@@ -1257,7 +1262,7 @@ public class EmailProcessor
                 }
                 else
                 {
-                    _logger.LogWarning("{tag} sync email job started without SubsID {subsId} in dictionary,returning.", TagConstants.syncEmail, connEmail.GraphSubscriptionId);
+                    _logger.LogWarning("{tag} Gmail sync email job started without email {email} in dictionary,returning.", TagConstants.syncEmail, connEmail.Email);
                     StaticEmailConcurrencyHandler.EmailParsingdictGMAIL.TryRemove(email, out var ss);
                     return;
                 }
@@ -1326,6 +1331,7 @@ public class EmailProcessor
                     .SetProperty(e => e.historyId, RefsDTO.historyId));
                 StaticEmailConcurrencyHandler.EmailParsingdictGMAIL.TryRemove(email, out var ss2);
             }
+            if (_webHostEnv.IsDevelopment()) _logger.LogInformation("done procesing");
         }
     }
 
@@ -1342,6 +1348,7 @@ public class EmailProcessor
         GoogleCredential cred = GoogleCredential.FromAccessToken(brokerDTO.accessToken);
         _GmailService = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
 
+        var originalLastPRocessedTimesTamp = refDTO.LastProcessedTimestamp;
         var CutoffTime = refDTO.LastProcessedTimestamp.ToUnixTimeSeconds();
         var messRequest = _GmailService.Users.Messages.List("me");
         messRequest.IncludeSpamTrash = false;
@@ -1350,10 +1357,11 @@ public class EmailProcessor
         messRequest.Q = $"category:primary after:{CutoffTime}";
 
         var messagesPage = await messRequest.ExecuteAsync();
-        if (messagesPage == null || messagesPage.Messages == null) return;
-        bool first = true;
-        string NextPageToken = "";
         var IDsALLToReprocessMailsThisRun = new List<string>();
+        if (messagesPage == null || messagesPage.Messages == null)  goto FailedLabel;
+        
+        bool first = true;
+        string NextPageToken = "";      
         do
         {
             if (!first)
@@ -1367,7 +1375,6 @@ public class EmailProcessor
 
                 messagesPage = await messRequest.ExecuteAsync();
             }
-
             var gmailMessages = new List<GmailMessage>(messagesPage.Messages.Count);
             var batchRequest = new BatchRequest(_GmailService);
 
@@ -1388,19 +1395,26 @@ public class EmailProcessor
             }
             if (first)
             {
-                refDTO.LastProcessedTimestamp = DateTimeOffset.FromUnixTimeMilliseconds(gmailMessages[0].InternalDate.Value);
+                refDTO.LastProcessedTimestamp = DateTimeOffset.FromUnixTimeMilliseconds(gmailMessages[0].InternalDate.Value) + TimeSpan.FromSeconds(1);
                 refDTO.historyId = gmailMessages[0].HistoryId.ToString();
+            }
+            var messagesAfterPreicseCutoff = gmailMessages.Where(m => DateTimeOffset.FromUnixTimeMilliseconds(m.InternalDate.Value) >= originalLastPRocessedTimesTamp).ToList();
+            if(messagesAfterPreicseCutoff == null || messagesAfterPreicseCutoff.Count == 0)
+            {
+                _logger.LogWarning("no messages to process after gmail stupid filter");
+                goto FailedLabel;
             }
             var thisBatchReprocess = new List<GmailMessage>();
             //process
-            var tokens = await ProcessMessagesGmailAsync(gmailMessages, brokerDTO, thisBatchReprocess);
+            var tokens = await ProcessMessagesGmailAsync(messagesAfterPreicseCutoff, brokerDTO, thisBatchReprocess);
             refDTO.totaltokens += tokens;
             IDsALLToReprocessMailsThisRun.AddRange(thisBatchReprocess.Select(m => m.Id));
 
             NextPageToken = messagesPage.NextPageToken;
             first = false;
         } while (messagesPage.NextPageToken != null);
-
+        
+        FailedLabel:
         bool processFailed = GlobalControl.ProcessFailedEmailsParsing;
         if (cancellationToken.IsCancellationRequested)
         {
@@ -1601,7 +1615,7 @@ public class EmailProcessor
                 foreach (var email in messageGrp)
                 {
                     //TODO take into consideration that this unknown sender might send multiple messages
-                    if (email.textBody.Length < 8000)
+                    if (email.textBody.Length < 8000 || _webHostEnv.IsDevelopment())
                     {
                         UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(null, email, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, false));
                         UnknownSenderTaskMessages.Add(email);
@@ -1972,21 +1986,26 @@ public class EmailProcessor
             })
             .ExecuteAsync(cancellationToken);
 
-        var gmailMessages = new List<GmailMessage>(messagesPage.Messages.Count);
-        var batchRequest = new BatchRequest(_GmailService);
-
-        messagesPage.Messages.ToList().ForEach(m =>
+        if(messagesPage.Messages != null)
         {
-            var getRequest = _GmailService.Users.Messages.Get("me", m.Id);
-            getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Full;
-            batchRequest.Queue<GmailMessage>(getRequest,
-             (content, error, i, message) =>
-             {
-                 gmailMessages.Insert(i, content);
-             });
-        });
-        await batchRequest.ExecuteAsync();
-        return gmailMessages;
+            var gmailMessages = new List<GmailMessage>(messagesPage.Messages.Count);
+            var batchRequest = new BatchRequest(_GmailService);
+
+            messagesPage.Messages.ToList().ForEach(m =>
+            {
+                var getRequest = _GmailService.Users.Messages.Get("me", m.Id);
+                getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Full;
+                batchRequest.Queue<GmailMessage>(getRequest,
+                 (content, error, i, message) =>
+                 {
+                     gmailMessages.Insert(i, content);
+                 });
+            });
+            await batchRequest.ExecuteAsync();
+            return gmailMessages;
+        }
+        return Enumerable.Empty<GmailMessage>().ToList();
+        
     }
 
     public async Task TagFailedMessagesGMAIL(List<GmailMessage> gmailMAILReprocessMessages, List<Label> labels)

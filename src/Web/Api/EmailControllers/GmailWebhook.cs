@@ -25,8 +25,6 @@ public class GmailWebhook : ControllerBase
         using (StreamReader reader = new StreamReader(Request.Body))
         {
             string content = await reader.ReadToEndAsync();
-            _logger.LogWarning("gmail webhook content:" + content);
-
             var payload = JsonSerializer.Deserialize<GoogleWebhookDTO>(content);
             var bytes = Convert.FromBase64String(payload.message.data);
             var decodedNotif = Encoding.UTF8.GetString(bytes);

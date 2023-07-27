@@ -34,7 +34,9 @@ public static class GlobalControl
         Guid.Parse("48e494e3-16da-4349-842a-36830dbec1bd")
     };
 
-    public static TimeSpan EmailStartSyncingDelay = TimeSpan.FromSeconds(5);
+    public static TimeSpan EmailStartSyncingDelayMsft = TimeSpan.FromSeconds(5);
+
+    public static TimeSpan EmailStartSyncingDelayGmail = TimeSpan.FromSeconds(7);
 
     public static bool ProcessEmails = true;
     public static bool ProcessFailedEmailsParsing = true;
