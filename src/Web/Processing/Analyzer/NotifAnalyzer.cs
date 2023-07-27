@@ -106,11 +106,11 @@ public class NotifAnalyzer
                     if (messages == null || messages.Messages.Count == 0) return new Tuple<bool, bool>(true, true);
                     var messs = messages.Messages.ToList();
                     bool replied = messs.Count > 1 && messs.Any(m => EmailProcessor.ConvertGmailHeaderFieldToPeople(m.Payload.Headers.FirstOrDefault(h => h.Name == "From")?.Value).First().Address == brokerEmail);
-                    bool? originalSeen  = messs.FirstOrDefault(m => m.Id == messageId)?.LabelIds.Contains("UNREAD");
+                    bool? originalSeen = messs.FirstOrDefault(m => m.Id == messageId)?.LabelIds.Contains("UNREAD");
                     if (originalSeen != null) originalSeen = !originalSeen;
                     bool finalSeen = originalSeen ?? replied;
                     return new Tuple<bool, bool>(finalSeen, replied);
-                }      
+                }
             }
         }
         catch (ODataError er)
@@ -239,7 +239,12 @@ public class NotifAnalyzer
 
                 var broker = await dbcontext.Brokers
                     .Include(b => b.ConnectedEmails)
-                    .FirstAsync(b => b.Id == brokerId);
+                    .FirstOrDefaultAsync(b => b.Id == brokerId);
+                if (broker == null)
+                {
+                    _logger.LogWarning("{tag} broker {brokerId} does not exist", "analyzer", brokerId);
+                    return;
+                }
                 var notifs = new List<Notif>();
 
                 var FstNotifyTrueAndUnseenEvent = await dbcontext.AppEvents

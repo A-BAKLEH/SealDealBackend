@@ -19,11 +19,15 @@ public class MyGmailQService
     private readonly AppDbContext _appDbContext;
     private readonly ILogger<MyGmailQService> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
-    public MyGmailQService(AppDbContext appDbContext, ILogger<MyGmailQService> logger, IHttpClientFactory httpClientFactory)
+    private readonly IConfigurationSection _GmailSection;
+    public MyGmailQService(AppDbContext appDbContext, ILogger<MyGmailQService> logger,
+        IConfiguration configuration
+        , IHttpClientFactory httpClientFactory)
     {
         _appDbContext = appDbContext;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
+        _GmailSection = configuration.GetSection("Gmail");
     }
 
     public async Task RefreshAccessTokenAsync(string email, Guid brokerId, PerformContext performContext, CancellationToken cancellationToken)
@@ -44,8 +48,8 @@ public class MyGmailQService
         }
         var clientSecrets = new ClientSecrets
         {
-            ClientId = "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com",
-            ClientSecret = "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"
+            ClientId = _GmailSection["ClientId"],
+            ClientSecret = _GmailSection["ClientSecret"]
         };
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
@@ -66,8 +70,9 @@ public class MyGmailQService
           .Select(e => e.AccessToken)
           .FirstOrDefaultAsync();
 
-        var projectId = "sealdealauto";
-        var topicName = "TestTopic";
+        var subSection = _GmailSection.GetSection("PubSub");
+        var projectId = subSection["ProjectId"];
+        var topicName = subSection["TopicName"];
         GoogleCredential cred = GoogleCredential.FromAccessToken(accessToken);
         GmailService service = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
 
@@ -81,6 +86,20 @@ public class MyGmailQService
             .ExecuteAsync();
     }
 
+    public async Task CallUnwatch(string email, Guid brokerId)
+    {
+        var accessToken = await _appDbContext.ConnectedEmails
+          .Where(e => e.Email == email && e.BrokerId == brokerId && !e.isMSFT)
+          .Select(e => e.AccessToken)
+          .FirstOrDefaultAsync();
+
+        GoogleCredential cred = GoogleCredential.FromAccessToken(accessToken);
+        GmailService service = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
+
+        var watchResult = await service.Users.Stop("me")
+            .ExecuteAsync();
+    }
+
     public async Task createLabelsAsync(string gmail, Guid brokerId, string? access_token = null)
     {
         if (access_token == null)
@@ -91,29 +110,42 @@ public class MyGmailQService
 
         GoogleCredential cred = GoogleCredential.FromAccessToken(access_token);
         GmailService service = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
-
-        var l1 = service.Users.Labels.Create(new Label
+        var labels = await service.Users.Labels.List("me").ExecuteAsync();
+        var labelsList = labels.Labels;
+        var tasks = new List<Task<Label>>(3);
+        if (!labelsList.Any(l => l.Name == "SealDealReprocess"))
         {
-            Name = "SealDealReprocess",
-            LabelListVisibility = "labelHide",
-            MessageListVisibility = "hide"
-        }, "me").ExecuteAsync();
+            var l1 = service.Users.Labels.Create(new Label
+            {
+                Name = "SealDealReprocess",
+                LabelListVisibility = "labelHide",
+                MessageListVisibility = "hide"
+            }, "me").ExecuteAsync();
+            tasks.Add(l1);
+        }
 
-        var l2 = service.Users.Labels.Create(new Label
+        if (!labelsList.Any(l => l.Name == "SealDeal:LeadCreated"))
         {
-            Name = "SealDeal:LeadCreated",
-            LabelListVisibility = "labelShow",
-            MessageListVisibility = "show"
-        }, "me").ExecuteAsync();
+            var l2 = service.Users.Labels.Create(new Label
+            {
+                Name = "SealDeal:LeadCreated",
+                LabelListVisibility = "labelShow",
+                MessageListVisibility = "show"
+            }, "me").ExecuteAsync();
+            tasks.Add(l2);
+        }
 
-        var l3 = service.Users.Labels.Create(new Label
+        if (!labelsList.Any(l => l.Name == "SealDeal:SentByWorkflow"))
         {
-            Name = "SealDeal:SentByWorkflow",
-            LabelListVisibility = "labelShow",
-            MessageListVisibility = "show"
-        }, "me").ExecuteAsync();
-
-        await Task.WhenAll(new Task<Label>[] { l1, l2, l3 });
+            var l3 = service.Users.Labels.Create(new Label
+            {
+                Name = "SealDeal:SentByWorkflow",
+                LabelListVisibility = "labelShow",
+                MessageListVisibility = "show"
+            }, "me").ExecuteAsync();
+            tasks.Add(l3);
+        }
+        await Task.WhenAll(tasks);
     }
 
     public async Task ConnectGmailAsync(Guid brokerId, string email, string refreshToken, string accessToken)
@@ -144,7 +176,7 @@ public class MyGmailQService
             Email = email,
             EmailNumber = (byte)emailNumber,
             tenantId = "",
-            hasAdminConsent = false,
+            hasAdminConsent = true,
             isMSFT = false,
             AssignLeadsAuto = true,
             RefreshToken = refreshToken,
@@ -155,8 +187,9 @@ public class MyGmailQService
         broker.ConnectedEmails.Add(connectedEmail);
         try
         {
-            var projectId = "sealdealauto";
-            var topicName = "TestTopic";
+            var subSection = _GmailSection.GetSection("PubSub");
+            var projectId = subSection["ProjectId"];
+            var topicName = subSection["TopicName"];
             GoogleCredential cred = GoogleCredential.FromAccessToken(accessToken);
             GmailService service = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
 

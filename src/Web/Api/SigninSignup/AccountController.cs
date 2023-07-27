@@ -30,6 +30,7 @@ public class AccountController : BaseApiController
     private readonly IHttpClientFactory _httpClientFactory;
     const string HeaderKeyName = "X-Requested-With";
     const string HeaderValue = "XmlHttpRequest";
+    private readonly IConfigurationSection _GmailSection;
     public AccountController(AuthorizationService authorizeService,
       IMediator mediator,
       ILogger<AccountController> logger,
@@ -37,7 +38,8 @@ public class AccountController : BaseApiController
       BrokerQService brokerQService,
       StripeQService stripeQService,
       MyGmailQService gmailservice,
-      IHttpClientFactory httpClientFactory) : base(authorizeService, mediator)
+      IHttpClientFactory httpClientFactory,
+      IConfiguration config) : base(authorizeService, mediator)
     {
         _logger = logger;
         _MSFTEmailQService = mSFTEmailQService;
@@ -45,6 +47,7 @@ public class AccountController : BaseApiController
         _stripeQService = stripeQService;
         _gmailservice = gmailservice;
         _httpClientFactory = httpClientFactory;
+        _GmailSection = config.GetSection("Gmail");
     }
 
     [HttpGet("StripeInvoices")]
@@ -162,15 +165,15 @@ public class AccountController : BaseApiController
 
         var clientSecrets = new ClientSecrets
         {
-            ClientId = "912588585432-t1ui7blfmetvff3rmkjjjv19vf8pdouj.apps.googleusercontent.com",
-            ClientSecret = "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"
+            ClientId = _GmailSection["ClientId"],
+            ClientSecret = _GmailSection["ClientSecret"]
         };
         var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
             ClientSecrets = clientSecrets,
         });
 
-        TokenResponse token = await flow.ExchangeCodeForTokenAsync("lol", dto.code, "http://localhost:3000", CancellationToken.None);
+        TokenResponse token = await flow.ExchangeCodeForTokenAsync("lol", dto.code, _GmailSection["RedirectUri"], CancellationToken.None);
         UserCredential cred = new UserCredential(flow, "me", token);
         string accessToken = token.AccessToken;
         string refrehToken = token.RefreshToken;

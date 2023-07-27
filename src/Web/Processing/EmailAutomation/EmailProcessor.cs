@@ -46,6 +46,7 @@ public class EmailProcessor
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly RealTimeNotifSender _realTimeNotif;
     private GmailService? _GmailService;
+    private readonly IConfigurationSection _GmailSection;
     public EmailProcessor(AppDbContext appDbContext, IConfiguration config,
         ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service, RealTimeNotifSender realTimeNotif, ILogger<EmailProcessor> logger, IDbContextFactory<AppDbContext> contextFactory)
     {
@@ -54,6 +55,7 @@ public class EmailProcessor
         _aDGraphWrapper = aDGraphWrapper;
         _GPT35Service = openAIGPT35Service;
         _configurationSection = config.GetSection("URLs");
+        _GmailSection = config.GetSection("Gmail");
         _contextFactory = contextFactory;
         _realTimeNotif = realTimeNotif;
     }
@@ -1112,6 +1114,7 @@ public class EmailProcessor
                 if (connEmail == null)
                 {
                     _logger.LogError("{tag} null connEmail with subsId {susbId}", "CheckEmailSyncAsync", modSubsId);
+                    StaticEmailConcurrencyHandler.EmailParsingdictMSFT.TryRemove(modSubsId, out var s);
                     return;
                 }
                 string jobId = "";
@@ -1150,6 +1153,7 @@ public class EmailProcessor
                 if (connEmail == null)
                 {
                     _logger.LogError("{tag} null connEmail with email {email}", "CheckEmailSyncAsync", modGmailEmail);
+                    StaticEmailConcurrencyHandler.EmailParsingdictGMAIL.TryRemove(modGmailEmail, out var s);
                     return;
                 }
                 string jobId = "";
@@ -1346,7 +1350,7 @@ public class EmailProcessor
         messRequest.Q = $"category:primary after:{CutoffTime}";
 
         var messagesPage = await messRequest.ExecuteAsync();
-        if (messagesPage == null || messagesPage.Messages.Count == 0) return;
+        if (messagesPage == null || messagesPage.Messages == null) return;
         bool first = true;
         string NextPageToken = "";
         var IDsALLToReprocessMailsThisRun = new List<string>();

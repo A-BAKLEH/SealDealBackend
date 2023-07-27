@@ -2,15 +2,13 @@
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
+using Hangfire;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using MimeKit;
-using System.Text;
 using Web.Config;
 using Web.ControllerServices.QuickServices;
-using GmailMessage = Google.Apis.Gmail.v1.Data.Message;
 
 namespace Web.Api.TestingAPI;
 
@@ -23,6 +21,7 @@ public class TestGmailController : ControllerBase
     private readonly MyGmailQService _myGmail;
     private static readonly string HeaderKeyName = "X-Requested-With";
     private static readonly string HeaderValue = "XmlHttpRequest";
+
     private static string currentRefreshToken = "1//01TYIZZM6-jeUCgYIARAAGAESNwF-L9IrH62JyJKdlfY6tLcV2hn3sqJ2iclDdEHVKa7koHfuyiUAMqHRelD2-dd2wKB8Q8bJI44";
     public TestGmailController(ILogger<TestGmailController> logger, AppDbContext appDbContext, MyGmailQService myGmailQService)
     {
@@ -40,6 +39,25 @@ public class TestGmailController : ControllerBase
         await _myGmail.RefreshAccessTokenAsync(connEmail.Email, connEmail.BrokerId, null, CancellationToken.None);
         return Ok();
     }
+
+    [HttpGet("deleteGmail")]
+    public async Task<IActionResult> deleteGmail()
+    {
+        var connEmail = await _dbcontext.ConnectedEmails
+           .FirstAsync(e => e.Email == "shawarmamonster99@gmail.com");
+        await _myGmail.CallUnwatch(connEmail.Email, connEmail.BrokerId);
+
+        var jobIdRefresh = connEmail.TokenRefreshJobId;
+        Hangfire.BackgroundJob.Delete(jobIdRefresh);
+
+        RecurringJob.RemoveIfExists(connEmail.SubsRenewalJobId);
+
+        _dbcontext.Remove(connEmail);
+        await _dbcontext.SaveChangesAsync();
+        return Ok();
+    }
+
+
 
     [HttpGet("test")]
     public async Task<IActionResult> refreshAsync()

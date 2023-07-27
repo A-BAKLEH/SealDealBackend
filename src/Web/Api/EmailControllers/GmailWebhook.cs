@@ -32,7 +32,8 @@ public class GmailWebhook : ControllerBase
             var decodedNotif = Encoding.UTF8.GetString(bytes);
             var data = JsonSerializer.Deserialize<GmailWebhookNotif>(decodedNotif);
             var email = data.emailAddress;
-            //await _emailProcessor.CheckEmailSyncAsync(true,gmailEmail: email);
+            _logger.LogWarning("gmail webhook content decrypted:" + email);
+            await _emailProcessor.CheckEmailSyncAsync(false,gmailEmail: email);
         }
         return Ok();
     }

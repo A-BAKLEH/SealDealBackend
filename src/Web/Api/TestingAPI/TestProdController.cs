@@ -1,5 +1,4 @@
 ﻿using Core.Constants;
-using Core.Domain.BrokerAggregate;
 using Core.Domain.TasksAggregate;
 using Hangfire;
 using Infrastructure.Data;
@@ -164,14 +163,14 @@ public class TestProdController : ControllerBase
     /// <param name="key"></param>
     /// <param name="email"></param>
     /// <returns></returns>
-    [HttpDelete("DisableAutomation/{key}/{email}")]
+    [HttpDelete("DisableAutomationMSFT/{key}/{email}")]
     public async Task<IActionResult> DisableAutomation(string key, string email)
     {
         if (key != passwd) return Ok("nope");
-        var emailconn = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email);
+        var emailconn = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && e.isMSFT);
         _adGraphWrapper.CreateClient(emailconn.tenantId);
         await _adGraphWrapper._graphClient.Subscriptions[emailconn.GraphSubscriptionId.ToString()].DeleteAsync();
-        Hangfire.BackgroundJob.Delete(emailconn.SubsRenewalJobId);
+        BackgroundJob.Delete(emailconn.SubsRenewalJobId);
         if (emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
         var broker = await appDb.Brokers
             .Include(b => b.RecurrentTasks).FirstAsync(b => b.Id == emailconn.BrokerId);
@@ -186,6 +185,29 @@ public class TestProdController : ControllerBase
         await appDb.SaveChangesAsync();
         return Ok();
     }
+
+    //[HttpDelete("DeleeGMAIL/{key}/{email}")]
+    //public async Task<IActionResult> DisableAutomationGMAIL(string key, string email)
+    //{
+    //    if (key != passwd) return Ok("nope");
+    //    var emailconn = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && !e.isMSFT);
+    //    _adGraphWrapper.CreateClient(emailconn.tenantId);
+    //    await _adGraphWrapper._graphClient.Subscriptions[emailconn.GraphSubscriptionId.ToString()].DeleteAsync();
+    //    BackgroundJob.Delete(emailconn.SubsRenewalJobId);
+    //    if (emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
+    //    var broker = await appDb.Brokers
+    //        .Include(b => b.RecurrentTasks).FirstAsync(b => b.Id == emailconn.BrokerId);
+    //    foreach (var item in broker.RecurrentTasks)
+    //    {
+    //        if (item is BrokerNotifAnalyzerTask)
+    //        {
+    //            RecurringJob.RemoveIfExists(item.HangfireTaskId);
+    //            broker.RecurrentTasks.Remove(item);
+    //        }
+    //    }
+    //    await appDb.SaveChangesAsync();
+    //    return Ok();
+    //}
 
     /// <summary>
     /// reconnects email automation, and reschedules cleaner if its chris cuz i deleted his taks par erreur
