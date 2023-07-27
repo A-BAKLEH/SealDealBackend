@@ -1,5 +1,9 @@
 ﻿using Core.Config.Constants.LoggingConstants;
 using Core.Domain.NotificationAggregate;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Requests;
+using Google.Apis.Services;
 using Hangfire.Server;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
@@ -7,9 +11,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
 using Serilog.Context;
+using Web.Processing.EmailAutomation;
 using Web.RealTimeNotifs;
 using EventType = Core.Domain.NotificationAggregate.EventType;
-
 namespace Web.Processing.Analyzer;
 
 public class NotifAnalyzer
@@ -36,45 +40,77 @@ public class NotifAnalyzer
     /// <param name="Seen"></param>
     /// <param name="Reply"></param>
     /// <returns></returns>
-    public async Task<Tuple<bool, bool>> CheckSeenAndRepliedToAsync(GraphServiceClient graphServiceClient, string brokerEmail, string messageId, string? convoId, bool Seen, bool Reply)
+    public async Task<Tuple<bool, bool>> CheckSeenAndRepliedToAsync(GraphServiceClient? graphServiceClient, GmailService? _GmailService, string brokerEmail, string messageId, string? convoId, bool Seen, bool Reply)
     {
+        bool isMsft = graphServiceClient != null;
         try
         {
             if (Seen && !Reply)
             {
-                var mess = await graphServiceClient
-                .Users[brokerEmail]
-                .Messages[messageId]
-                .GetAsync(config =>
+                if (isMsft)
                 {
-                    config.QueryParameters.Select = new string[] { "id", "isRead" };
-                    config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
-                });
-                if (mess == null) return new Tuple<bool, bool>(true, true); //for deleted messages
-                return new Tuple<bool, bool>((bool)mess.IsRead, false);
+                    var mess = await graphServiceClient
+                    .Users[brokerEmail]
+                    .Messages[messageId]
+                    .GetAsync(config =>
+                    {
+                        config.QueryParameters.Select = new string[] { "id", "isRead" };
+                        config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+                    });
+                    if (mess == null) return new Tuple<bool, bool>(true, true); //for deleted messages
+                    return new Tuple<bool, bool>((bool)mess.IsRead, false);
+                }
+                else
+                {
+                    var mess = await _GmailService.Users.Messages.Get(brokerEmail, messageId)
+                        .Configure(a => a.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Metadata).ExecuteAsync();
+                    if (mess == null) return new Tuple<bool, bool>(true, true); //for deleted messages
+                    return new Tuple<bool, bool>(!mess.LabelIds.Contains("UNREAD"), false);
+                }
+
             }
             else
             {
-                var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
-                var date = date1.ToString("o");
-                var messages = await graphServiceClient
-                  .Users[brokerEmail]
-                  .Messages
-                  .GetAsync(config =>
-                  {
-                      config.QueryParameters.Top = 5;
-                      config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "isRead", "toRecipients", "receivedDateTime" };
-                      config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq '{convoId}'";
-                      config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
-                      config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
-                  });
-                //for deleted messages
-                if (messages == null || messages.Value == null || messages.Value.Count == 0) return new Tuple<bool, bool>(true, true);
-                var messs = messages.Value;
-                bool replied = messs.Count > 1 && messs.Any(m => m.From.EmailAddress.Address == brokerEmail);
-                bool? originalSeen = messs.FirstOrDefault(m => m.Id == messageId)?.IsRead;
-                bool finalSeen = originalSeen ?? replied;
-                return new Tuple<bool, bool>(finalSeen, replied);
+                if (isMsft)
+                {
+                    var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
+                    var date = date1.ToString("o");
+                    var messages = await graphServiceClient
+                      .Users[brokerEmail]
+                      .Messages
+                      .GetAsync(config =>
+                      {
+                          config.QueryParameters.Top = 5;
+                          config.QueryParameters.Select = new string[] { "id", "from", "conversationId", "isRead", "toRecipients", "receivedDateTime" };
+                          config.QueryParameters.Filter = $"receivedDateTime gt {date} and conversationId eq '{convoId}'";
+                          config.QueryParameters.Orderby = new string[] { "receivedDateTime" };
+                          config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"" });
+                      });
+                    //for deleted messages
+                    if (messages == null || messages.Value == null || messages.Value.Count == 0) return new Tuple<bool, bool>(true, true);
+                    var messs = messages.Value;
+                    bool replied = messs.Count > 1 && messs.Any(m => m.From.EmailAddress.Address == brokerEmail);
+                    bool? originalSeen = messs.FirstOrDefault(m => m.Id == messageId)?.IsRead;
+                    bool finalSeen = originalSeen ?? replied;
+                    return new Tuple<bool, bool>(finalSeen, replied);
+                }
+                else
+                {
+                    var messages = await _GmailService.Users.Threads.Get(brokerEmail, convoId)
+                        .Configure(r =>
+                        {
+                            r.Format = UsersResource.ThreadsResource.GetRequest.FormatEnum.Metadata;
+                        })
+                        .ExecuteAsync();
+                    //for deleted messages
+                    if (messages == null || messages.Messages.Count == 0) return new Tuple<bool, bool>(true, true);
+                    var messs = messages.Messages.ToList();
+                    bool replied = messs.Count > 1 && messs.Any(m => EmailProcessor.ConvertGmailHeaderFieldToPeople(m.Payload.Headers.FirstOrDefault(h => h.Name == "From")?.Value).First().Address == brokerEmail);
+                    bool? originalSeen  = messs.FirstOrDefault(m => m.Id == messageId)?.LabelIds.Contains("UNREAD");
+                    if (originalSeen != null) originalSeen = !originalSeen;
+                    bool finalSeen = originalSeen ?? replied;
+                    return new Tuple<bool, bool>(finalSeen, replied);
+                }      
             }
         }
         catch (ODataError er)
@@ -87,7 +123,7 @@ public class NotifAnalyzer
 
     }
 
-    public async Task<Tuple<Notif?, DateTime?>?> AnalyzeEmail(EmailEvent e, DateTime TimeNow, GraphServiceClient graphServiceClient)
+    public async Task<Tuple<Notif?, DateTime?>?> AnalyzeEmail(EmailEvent e, DateTime TimeNow, GraphServiceClient? graphServiceClient, GmailService? gmailService)
     {
         DateTime? newEmailEventAnalyzerLastTimestamp = null;
         if (!e.Seen && e.TimeReceived <= TimeNow - TimeSpan.FromHours(1))
@@ -97,7 +133,7 @@ public class NotifAnalyzer
             if (!e.NeedsAction)
             {
                 //just see if seen yet
-                var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, e.BrokerEmail, e.Id, null, true, false);
+                var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, gmailService, e.BrokerEmail, e.Id, null, true, false);
                 if (resT == null)
                 {
                     return null;
@@ -129,7 +165,7 @@ public class NotifAnalyzer
             //else if (e.TimeReceived <= TimeNow - TimeSpan.FromSeconds(1))//not seen and needs action
             {
                 //check if seen and replied-to yet
-                var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, e.BrokerEmail, e.Id, e.ConversationId, true, true);
+                var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, gmailService, e.BrokerEmail, e.Id, e.ConversationId, true, true);
                 if (resT == null)
                 {
                     return null;
@@ -159,7 +195,7 @@ public class NotifAnalyzer
         {
             newEmailEventAnalyzerLastTimestamp = e.TimeReceived;
             //check if replied-to yet
-            var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, e.BrokerEmail, e.Id, e.ConversationId, false, true);
+            var resT = await CheckSeenAndRepliedToAsync(graphServiceClient, gmailService, e.BrokerEmail, e.Id, e.ConversationId, false, true);
             if (resT == null)
             {
                 return null;
@@ -232,12 +268,26 @@ public class NotifAnalyzer
                     .OrderBy(e => e.TimeReceived)
                     .ToListAsync();
 
+
+                var emails = emailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
+
+                var brokerConnecteEmail = broker.ConnectedEmails.First();
+
                 //brokerEmail , GraphClient
                 var dict = new Dictionary<string, GraphServiceClient>();
-                var emails = emailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
-                foreach (var e in emails)
+                GmailService? _GmailService = null;
+                bool isMsft = brokerConnecteEmail.isMSFT;
+                if (isMsft)
                 {
-                    dict.Add(e, _aDGraphWrapper.CreateExtraClient(broker.ConnectedEmails.First(connemail => connemail.Email == e).tenantId));
+                    foreach (var e in emails)
+                    {
+                        dict.Add(e, _aDGraphWrapper.CreateExtraClient(broker.ConnectedEmails.First(connemail => connemail.Email == e).tenantId));
+                    }
+                }
+                else
+                {
+                    GoogleCredential cred = GoogleCredential.FromAccessToken(brokerConnecteEmail.AccessToken);
+                    _GmailService = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
                 }
 
                 if (emailEvents.Count > 0)
@@ -245,7 +295,7 @@ public class NotifAnalyzer
                     DateTime? NewEmailEventAnalyzerLastTimestamp = null;
                     foreach (var e in emailEvents)
                     {
-                        var res = await AnalyzeEmail(e, TimeNow, dict[e.BrokerEmail]);
+                        var res = await AnalyzeEmail(e, TimeNow, isMsft ? dict[e.BrokerEmail] : null, isMsft ? null : _GmailService);
                         if (res == null)
                         {
                             dbcontext.Remove(e);
@@ -268,10 +318,14 @@ public class NotifAnalyzer
                     .OrderBy(e => e.TimeReceived)
                     .ToListAsync();
                 emails = StillUnRepliedEmailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
-                foreach (var e in emails)
+                if (isMsft)
                 {
-                    if (!dict.ContainsKey(e)) dict.Add(e, _aDGraphWrapper.CreateExtraClient(broker.ConnectedEmails.First(connemail => connemail.Email == e).tenantId));
+                    foreach (var e in emails)
+                    {
+                        if (!dict.ContainsKey(e)) dict.Add(e, _aDGraphWrapper.CreateExtraClient(broker.ConnectedEmails.First(connemail => connemail.Email == e).tenantId));
+                    }
                 }
+
                 if (StillUnRepliedEmailEvents.Count > 0)
                 {
                     foreach (var unrepliedEmail in StillUnRepliedEmailEvents)
@@ -287,7 +341,8 @@ public class NotifAnalyzer
 
                         if (!seen) // unseen
                         {
-                            resT = await CheckSeenAndRepliedToAsync(dict[unrepliedEmail.BrokerEmail], unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, true, false);
+                            resT = await CheckSeenAndRepliedToAsync(isMsft ? dict[unrepliedEmail.BrokerEmail] : null, isMsft ? null : _GmailService,
+                                unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, true, false);
                             if (resT == null)
                             {
                                 dbcontext.Remove(unrepliedEmail);
@@ -325,7 +380,7 @@ public class NotifAnalyzer
                         }
                         else //seen and needs Action and not replied to
                         {
-                            resT = await CheckSeenAndRepliedToAsync(dict[unrepliedEmail.BrokerEmail], unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, false, true);
+                            resT = await CheckSeenAndRepliedToAsync(isMsft ? dict[unrepliedEmail.BrokerEmail] : null, isMsft ? null : _GmailService, unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, false, true);
                             if (resT == null)
                             {
                                 dbcontext.Remove(unrepliedEmail);
@@ -363,6 +418,8 @@ public class NotifAnalyzer
                         }
                     }
                 }
+
+
                 //----------------------
                 var appeventFilterBiggerThanID = 0;
                 if (broker.AppEventAnalyzerLastId > NewLastSeenAppEventId || broker.AppEventAnalyzerLastId == NewLastSeenAppEventId) appeventFilterBiggerThanID = broker.AppEventAnalyzerLastId;

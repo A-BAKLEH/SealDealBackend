@@ -3,10 +3,15 @@ using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Gmail.v1.Data;
+using Google.Apis.Services;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph.Models;
+using MimeKit;
 using System.Text.RegularExpressions;
 using Web.Constants;
 
@@ -17,6 +22,7 @@ public class ActionExecuter
     private readonly AppDbContext _appDbContext;
     private readonly ADGraphWrapper _adGraphWrapper;
     private readonly ILogger<ActionExecuter> _logger;
+    private GmailService? _GmailService;
 
     public ActionExecuter(AppDbContext appDbContext, ADGraphWrapper adGraphWrapper, ILogger<ActionExecuter> logger)
     {
@@ -114,7 +120,12 @@ public class ActionExecuter
         var connEmail = broker.ConnectedEmails[0];
         var template = (EmailTemplate)broker.Templates.First();
 
-        _adGraphWrapper.CreateClient(connEmail.tenantId);
+        if (connEmail.isMSFT) _adGraphWrapper.CreateClient(connEmail.tenantId);
+        else
+        {
+            GoogleCredential cred = GoogleCredential.FromAccessToken(connEmail.AccessToken);
+            _GmailService = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
+        }
 
         var leadLang = lead.Language;
         string templateTextToUse = "";
@@ -148,44 +159,80 @@ public class ActionExecuter
 
         var replacedText = ReplaceTemplateVariables(templateTextToUse, lead);
 
-        var tag = ActionPlanAssociation.Id.ToString() + "x" + template.Id;
-        var message = new Message
+        if (connEmail.isMSFT)
         {
-            Subject = subjectTextToUse,
-            Body = new ItemBody
+            var tag = ActionPlanAssociation.Id.ToString() + "x" + template.Id;
+            var message = new Microsoft.Graph.Models.Message
             {
-                ContentType = BodyType.Text,
-                Content = replacedText
-            },
-            ToRecipients = new List<Recipient>()
-            {
-              new Recipient
-              {
-                EmailAddress = new EmailAddress
+                Subject = subjectTextToUse,
+                Body = new ItemBody
                 {
-                  Address = lead.LeadEmails[0].EmailAddress
+                    ContentType = BodyType.Text,
+                    Content = replacedText
+                },
+                ToRecipients = new List<Recipient>()
+                {
+                    new Recipient
+                    {
+                      EmailAddress = new EmailAddress
+                      {
+                        Address = lead.LeadEmails[0].EmailAddress
+                      }
+                    }
+                },
+                SingleValueExtendedProperties = new()
+                {
+                    new SingleValueLegacyExtendedProperty
+                    {
+                      Id = APIConstants.APSentEmailExtendedPropId,
+                      Value = tag
+                    }
+                },
+                Categories = new List<string>()
+                {
+                      APIConstants.SentBySealDeal
                 }
-              }
-            },
-            SingleValueExtendedProperties = new()
+            };
+
+            var requestBody = new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
+            { Message = message, SaveToSentItems = true };
+
+            await _adGraphWrapper._graphClient.Users[connEmail.Email]
+                .SendMail.PostAsync(requestBody);
+        }
+        else
+        {
+            var labelsRes = await _GmailService.Users.Labels.List("me").ExecuteAsync();
+            var labels = labelsRes.Labels.ToList();
+            var sentBySealDeal = labels.FirstOrDefault(l => l.Name == "SealDeal:SentByWorkflow");
+            if (sentBySealDeal == null)
             {
-              new SingleValueLegacyExtendedProperty
-              {
-                Id = APIConstants.APSentEmailExtendedPropId,
-                Value = tag
-              }
-            },
-            Categories = new List<string>()
-            {
-                  APIConstants.SentBySealDeal
+                sentBySealDeal = await _GmailService.Users.Labels.Create(new Label
+                {
+                    Name = "SealDeal:SentByWorkflow",
+                    LabelListVisibility = "labelShow",
+                    MessageListVisibility = "show"
+                }, "me").ExecuteAsync();
             }
-        };
+            var mailMessage = new System.Net.Mail.MailMessage
+            {
+                To = { lead.LeadEmails[0].EmailAddress },
+                Subject = subjectTextToUse,
+                Body = replacedText,
+            };
 
-        var requestBody = new Microsoft.Graph.Users.Item.SendMail.SendMailPostRequestBody
-        { Message = message, SaveToSentItems = true };
+            var mimeMessage = MimeMessage.CreateFromMailMessage(mailMessage);
 
-        await _adGraphWrapper._graphClient.Users[connEmail.Email]
-            .SendMail.PostAsync(requestBody);
+            var gmailMessage = new Google.Apis.Gmail.v1.Data.Message
+            {
+                Raw = Encode(mimeMessage)
+            };
+            var mes = await _GmailService.Users.Messages.Send(gmailMessage, "me").ExecuteAsync();
+            await _GmailService.Users.Messages.Modify(new ModifyMessageRequest
+            {
+                AddLabelIds = new List<string>() { sentBySealDeal.Id },
+            }, "me", mes.Id).ExecuteAsync();
+        }
 
         template.TimesUsed++;
         var EmailSentNotif = new AppEvent
@@ -204,6 +251,18 @@ public class ActionExecuter
         EmailSentNotif.Props[NotificationJSONKeys.APAssID] = ActionPlanAssociation.Id.ToString();
         _appDbContext.AppEvents.Add(EmailSentNotif);
         return new Tuple<bool, AppEvent?>(true, EmailSentNotif);
+    }
+
+    public static string Encode(MimeMessage mimeMessage)
+    {
+        using (MemoryStream ms = new MemoryStream())
+        {
+            mimeMessage.WriteTo(ms);
+            return Convert.ToBase64String(ms.GetBuffer())
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+        }
     }
     /// <summary>
     /// Returns true if continue processing, false stop right away dont need to

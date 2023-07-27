@@ -9,6 +9,7 @@ using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Gmail.v1;
+using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Requests;
 using Google.Apis.Services;
 using Hangfire;
@@ -433,7 +434,7 @@ public class EmailProcessor
     /// </summary>
     /// <param name="parsedContent"></param>
     /// <returns></returns>
-    public async Task<EmailparserDBRecrodsRes> FetchListingAndCreateDBRecordsMsftAsync(LeadParsingContent parsedContent, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO, MsftMessage message)
+    public async Task<EmailparserDBRecrodsRes> FetchListingAndCreateDBRecordsAsync(LeadParsingContent parsedContent, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO, MsftMessage? msftMessage, GmailMessageDecoded? gmailDecodedMessage)
     {
         using var context = _contextFactory.CreateDbContext();
 
@@ -443,6 +444,12 @@ public class EmailProcessor
         parsedContent.Apartment = parsedContent.Apartment?.ToLower() == "null" ? null : parsedContent.Apartment;
         parsedContent.Language = parsedContent.Language?.ToLower() == "null" ? null : parsedContent.Language;
         parsedContent.phoneNumber = parsedContent.phoneNumber?.ToLower() == "null" ? null : parsedContent.phoneNumber;
+
+        string messageFrom = gmailDecodedMessage?.From ?? msftMessage?.From.EmailAddress.Address;
+        string messageId = gmailDecodedMessage?.message.Id ?? msftMessage.Id;
+        bool? emailRead = gmailDecodedMessage?.isRead ?? msftMessage.IsRead;
+        DateTime timeReceived = gmailDecodedMessage?.timeReceivedUTC ?? ((DateTimeOffset)msftMessage.ReceivedDateTime).UtcDateTime;
+        string threadId = gmailDecodedMessage?.message.ThreadId ?? msftMessage.ConversationId;
 
         var result = new EmailparserDBRecrodsRes();
         string LeadEmail = "";
@@ -463,16 +470,16 @@ public class EmailProcessor
             }
             if (!valid)
             {
-                LeadEmail = message.From.EmailAddress.Address;
+                LeadEmail = messageFrom;
                 result.LeadEmailUnsure = true;
-                _logger.LogWarning("{tag} lead provider, gpt parsed email is {parsedEmail}, from email: {fromEmail}", TagConstants.createDbRecords, parsedContent.emailAddress, message.From.EmailAddress.Address);
+                _logger.LogWarning("{tag} lead provider, gpt parsed email is {parsedEmail}, from email: {fromEmail}", TagConstants.createDbRecords, parsedContent.emailAddress, messageFrom);
             }
             //LeadEmail = message.ReplyTo?.FirstOrDefault()?.EmailAddress?.Address;
         }
         else //includes cases where email is actually from lead provider but has been forwarded, or 
         //when email is from lead provider that is not known by you yet
         {
-            LeadEmail = message.From.EmailAddress.Address;
+            LeadEmail = messageFrom;
             if (!string.IsNullOrEmpty(parsedContent.emailAddress))
             {
                 bool valid = false;
@@ -488,7 +495,7 @@ public class EmailProcessor
                 if (valid && parsedContent.emailAddress != LeadEmail)
                 {
                     result.LeadEmailUnsure = true;
-                    _logger.LogWarning("{tag} Not lead provider, parsed email doesnt correspond to from. parsed: {parsedEmail}, from: {fromEmail}", TagConstants.createDbRecords, parsedContent.emailAddress, message.From.EmailAddress.Address);
+                    _logger.LogWarning("{tag} Not lead provider, parsed email doesnt correspond to from. parsed: {parsedEmail}, from: {fromEmail}", TagConstants.createDbRecords, parsedContent.emailAddress, messageFrom);
                 }
             }
         }
@@ -584,22 +591,22 @@ public class EmailProcessor
             BrokerId = brokerDTO.Id,
             EventType = EventType.LeadCreated,
         };
-        LeadCreationNotif.Props[NotificationJSONKeys.EmailId] = message.Id;
+        LeadCreationNotif.Props[NotificationJSONKeys.EmailId] = messageId;
         lead.AppEvents = new() { LeadCreationNotif };
 
         var emailEvent = new EmailEvent
         {
-            Id = message.Id,
+            Id = msftMessage.Id,
             BrokerId = brokerDTO.Id,
             LeadParsedFromEmail = true,
             BrokerEmail = brokerDTO.BrokerEmail,
-            Seen = (bool)message.IsRead,
-            TimeReceived = ((DateTimeOffset)message.ReceivedDateTime).UtcDateTime,
+            Seen = (bool)emailRead,
+            TimeReceived = timeReceived,
             NeedsAction = !FromLeadProvider, //method called when mess from leadProvider OR new lead 
             //directly messaging. When directly messaging it needs reply.
         };
-        if (FromLeadProvider) emailEvent.LeadProviderEmail = message.From.EmailAddress.Address;
-        else emailEvent.ConversationId = message.ConversationId;
+        if (FromLeadProvider) emailEvent.LeadProviderEmail = messageFrom;
+        else emailEvent.ConversationId = threadId;
         lead.EmailEvents = new() { emailEvent };
 
         if (brokerDTO.isSolo || !brokerDTO.isAdmin) //solo broker or non admin
@@ -726,7 +733,7 @@ public class EmailProcessor
         }
         else if (result.HasLead && result.content != null) //no error and has lead
         {
-            DBRecordsTasks.Add(new Tuple<Task<EmailparserDBRecrodsRes>, MsftMessage>(FetchListingAndCreateDBRecordsMsftAsync(result.content, FromLeadProvider, brokerDTO, message), message));
+            DBRecordsTasks.Add(new Tuple<Task<EmailparserDBRecrodsRes>, MsftMessage>(FetchListingAndCreateDBRecordsAsync(result.content, FromLeadProvider, brokerDTO, message, null), message));
         }
         else if (result.HasLead && result.content == null)
         {
@@ -1400,6 +1407,11 @@ public class EmailProcessor
         var failedMessagesToProcess = failedMessages1.Where(failed => !IDsALLToReprocessMailsThisRun.Contains(failed.Id)).ToList();
         if (failedMessagesToProcess != null && failedMessagesToProcess.Count > 0)
         {
+            var labelsRes = await _GmailService.Users.Labels.List("me").ExecuteAsync();
+            var labels = labelsRes.Labels.ToList();
+
+            var reprocessLabel = labels.FirstOrDefault(l => l.Name == "SealDealReprocess");
+
             if (processFailed)//want to process failed messsages
             {
                 var faultedReprocess = new List<GmailMessage>();
@@ -1409,14 +1421,29 @@ public class EmailProcessor
                 {
                     if (faultedReprocess.Contains(finalMessage))
                         _logger.LogError("{tag} email with id {emailId} failed processing twice for email {email}", "emailProcessingFailed2ndTime", finalMessage.Id, brokerDTO.BrokerEmail);
+                }
 
-                    //TODO mark as unFailed
+                if (reprocessLabel != null)
+                {
+                    await _GmailService.Users.Messages.BatchModify(new BatchModifyMessagesRequest
+                    {
+                        RemoveLabelIds = new List<string>() { reprocessLabel.Id },
+                        Ids = failedMessagesToProcess.Select(m => m.Id).ToList()
+                    }, "me").ExecuteAsync();
                 }
             }
             else //if not processing failed messages, mark those who were marked as such as not failed
-            //since dont want to return to them plus tard
+                 //since dont want to return to them plus tard
             {
-                //TODO mark ALL failedMessages1  as unfailed
+                //mark ALL failedMessages1  as unfailed
+                if (reprocessLabel != null)
+                {
+                    await _GmailService.Users.Messages.BatchModify(new BatchModifyMessagesRequest
+                    {
+                        RemoveLabelIds = new List<string>() { reprocessLabel.Id },
+                        Ids = failedMessages1.Select(m => m.Id).ToList()
+                    }, "me").ExecuteAsync();
+                }
             }
         }
     }
@@ -1487,7 +1514,7 @@ public class EmailProcessor
                 message = message,
                 From = fromDecoded.FirstOrDefault().Address,
                 textBody = decodedBody,
-                isRead = message.LabelIds.Contains("UNREAD"),
+                isRead = !message.LabelIds.Contains("UNREAD"),
                 timeReceivedUTC = DateTimeOffset.FromUnixTimeMilliseconds(message.InternalDate.Value).UtcDateTime
             };
             result.Add(decoded);
@@ -1572,7 +1599,7 @@ public class EmailProcessor
                     //TODO take into consideration that this unknown sender might send multiple messages
                     if (email.textBody.Length < 8000)
                     {
-                        UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(null,email, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, false));
+                        UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(null, email, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, false));
                         UnknownSenderTaskMessages.Add(email);
                     }
                 }
@@ -1620,7 +1647,7 @@ public class EmailProcessor
         //--------------------
 
         //analyzing chatGPT results
-        List<Tuple<EmailparserDBRecrodsRes, MsftMessage>> leadsAdded = new(LeadProviderDBRecordsTasks.Count + UnknownDBRecordsTasks.Count);
+        List<Tuple<EmailparserDBRecrodsRes, GmailMessageDecoded>> leadsAdded = new(LeadProviderDBRecordsTasks.Count + UnknownDBRecordsTasks.Count);
         try
         {
             await Task.WhenAll(LeadProviderDBRecordsTasks.ConvertAll(x => x.Item1));
@@ -1632,7 +1659,7 @@ public class EmailProcessor
             if (LeadProviderDBRecordsTask.Item1.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
             {
                 //TODO check error type to discard email if needed
-                ReprocessMessages.Add(LeadProviderDBRecordsTask.Item2);
+                ReprocessMessages.Add(LeadProviderDBRecordsTask.Item2.message);
                 //TODO change error message if email discarded
                 _logger.LogError("{tag} lead provider dbRecordsCreation and error {Error}", TagConstants.createDbRecordsResults, LeadProviderDBRecordsTask.Item1.Exception.Message + LeadProviderDBRecordsTask.Item1.Exception.StackTrace);
             }
@@ -1647,7 +1674,7 @@ public class EmailProcessor
                 if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
-                    leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, MsftMessage>(LeadProviderDBRecordsTask.Item1.Result, LeadProviderDBRecordsTask.Item2));
+                    leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, GmailMessageDecoded>(LeadProviderDBRecordsTask.Item1.Result, LeadProviderDBRecordsTask.Item2));
                 }
             }
         }
@@ -1663,7 +1690,7 @@ public class EmailProcessor
             if (UnknownDBRecordsTask.Item1.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
             {
                 //TODO check error type to discard email if needed
-                ReprocessMessages.Add(UnknownDBRecordsTask.Item2);
+                ReprocessMessages.Add(UnknownDBRecordsTask.Item2.message);
                 //TODO change error message if email discarded
                 var errMessage = UnknownDBRecordsTask.Item1?.Exception?.Message ?? "null message";
                 var stackTrace = UnknownDBRecordsTask.Item1?.Exception?.InnerException?.StackTrace ?? "null stackTrace";
@@ -1680,7 +1707,7 @@ public class EmailProcessor
                 if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
-                    leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, MsftMessage>(UnknownDBRecordsTask.Item1.Result, UnknownDBRecordsTask.Item2));
+                    leadsAdded.Add(new Tuple<EmailparserDBRecrodsRes, GmailMessageDecoded>(UnknownDBRecordsTask.Item1.Result, UnknownDBRecordsTask.Item2));
                 }
             }
         }
@@ -1808,27 +1835,41 @@ public class EmailProcessor
                 }
             }
         }
+
+        var labelsRes = await _GmailService.Users.Labels.List("me").ExecuteAsync();
+        var labels = labelsRes.Labels.ToList();
+        var leadExtractedLabel = labels.FirstOrDefault(l => l.Name == "SealDeal:LeadCreated");
+        if (leadExtractedLabel == null)
+        {
+            leadExtractedLabel = await _GmailService.Users.Labels.Create(new Label()
+            {
+                Name = "SealDeal:LeadCreated",
+                LabelListVisibility = "labelShow",
+                MessageListVisibility = "show"
+            }, "me").ExecuteAsync();
+            labels.Add(leadExtractedLabel);
+        }
+
         //mark the messages that had a lead with "LeadExtracted"
-        await Task.WhenAll(leadsAdded.Select(async (tup) =>
+
+        if (leadsAdded.Any())
         {
             try
             {
-                if (tup.Item2.Categories == null) tup.Item2.Categories = new();
-                if (!tup.Item2.Categories.Any(c => c == APIConstants.NewLeadCreated))
+                await _GmailService.Users.Messages.BatchModify(new BatchModifyMessagesRequest
                 {
-                    tup.Item2.Categories.Add(APIConstants.NewLeadCreated);
-                    //if (tup.Item1.LeadEmailUnsure) tup.Item2.Categories.Add(APIConstants.VerifyEmailAddress);
-                    await _aDGraphWrapper._graphClient.Users[brokerDTO.BrokerEmail].Messages[tup.Item2.Id]
-                    .PatchAsync(tup.Item2);
-                }
+                    AddLabelIds = new List<string>() { leadExtractedLabel.Id },
+                    Ids = leadsAdded.Select(tup => tup.Item2.message.Id).ToList()
+                }, "me").ExecuteAsync();
             }
-            catch (ODataError ex)
+            catch (Exception ex)
             {
-                _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Error.Message + ": " + ex.Error.Code);
+                _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Message);
             }
-        }));
+        }
+
         //mark the messages that failed with tag ReprocessMessageId"
-        await TagFailedMessagesMSFT(ReprocessMessages, brokerDTO.BrokerEmail);
+        await TagFailedMessagesGMAIL(ReprocessMessages, labels);
 
         await transaction.CommitAsync();
         //transaction-------------------------------
@@ -1840,12 +1881,12 @@ public class EmailProcessor
         return tokens;
     }
 
-    private int HandleTaskResultGmail(Task<OpenAIResponse?> leadTask, GmailMessageDecoded message, List<Tuple<Task<EmailparserDBRecrodsRes>, GmailMessageDecoded>> leadProviderDBRecordsTasks, bool v, BrokerEmailProcessingDTO brokerDTO, List<GmailMessage> reprocessMessages)
+    public int HandleTaskResultGmail(Task<OpenAIResponse?> leadTask, GmailMessageDecoded message, List<Tuple<Task<EmailparserDBRecrodsRes>, GmailMessageDecoded>> DBRecordsTasks, bool FromLeadProvider, BrokerEmailProcessingDTO brokerDTO, List<GmailMessage> reprocessMessages)
     {
         if (leadTask.IsFaulted) //Task Error : this shouldnt happen as there is try catch block inside tasks
         {
             //TODO check error type to discard email if needed
-            ReprocessMessages.Add(message);
+            reprocessMessages.Add(message.message);
             //TODO change error message if email discarded
             _logger.LogError("{tag} task faulted and error {Error}", TagConstants.handleTaskResult, leadTask?.Exception?.Message + leadTask?.Exception?.StackTrace);
             return 0;
@@ -1863,17 +1904,17 @@ public class EmailProcessor
             _logger.LogError("{tag} HandleTaskResult adding to ReprocessMessages, open ai parsing did not succeed." +
                 " email parsing props: message : '{errorMessage}' and  type: '{errorType}'.", "HandleTaskResult", result.ErrorMessage, result.ErrorType);
             //TODO check error type to discard email if needed
-            ReprocessMessages.Add(message);
+            reprocessMessages.Add(message.message);
         }
         else if (result.HasLead && result.content != null) //no error and has lead
         {
-            DBRecordsTasks.Add(new Tuple<Task<EmailparserDBRecrodsRes>, MsftMessage>(FetchListingAndCreateDBRecordsMsftAsync(result.content, FromLeadProvider, brokerDTO, message), message));
+            DBRecordsTasks.Add(new Tuple<Task<EmailparserDBRecrodsRes>, GmailMessageDecoded>(FetchListingAndCreateDBRecordsAsync(result.content, FromLeadProvider, brokerDTO, null, message), message));
         }
         else if (result.HasLead && result.content == null)
         {
             //error its null
             _logger.LogError("{tag} HandleTaskResult has lead but result.content is null, open ai parsing did not succeed." +
-                " for messageId {messageId}.", "HandleTaskResult", result.ProcessedMessageMSFT.Id);
+                " for messageId {messageId}.", "HandleTaskResult", result.ProcessedMessageGMAIL.message.Id);
         }
         else
         {
@@ -1919,12 +1960,57 @@ public class EmailProcessor
 
     public async Task<List<GmailMessage>> GetFailedMessagesGMAILAsync(string brokerEmail, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var messagesPage = await _GmailService.Users.Messages.List("me")
+            .Configure(r =>
+            {
+                r.Q = "label:SealDealReprocess";
+                r.IncludeSpamTrash = false;
+            })
+            .ExecuteAsync(cancellationToken);
+
+        var gmailMessages = new List<GmailMessage>(messagesPage.Messages.Count);
+        var batchRequest = new BatchRequest(_GmailService);
+
+        messagesPage.Messages.ToList().ForEach(m =>
+        {
+            var getRequest = _GmailService.Users.Messages.Get("me", m.Id);
+            getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Full;
+            batchRequest.Queue<GmailMessage>(getRequest,
+             (content, error, i, message) =>
+             {
+                 gmailMessages.Insert(i, content);
+             });
+        });
+        await batchRequest.ExecuteAsync();
+        return gmailMessages;
     }
 
-    public async Task TagFailedMessagesGMAIL(List<GmailMessage>? gMAILReprocessMessages, string brokerEmail)
+    public async Task TagFailedMessagesGMAIL(List<GmailMessage> gmailMAILReprocessMessages, List<Label> labels)
     {
-        throw new NotImplementedException();
+        if (gmailMAILReprocessMessages.Count == 0) return;
+        var reprocessLabel = labels.FirstOrDefault(l => l.Name == "SealDealReprocess");
+        if (reprocessLabel == null)
+        {
+            reprocessLabel = await _GmailService.Users.Labels.Create(new Label
+            {
+                Name = "SealDealReprocess",
+                LabelListVisibility = "labelHide",
+                MessageListVisibility = "hide"
+            }, "me").ExecuteAsync();
+            labels.Add(reprocessLabel);
+        }
+        try
+        {
+            await _GmailService.Users.Messages.BatchModify(new BatchModifyMessagesRequest
+            {
+                AddLabelIds = new List<string>() { reprocessLabel.Id },
+                Ids = gmailMAILReprocessMessages.Select(m => m.Id).ToList()
+            }, "me").ExecuteAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Message);
+        }
     }
     // common not very important now 
     public AppEvent StopActionPlan(Guid brokerId, ActionPlanAssociation apass)

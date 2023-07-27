@@ -30,6 +30,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" PrivateAssets="All" />
+    <PackageReference Include="MimeKitLite" />
     <PackageReference Include="Serilog.Sinks.AzureAnalytics" />
     <PackageReference Include="Stripe.net" />
     <PackageReference Include="Microsoft.Identity.Web" />

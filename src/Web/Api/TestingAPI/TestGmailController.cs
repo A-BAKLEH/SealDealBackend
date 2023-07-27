@@ -1,16 +1,15 @@
 ﻿using Google.Apis.Auth.OAuth2;
 using Google.Apis.Gmail.v1;
-using Google.Apis.Requests;
+using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
 using Infrastructure.Data;
-using Infrastructure.Migrations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using MimeKit;
 using System.Text;
 using Web.Config;
 using Web.ControllerServices.QuickServices;
-using Web.ControllerServices.StaticMethods;
 using GmailMessage = Google.Apis.Gmail.v1.Data.Message;
 
 namespace Web.Api.TestingAPI;
@@ -58,7 +57,7 @@ public class TestGmailController : ControllerBase
 
         GoogleCredential cred = GoogleCredential.FromAccessToken(connEmail.AccessToken);
         var _GmailService = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
-
+        /*
         var yest = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
         var yestUnix = yest.ToUnixTimeSeconds();
 
@@ -110,7 +109,67 @@ public class TestGmailController : ControllerBase
         //var decodedNotif = Encoding.UTF8.GetString(bytes);
         var decodedNotif1 = Encoding.UTF8.GetString(bytes1);
         gmailMessages.Sort((x, y) => x.InternalDate.Value.CompareTo(y.InternalDate.Value));
+        */
+        var replacedText = "this is test emai obody lol";
+        var labelsRes = await _GmailService.Users.Labels.List("me").ExecuteAsync();
+        var labels = labelsRes.Labels.ToList();
+        var sentBySealDeal = labels.FirstOrDefault(l => l.Name == "SealDeal:SentByWorkflow");
+        if (sentBySealDeal == null)
+        {
+            sentBySealDeal = await _GmailService.Users.Labels.Create(new Label
+            {
+                Name = "SealDeal:SentByWorkflow",
+                LabelListVisibility = "labelShow",
+                MessageListVisibility = "show"
+            }, "me").ExecuteAsync();
+        }
 
+        var mailMessage = new System.Net.Mail.MailMessage
+        {
+            To = { "basharo9999@hotmail.com" },
+            Subject = "Welcome test",
+            Body = "welcome new workspace user test",
+        };
+
+        var mimeMessage = MimeMessage.CreateFromMailMessage(mailMessage);
+
+        var gmailMessage = new Message
+        {
+            Raw = Encode(mimeMessage)
+        };
+        var mes = await _GmailService.Users.Messages.Send(gmailMessage, "me").ExecuteAsync();
+        await _GmailService.Users.Messages.Modify(new ModifyMessageRequest
+        {
+            AddLabelIds = new List<string>() { sentBySealDeal.Id },
+        }, "me", mes.Id).ExecuteAsync();
+        //var textToBytes = Encoding.UTF8.GetBytes(replacedText);
+        //var encodedBytes = WebEncoders.Base64UrlEncode(textToBytes);
+        //await _GmailService.Users.Messages.Send(new GmailMessage
+        //{
+        //    LabelIds = new List<string>() { sentBySealDeal.Id },
+        //    Payload = new MessagePart
+        //    {
+        //        MimeType = "text/plain",
+        //        Body = new MessagePartBody
+        //        {
+        //            Data = encodedBytes
+        //        },
+        //        Headers = new List<MessagePartHeader>()
+        //            {
+        //                new MessagePartHeader
+        //                {
+        //                    Name = "To",
+        //                    Value = "basharo9999@hotmail.com"
+        //                },
+        //                new MessagePartHeader
+        //                {
+        //                    Name = "Subject",
+        //                    Value = "test subject lol"
+        //                }
+        //            }
+        //    }
+        //}, "me")
+        //    .ExecuteAsync();
         return Ok();
 
 
@@ -190,5 +249,17 @@ public class TestGmailController : ControllerBase
 
 
         //    return Ok();
+    }
+
+    public static string Encode(MimeMessage mimeMessage)
+    {
+        using (MemoryStream ms = new MemoryStream())
+        {
+            mimeMessage.WriteTo(ms);
+            return Convert.ToBase64String(ms.GetBuffer())
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+        }
     }
 }
