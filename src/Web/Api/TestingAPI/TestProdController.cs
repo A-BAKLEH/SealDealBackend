@@ -29,6 +29,7 @@ public class TestProdController : ControllerBase
     private readonly AppDbContext appDb;
     private readonly BrokerQService _brokerTagsQService;
     private readonly EmailProcessor emailProcessor;
+    private readonly MyGmailQService _myGmail;
     public TestProdController(IConfiguration configuration,
         AppDbContext dbContext,
         ILogger<TestProdController> logger,
@@ -36,7 +37,8 @@ public class TestProdController : ControllerBase
         ADGraphWrapper aDGraphWrapper,
         AppDbContext context,
         BrokerQService brokerQService,
-        EmailProcessor _emailProcessor)
+        EmailProcessor _emailProcessor,
+        MyGmailQService _myGmail)
     {
         section = configuration.GetSection("Hangfire");
         _EmailconfigurationSection = configuration.GetSection("URLs");
@@ -164,7 +166,7 @@ public class TestProdController : ControllerBase
     /// <param name="email"></param>
     /// <returns></returns>
     [HttpDelete("DisableAutomationMSFT/{key}/{email}")]
-    public async Task<IActionResult> DisableAutomation(string key, string email)
+    public async Task<IActionResult> DisableAutomationMsft(string key, string email)
     {
         if (key != passwd) return Ok("nope");
         var emailconn = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && e.isMSFT);
@@ -186,28 +188,24 @@ public class TestProdController : ControllerBase
         return Ok();
     }
 
-    //[HttpDelete("DeleeGMAIL/{key}/{email}")]
-    //public async Task<IActionResult> DisableAutomationGMAIL(string key, string email)
-    //{
-    //    if (key != passwd) return Ok("nope");
-    //    var emailconn = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && !e.isMSFT);
-    //    _adGraphWrapper.CreateClient(emailconn.tenantId);
-    //    await _adGraphWrapper._graphClient.Subscriptions[emailconn.GraphSubscriptionId.ToString()].DeleteAsync();
-    //    BackgroundJob.Delete(emailconn.SubsRenewalJobId);
-    //    if (emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
-    //    var broker = await appDb.Brokers
-    //        .Include(b => b.RecurrentTasks).FirstAsync(b => b.Id == emailconn.BrokerId);
-    //    foreach (var item in broker.RecurrentTasks)
-    //    {
-    //        if (item is BrokerNotifAnalyzerTask)
-    //        {
-    //            RecurringJob.RemoveIfExists(item.HangfireTaskId);
-    //            broker.RecurrentTasks.Remove(item);
-    //        }
-    //    }
-    //    await appDb.SaveChangesAsync();
-    //    return Ok();
-    //}
+    /// <summary>
+    /// disables email automation for a broker
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="email"></param>
+    /// <returns></returns>
+    [HttpDelete("DisableAutomationGmail/{key}/{email}")]
+    public async Task<IActionResult> DisableAutomationGmail(string key, string email)
+    {
+        if (key != passwd) return Ok("nope");
+        var connEmail = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && !e.isMSFT);
+        await _myGmail.CallUnwatch(connEmail.Email, connEmail.BrokerId);
+        //var jobIdRefresh = connEmail.TokenRefreshJobId; KEEP REFRESHING ACCESS TOKEN SO U CAN DO STUFF FROM FRONTEND
+        //Hangfire.BackgroundJob.Delete(jobIdRefresh);
+        BackgroundJob.Delete(connEmail.SyncJobId);
+        RecurringJob.RemoveIfExists(connEmail.SubsRenewalJobId);
+        return Ok();
+    }
 
     /// <summary>
     /// reconnects email automation, and reschedules cleaner if its chris cuz i deleted his taks par erreur
@@ -215,11 +213,11 @@ public class TestProdController : ControllerBase
     /// <param name="key"></param>
     /// <param name="email"></param>
     /// <returns></returns>
-    [HttpGet("reconnectAutomation/{key}/{email}")]
-    public async Task<IActionResult> reconnectAutomation(string key, string email)
+    [HttpGet("reconnectAutomationMsft/{key}/{email}")]
+    public async Task<IActionResult> reconnectAutomationMsft(string key, string email)
     {
         if (key != passwd) return Ok("nope");
-        var connectedEmail = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email);
+        var connectedEmail = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && e.isMSFT);
         var currDateTime = DateTime.UtcNow;
         //the maxinum subs period = just under 3 days
         DateTimeOffset SubsEnds = currDateTime + new TimeSpan(0, 4230, 0);
@@ -258,6 +256,35 @@ public class TestProdController : ControllerBase
             BrokerId = brokerId
         };
         appDb.Add(recTask);
+        await appDb.SaveChangesAsync();
+        return Ok();
+    }
+
+
+    /// <summary>
+    /// reconnects email automation, and reschedules cleaner if its chris cuz i deleted his taks par erreur
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="email"></param>
+    /// <returns></returns>
+    [HttpGet("reconnectAutomationGmail/{key}/{email}")]
+    public async Task<IActionResult> reconnectAutomationGmail(string key, string email)
+    {
+        if (key != passwd) return Ok("nope");
+        var connectedEmail = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && e.isMSFT);
+
+        await _myGmail.CallWatch(email, connectedEmail.BrokerId);
+
+        //hangfire recurrrent job that calls watch once every day
+        string WebhooksubscriptionRenewalJobId = email + "Watch";
+        var recJobOptions = new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc };
+        var TimeNow = DateTime.UtcNow;
+        var hour = TimeNow.Hour;
+        var minute = TimeNow.Minute;
+        if (hour == 6 || hour == 7) hour = 1;
+        RecurringJob.AddOrUpdate<MyGmailQService>(WebhooksubscriptionRenewalJobId,
+            a => a.CallWatch(email, connectedEmail.BrokerId), $"{minute} {hour} * * *", recJobOptions);
+        connectedEmail.SubsRenewalJobId = WebhooksubscriptionRenewalJobId;
         await appDb.SaveChangesAsync();
         return Ok();
     }

@@ -14,6 +14,7 @@ using Google.Apis.Requests;
 using Google.Apis.Services;
 using Hangfire;
 using Hangfire.Server;
+using HtmlAgilityPack;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.WebUtilities;
@@ -22,7 +23,9 @@ using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
 using MimeKit;
+using Newtonsoft.Json.Linq;
 using Serilog.Context;
+using System;
 using System.Net.Mail;
 using System.Text;
 using Web.Constants;
@@ -1515,13 +1518,39 @@ public class EmailProcessor
         public DateTime timeReceivedUTC { get; set; }
     }
 
+    public static Google.Apis.Gmail.v1.Data.MessagePart FindGmailBody(List<Google.Apis.Gmail.v1.Data.MessagePart>? parts)
+    {
+        if (parts == null || parts.Count == 0) return null;
+        foreach (var part in parts)
+        {
+            if (part.MimeType == "text/plain" || part.MimeType == "text/html")
+            {
+                return part;
+            }
+            if (part.Parts != null)
+            {
+                var thisPartResults = FindGmailBody(part.Parts.ToList());
+                if (thisPartResults != null) return thisPartResults;
+            }
+        }
+        return null;
+    }
+
     public static List<GmailMessageDecoded> DecodeGmail(List<GmailMessage> originalMessages)
     {
         var result = new List<GmailMessageDecoded>(originalMessages.Count);
         foreach (var message in originalMessages)
         {
-            var bytes = WebEncoders.Base64UrlDecode(message.Payload.Parts.FirstOrDefault(p => p.MimeType == "text/plain").Body.Data);
+            var part = FindGmailBody(message.Payload.Parts.ToList());
+            var bytes = WebEncoders.Base64UrlDecode(part.Body.Data);
             var decodedBody = Encoding.UTF8.GetString(bytes);
+            if (part.MimeType == "text/html")
+            {
+                HtmlDocument htmlDoc = new HtmlDocument();
+                htmlDoc.LoadHtml(decodedBody);
+
+                decodedBody =  htmlDoc.DocumentNode.InnerText;
+            }
 
             var from = message.Payload.Headers.FirstOrDefault(h => h.Name == "From")?.Value;
             var fromDecoded = ConvertGmailHeaderFieldToPeople(from);

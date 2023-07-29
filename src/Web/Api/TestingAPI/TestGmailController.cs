@@ -34,7 +34,7 @@ public class TestGmailController : ControllerBase
     public async Task<IActionResult> Refresh()
     {
         var connEmail = await _dbcontext.ConnectedEmails
-           .FirstAsync(e => e.Email == "shawarmamonster99@gmail.com");
+           .FirstAsync(e => !e.isMSFT);
 
         await _myGmail.RefreshAccessTokenAsync(connEmail.Email, connEmail.BrokerId, null, CancellationToken.None);
         return Ok();
@@ -44,12 +44,12 @@ public class TestGmailController : ControllerBase
     public async Task<IActionResult> deleteGmail()
     {
         var connEmail = await _dbcontext.ConnectedEmails
-           .FirstAsync(e => e.Email == "shawarmamonster99@gmail.com");
+           .FirstAsync(e => !e.isMSFT);
         await _myGmail.CallUnwatch(connEmail.Email, connEmail.BrokerId);
 
         var jobIdRefresh = connEmail.TokenRefreshJobId;
         Hangfire.BackgroundJob.Delete(jobIdRefresh);
-
+        BackgroundJob.Delete(connEmail.SyncJobId);
         RecurringJob.RemoveIfExists(connEmail.SubsRenewalJobId);
 
         _dbcontext.Remove(connEmail);
@@ -57,10 +57,8 @@ public class TestGmailController : ControllerBase
         return Ok();
     }
 
-
-
     [HttpGet("test")]
-    public async Task<IActionResult> refreshAsync()
+    public async Task<IActionResult> testAsync()
     {
         var connEmail = await _dbcontext.ConnectedEmails
             .FirstAsync(e => e.Email == "shawarmamonster99@gmail.com");
