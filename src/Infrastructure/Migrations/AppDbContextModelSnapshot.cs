@@ -34,7 +34,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("InterestedLeadsId");
 
-                    b.ToTable("AreaLead");
+                    b.ToTable("AreaLead", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlan", b =>
@@ -88,7 +88,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("BrokerId");
 
-                    b.ToTable("ActionPlans");
+                    b.ToTable("ActionPlans", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAction", b =>
@@ -122,7 +122,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ActionPlanId");
 
-                    b.ToTable("Actions");
+                    b.ToTable("Actions", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionPlanAssociation", b =>
@@ -161,7 +161,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LeadId");
 
-                    b.ToTable("ActionPlanAssociations");
+                    b.ToTable("ActionPlanAssociations", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.ActionPlanAggregate.ActionTracker", b =>
@@ -191,7 +191,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TrackedActionId");
 
-                    b.ToTable("ActionTrackers");
+                    b.ToTable("ActionTrackers", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.AgencyAggregate.Agency", b =>
@@ -244,7 +244,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Agencies");
+                    b.ToTable("Agencies", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.AgencyAggregate.Area", b =>
@@ -270,7 +270,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("AgencyId");
 
-                    b.ToTable("Areas");
+                    b.ToTable("Areas", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.AgencyAggregate.Listing", b =>
@@ -311,7 +311,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("AgencyId", "FormattedStreetAddress");
 
-                    b.ToTable("Listings");
+                    b.ToTable("Listings", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.BrokerAggregate.Broker", b =>
@@ -386,7 +386,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("AgencyId");
 
-                    b.ToTable("Brokers");
+                    b.ToTable("Brokers", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.BrokerAggregate.BrokerListingAssignment", b =>
@@ -410,7 +410,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("BrokerListingAssignments");
+                    b.ToTable("BrokerListingAssignments", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.BrokerAggregate.EmailConnection.ConnectedEmail", b =>
@@ -479,7 +479,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("GraphSubscriptionId");
 
-                    b.ToTable("ConnectedEmails");
+                    b.ToTable("ConnectedEmails", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.BrokerAggregate.Tag", b =>
@@ -502,7 +502,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("BrokerId");
 
-                    b.ToTable("Tags");
+                    b.ToTable("Tags", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.BrokerAggregate.Templates.Template", b =>
@@ -550,7 +550,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("BrokerId");
 
-                    b.ToTable("Templates");
+                    b.ToTable("Templates", (string)null);
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("Template");
 
@@ -595,7 +595,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LeadId");
 
-                    b.ToTable("ToDoTasks");
+                    b.ToTable("ToDoTasks", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.LeadAggregate.Lead", b =>
@@ -674,7 +674,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("Leads");
+                    b.ToTable("Leads", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.LeadAggregate.LeadEmail", b =>
@@ -693,7 +693,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LeadId");
 
-                    b.ToTable("LeadEmails");
+                    b.ToTable("LeadEmails", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.LeadAggregate.Note", b =>
@@ -716,7 +716,7 @@ namespace Infrastructure.Migrations
                     b.HasIndex("LeadId")
                         .IsUnique();
 
-                    b.ToTable("Notes");
+                    b.ToTable("Notes", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.NotificationAggregate.AppEvent", b =>
@@ -764,7 +764,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LeadId");
 
-                    b.ToTable("AppEvents");
+                    b.ToTable("AppEvents", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.NotificationAggregate.EmailEvent", b =>
@@ -813,7 +813,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LeadId");
 
-                    b.ToTable("EmailEvents");
+                    b.ToTable("EmailEvents", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.NotificationAggregate.Notif", b =>
@@ -851,7 +851,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LeadId");
 
-                    b.ToTable("Notifs");
+                    b.ToTable("Notifs", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.TasksAggregate.RecurrentTaskBase", b =>
@@ -877,7 +877,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("BrokerId");
 
-                    b.ToTable("RecurrentTasks");
+                    b.ToTable("RecurrentTasks", (string)null);
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("RecurrentTaskBase");
 
@@ -896,7 +896,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("TagsId");
 
-                    b.ToTable("LeadTag");
+                    b.ToTable("LeadTag", (string)null);
                 });
 
             modelBuilder.Entity("Core.Domain.BrokerAggregate.Templates.EmailTemplate", b =>
@@ -1017,7 +1017,7 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Domain.AgencyAggregate.Agency", b =>
                 {
-                    b.OwnsOne("Core.Domain.AgencyAggregate.Address", "Address", b1 =>
+                    b.OwnsOne("Core.Domain.AgencyAggregate.Agency.Address#Core.Domain.AgencyAggregate.Address", "Address", b1 =>
                         {
                             b1.Property<int>("AgencyId")
                                 .HasColumnType("integer");
@@ -1048,7 +1048,7 @@ namespace Infrastructure.Migrations
 
                             b1.HasKey("AgencyId");
 
-                            b1.ToTable("Agencies");
+                            b1.ToTable("Agencies", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("AgencyId");
@@ -1076,7 +1076,7 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsOne("Core.Domain.AgencyAggregate.Address", "Address", b1 =>
+                    b.OwnsOne("Core.Domain.AgencyAggregate.Listing.Address#Core.Domain.AgencyAggregate.Address", "Address", b1 =>
                         {
                             b1.Property<int>("ListingId")
                                 .HasColumnType("integer");
@@ -1107,7 +1107,7 @@ namespace Infrastructure.Migrations
 
                             b1.HasKey("ListingId");
 
-                            b1.ToTable("Listings");
+                            b1.ToTable("Listings", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("ListingId");
