@@ -115,9 +115,19 @@ public class ActionExecuter
         var TemplateId = currentActionDTO.dataTemplateId;
         var broker = await _appDbContext.Brokers
           .Select(b => new { b.Id, b.ConnectedEmails, Templates = b.Templates.Where(t => t.Id == TemplateId) })
-          .FirstAsync(b => b.Id == brokerId);
+          .FirstOrDefaultAsync(b => b.Id == brokerId);
+        if (broker == null)
+        {
+            _logger.LogError("{tag} no broker with Id {brokerId}", "ExecuteSendEmail", brokerId);
+            return new Tuple<bool, AppEvent?>(false, null);
+        }
+        var connEmail = broker.ConnectedEmails.FirstOrDefault();
+        if (connEmail == null)
+        {
+            _logger.LogError("{tag} no connectedEmail for broker with Id {brokerId}", "ExecuteSendEmail", brokerId);
+            return new Tuple<bool, AppEvent?>(false, null);
 
-        var connEmail = broker.ConnectedEmails[0];
+        }
         var template = (EmailTemplate)broker.Templates.First();
 
         if (connEmail.isMSFT) _adGraphWrapper.CreateClient(connEmail.tenantId);

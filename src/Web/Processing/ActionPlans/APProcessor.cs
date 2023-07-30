@@ -89,16 +89,37 @@ public class APProcessor
             {
                 res = await _actionExecuter.ExecuteSendEmail(ActionPlanAssociation, CurrentAction, brokerId, timeNow);
             }
-            if (!res.Item1) return;
+            
             // END---------Specific action handling done --------
 
             var RTEvents = new List<AppEvent>(2) { res.Item2 };
+            if (!res.Item1)
+            {
+                CurrentActionTracker.ActionStatus = ActionStatus.Failed;
+                CurrentActionTracker.ExecutionCompletedTime = DateTime.UtcNow;
 
-            // START---- Update current ActionTracker ----------
+                ActionPlanAssociation.ThisActionPlanStatus = ActionPlanStatus.ErrorStopped;
+                var APDoneEvent = new AppEvent
+                {
+                    LeadId = LeadId,
+                    BrokerId = brokerId,
+                    EventTimeStamp = DateTime.UtcNow,
+                    EventType = EventType.ActionPlanFinished,
+                    ReadByBroker = false,
+                    IsActionPlanResult = true,
+                    ProcessingStatus = ProcessingStatus.NoNeed
+                };
+                APDoneEvent.Props[NotificationJSONKeys.ActionPlanId] = ActionPlanId.ToString();
+                APDoneEvent.Props[NotificationJSONKeys.ActionPlanName] = ActionPlanAssociation.ActionPlan.Name;
+                APDoneEvent.Props[NotificationJSONKeys.APFinishedReason] = NotificationJSONKeys.ActionPlanError;
+                _appDbContext.AppEvents.Add(APDoneEvent);
+                RTEvents.Add(APDoneEvent);
+                goto Saving;
+            }
+                // START---- Update current ActionTracker ----------
             CurrentActionTracker.ActionStatus = ActionStatus.Done;
             CurrentActionTracker.ExecutionCompletedTime = DateTime.UtcNow;
             // END ---- Updating current ActionTracker Done -----------
-
 
             // START---- Handle Next Action ---------
             //If there is next action: enqueue it, create nextActionTracker, update current action
@@ -158,6 +179,7 @@ public class APProcessor
                 RTEvents.Add(APDoneEvent);
             }
 
+            Saving:
             bool saved = false;
             byte c = 0;
             while (!saved)

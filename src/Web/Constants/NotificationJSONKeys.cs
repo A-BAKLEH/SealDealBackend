@@ -41,6 +41,7 @@ public static class NotificationJSONKeys
 
     public const string APFinishedReason = "APFinishedReason";
     public const string AllActionsCompleted = "AllActionsCompleted";
+    public const string ActionPlanError = "Error Encountered";
     public const string LeadResponded = "LeadResponded";
     public const string CancelledByBroker = "CancelledByBroker";
 

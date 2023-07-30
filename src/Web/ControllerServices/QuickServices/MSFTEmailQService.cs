@@ -37,6 +37,11 @@ public class MSFTEmailQService
             .AnyAsync();
         if(ActionPlansRunning) throw new CustomBadRequestException(ProblemDetailsTitles.ActionPlansActive, $"Cannot disconnect email {email} while action plans are running", 403);
 
+        var broker = await _appDbContext.Brokers.Include(b => b.Agency)
+            .FirstAsync(b => b.Id == brokerId);
+        //TODO later change when we have more than solo brokers
+        broker.Agency.HasAdminEmailConsent = false;
+
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         await _aDGraphWrapper._graphClient.Subscriptions[connectedEmail.GraphSubscriptionId.ToString()].DeleteAsync();
 

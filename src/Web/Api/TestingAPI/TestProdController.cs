@@ -1,5 +1,4 @@
 ﻿using Core.Constants;
-using Core.Domain.TasksAggregate;
 using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
@@ -10,7 +9,6 @@ using Web.ApiModels.RequestDTOs.Admin;
 using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.Outbox.Config;
-using Web.Processing.Analyzer;
 using Web.Processing.EmailAutomation;
 
 namespace Web.Api.TestingAPI;
@@ -175,7 +173,7 @@ public class TestProdController : ControllerBase
         await _adGraphWrapper._graphClient.Subscriptions[emailconn.GraphSubscriptionId.ToString()].DeleteAsync();
         BackgroundJob.Delete(emailconn.SubsRenewalJobId);
         if (emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
-   
+
         await appDb.SaveChangesAsync();
         return Ok();
     }
