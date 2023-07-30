@@ -160,7 +160,8 @@ public class TestProdController : ControllerBase
     }
 
     /// <summary>
-    /// disables email automation for a broker
+    /// //notif analyzer should be able to handle when no connected emails exist
+        ////JUST MAKE SURE NO ACTION PLANS RUN
     /// </summary>
     /// <param name="key"></param>
     /// <param name="email"></param>
@@ -174,22 +175,14 @@ public class TestProdController : ControllerBase
         await _adGraphWrapper._graphClient.Subscriptions[emailconn.GraphSubscriptionId.ToString()].DeleteAsync();
         BackgroundJob.Delete(emailconn.SubsRenewalJobId);
         if (emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
-        var broker = await appDb.Brokers
-            .Include(b => b.RecurrentTasks).FirstAsync(b => b.Id == emailconn.BrokerId);
-        foreach (var item in broker.RecurrentTasks)
-        {
-            if (item is BrokerNotifAnalyzerTask)
-            {
-                RecurringJob.RemoveIfExists(item.HangfireTaskId);
-                broker.RecurrentTasks.Remove(item);
-            }
-        }
+   
         await appDb.SaveChangesAsync();
         return Ok();
     }
 
     /// <summary>
-    /// disables email automation for a broker
+    /// //notif analyzer should be able to handle when no connected emails exist
+        ////JUST MAKE SURE NO ACTION PLANS RUN
     /// </summary>
     /// <param name="key"></param>
     /// <param name="email"></param>
@@ -244,18 +237,7 @@ public class TestProdController : ControllerBase
 
         var brokerId = connectedEmail.BrokerId;
 
-        var recJobOptions = new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc };
-        var HangfireAnalyzerId = brokerId.ToString() + "Analyzer";
-        Random rnd = new Random();
-        var minute = rnd.Next(0, 59);
-        //analyzer every hour except between 2 and 4 montreal time
-        RecurringJob.AddOrUpdate<NotifAnalyzer>(HangfireAnalyzerId, a => a.AnalyzeNotifsAsync(brokerId, null, CancellationToken.None), $"{minute} 0-5,8-23 * * *", recJobOptions);
-        var recTask = new BrokerNotifAnalyzerTask
-        {
-            HangfireTaskId = HangfireAnalyzerId,
-            BrokerId = brokerId
-        };
-        appDb.Add(recTask);
+        //notif analyzer wasnt deleted
         await appDb.SaveChangesAsync();
         return Ok();
     }

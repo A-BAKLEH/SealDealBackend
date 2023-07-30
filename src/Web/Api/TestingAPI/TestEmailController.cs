@@ -494,7 +494,7 @@ public class TestEmailController : ControllerBase
     public async Task<IActionResult> DeleteSubsURL()
     {
         DateTimeOffset SubsEnds = DateTime.UtcNow + new TimeSpan(0, 4230, 0);
-        string emailBash = "bashar.eskandar@sealDeal.ca";
+        string emailBash = "bashar.eskandar@sealdeal.ca";
 
         _adGraphWrapper.CreateClient(tenantId);
         var Subs = await _adGraphWrapper._graphClient.Subscriptions.GetAsync();
@@ -506,18 +506,13 @@ public class TestEmailController : ControllerBase
         }
 
         var connectedEmails = await appDbContext1.ConnectedEmails
-            .Where(e => e.tenantId == tenantId)
+            .Where(e => e.tenantId == tenantId && e.Email == emailBash)
             .ToListAsync();
-        foreach (var e in connectedEmails)
-        {
-            e.SubsExpiryDate = null;
-            e.FirstSync = null;
-            e.LastSync = null;
-            e.SubsExpiryDate = null;
-            e.SyncScheduled = false;
-            e.SyncJobId = null;
-            e.GraphSubscriptionId = null;
-        }
+        var agency = await appDbContext1.Agencies
+            .Where(a => a.AzureTenantID == tenantId)
+            .FirstOrDefaultAsync();
+        if(agency != null) agency.HasAdminEmailConsent = false;
+        appDbContext1.RemoveRange(connectedEmails);
         await appDbContext1.SaveChangesAsync();
         return Ok();
     }

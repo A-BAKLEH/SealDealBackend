@@ -14,8 +14,8 @@ public static class ProblemDetailsTitles
     public const string ListingNotFound = "ListingNotFound";
     public const string ListingAlreadyAssigned = "ListingAlreadyAssigned";
 
-    public const string ActionPlanInactive = "ActionPlanInactive ";
-
+    public const string ActionPlanInactive = "ActionPlanInactive";
+    public const string ActionPlansActive = "workflow(s) active";
 
     //Email Connection
     public const string StartAdminConsentFlow = "start admin consent flow";

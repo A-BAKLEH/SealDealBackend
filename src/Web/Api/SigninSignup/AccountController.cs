@@ -50,6 +50,38 @@ public class AccountController : BaseApiController
         _GmailSection = config.GetSection("Gmail");
     }
 
+    [HttpDelete("DisconnectMsft/{email}")]
+    public async Task<IActionResult> DisconnectMsft(string email)
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive", TagConstants.Inactive);
+            return Forbid();
+        }
+        await _MSFTEmailQService.DisconnectEmailMsftAsync(id, email);
+
+        return Ok();
+    }
+
+    [HttpDelete("DisconnectGmail/{email}")]
+    public async Task<IActionResult> DisconnectGmail(string email)
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive", TagConstants.Inactive);
+            return Forbid();
+        }
+
+        await _gmailservice.DisconnectGmailAsync(id,email);
+        return Ok();
+    }
+
+
+
     [HttpGet("StripeInvoices")]
     public async Task<IActionResult> StripeInvoices()
     {

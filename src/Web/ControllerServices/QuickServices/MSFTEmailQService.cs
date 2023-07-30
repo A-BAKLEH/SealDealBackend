@@ -1,9 +1,11 @@
 ﻿using Core.Config.Constants.LoggingConstants;
 using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.BrokerAggregate.EmailConnection;
+using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Graph.DeviceManagement.RemoteAssistancePartners.Item.Disconnect;
 using Microsoft.Graph.Models.ODataErrors;
 using SharedKernel.Exceptions;
 using Web.Processing.EmailAutomation;
@@ -15,14 +17,35 @@ public class MSFTEmailQService
     private readonly AppDbContext _appDbContext;
     private readonly ILogger<MSFTEmailQService> _logger;
     private readonly EmailProcessor _emailProcessor;
-    public MSFTEmailQService(AppDbContext appDbContext, EmailProcessor emailProcessor, ADGraphWrapper aDGraph, IConfiguration config, ILogger<MSFTEmailQService> logger)
+    private ADGraphWrapper _aDGraphWrapper;
+    public MSFTEmailQService(AppDbContext appDbContext, ADGraphWrapper aDGraphWrapper, EmailProcessor emailProcessor, ADGraphWrapper aDGraph, IConfiguration config, ILogger<MSFTEmailQService> logger)
     {
         _appDbContext = appDbContext;
         _logger = logger;
         _emailProcessor = emailProcessor;
+        _aDGraphWrapper = aDGraphWrapper;
     }
 
+    public async Task DisconnectEmailMsftAsync(Guid brokerId, string email)
+    {
+        var connectedEmail = await _appDbContext.ConnectedEmails
+            .FirstOrDefaultAsync(e => e.BrokerId == brokerId && e.Email == email && e.isMSFT);
+        if (connectedEmail == null) throw new CustomBadRequestException(ProblemDetailsTitles.NotFound, $"Email {email} not connected to broker",404);
 
+        var ActionPlansRunning = await _appDbContext.ActionPlanAssociations
+            .Where(a => a.lead.BrokerId == brokerId && a.ThisActionPlanStatus == Core.Domain.ActionPlanAggregate.ActionPlanStatus.Running)
+            .AnyAsync();
+        if(ActionPlansRunning) throw new CustomBadRequestException(ProblemDetailsTitles.ActionPlansActive, $"Cannot disconnect email {email} while action plans are running", 403);
+
+        _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
+        await _aDGraphWrapper._graphClient.Subscriptions[connectedEmail.GraphSubscriptionId.ToString()].DeleteAsync();
+
+        BackgroundJob.Delete(connectedEmail.SubsRenewalJobId);
+        BackgroundJob.Delete(connectedEmail.SyncJobId);
+
+        _appDbContext.Remove(connectedEmail);
+        await _appDbContext.SaveChangesAsync();
+    }
     public async Task<dynamic> GetConnectedEmails(Guid brokerId)
     {
         var connectedEmails = await _appDbContext.ConnectedEmails

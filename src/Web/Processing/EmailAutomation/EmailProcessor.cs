@@ -1404,7 +1404,6 @@ public class EmailProcessor
             var messagesAfterPreicseCutoff = gmailMessages.Where(m => DateTimeOffset.FromUnixTimeMilliseconds(m.InternalDate.Value) >= originalLastPRocessedTimesTamp).ToList();
             if(messagesAfterPreicseCutoff == null || messagesAfterPreicseCutoff.Count == 0)
             {
-                _logger.LogWarning("no messages to process after gmail stupid filter");
                 goto FailedLabel;
             }
             var thisBatchReprocess = new List<GmailMessage>();

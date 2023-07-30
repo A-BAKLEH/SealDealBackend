@@ -1,13 +1,16 @@
-﻿using Core.Config.Constants.LoggingConstants;
+﻿using Azure.Core;
+using Core.Config.Constants.LoggingConstants;
 using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
 using Hangfire;
 using Hangfire.Server;
+using Humanizer;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
@@ -28,6 +31,40 @@ public class MyGmailQService
         _logger = logger;
         _httpClientFactory = httpClientFactory;
         _GmailSection = configuration.GetSection("Gmail");
+    }
+
+    public async Task DisconnectGmailAsync(Guid brokerId, string email)
+    {
+        var connectedEmail = await _appDbContext.ConnectedEmails
+           .FirstOrDefaultAsync(e => e.BrokerId == brokerId && e.Email == email && !e.isMSFT);
+        if (connectedEmail == null) throw new CustomBadRequestException(ProblemDetailsTitles.NotFound, $"Email {email} not connected to broker", 404);
+
+        var ActionPlansRunning = await _appDbContext.ActionPlanAssociations
+            .Where(a => a.lead.BrokerId == brokerId && a.ThisActionPlanStatus == Core.Domain.ActionPlanAggregate.ActionPlanStatus.Running)
+            .AnyAsync();
+        if (ActionPlansRunning) throw new CustomBadRequestException(ProblemDetailsTitles.ActionPlansActive, $"Cannot disconnect email {email} while action plans are running", 403);
+
+        await CallUnwatch(connectedEmail.Email, connectedEmail.BrokerId);
+
+        var jobIdRefresh = connectedEmail.TokenRefreshJobId;
+        BackgroundJob.Delete(jobIdRefresh);
+        BackgroundJob.Delete(connectedEmail.SyncJobId);
+        RecurringJob.RemoveIfExists(connectedEmail.SubsRenewalJobId);
+
+        var clientSecrets = new ClientSecrets
+        {
+            ClientId = _GmailSection["ClientId"],
+            ClientSecret = _GmailSection["ClientSecret"]
+        };
+        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        {
+            ClientSecrets = clientSecrets,
+        });
+
+        await flow.RevokeTokenAsync(connectedEmail.Email, connectedEmail.RefreshToken, CancellationToken.None);
+
+        _appDbContext.Remove(connectedEmail);
+        await _appDbContext.SaveChangesAsync();
     }
 
     public async Task RefreshAccessTokenAsync(string email, Guid brokerId, PerformContext performContext, CancellationToken cancellationToken)

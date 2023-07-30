@@ -13,6 +13,7 @@ using Microsoft.Graph.Models.ODataErrors;
 using Serilog.Context;
 using Web.Processing.EmailAutomation;
 using Web.RealTimeNotifs;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 using EventType = Core.Domain.NotificationAggregate.EventType;
 namespace Web.Processing.Analyzer;
 
@@ -73,6 +74,11 @@ public class NotifAnalyzer
             {
                 if (isMsft)
                 {
+                    if(convoId == null)
+                    {
+                        _logger.LogCritical("{tag} verify seen replied to convoId is null for message {messageId} and broker email {email}", TagConstants.checkSeenAndRepliedTo, messageId,brokerEmail);
+                        return new Tuple<bool, bool>(true, true);
+                    }
                     var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
                     var date = date1.ToString("o");
                     var messages = await graphServiceClient
@@ -115,9 +121,14 @@ public class NotifAnalyzer
         }
         catch (ODataError er)
         {
-            //TODO: log
             var error = er.Error;
             _logger.LogCritical("{tag} problem verifying seen replied to {error}", TagConstants.checkSeenAndRepliedTo, error.Code + " :" + error.Message);
+            return new Tuple<bool, bool>(true, true);
+        }
+        catch(Exception ex)
+        {
+            var error = ex;
+            _logger.LogCritical("{tag} problem verifying seen replied to {error}", TagConstants.checkSeenAndRepliedTo,error.Message);
             return new Tuple<bool, bool>(true, true);
         }
 
@@ -272,15 +283,22 @@ public class NotifAnalyzer
                 //    .Where(n => n.BrokerId == brokerId && n.isSeen == false && (((int)n.NotifType & Emailfilter) > 0))
                 //    .ToListAsync();
 
+
+                //TODO We Assume only 1 connected email for now
+                var brokerConnecteEmail = broker.ConnectedEmails.FirstOrDefault();
+                if(brokerConnecteEmail == null) goto AfterEmailsLabel;
+
                 var emailEvents = await dbcontext.EmailEvents
                     .Where(e => e.BrokerId == brokerId && e.TimeReceived > broker.EmailEventAnalyzerLastTimestamp)
                     .OrderBy(e => e.TimeReceived)
                     .ToListAsync();
 
+                //TODO remove this when moving from 1 connected Email
+                emailEvents = emailEvents.Where(e => e.BrokerEmail == brokerConnecteEmail.Email).ToList();
 
-                var emails = emailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
-
-                var brokerConnecteEmail = broker.ConnectedEmails.First();
+                //these are broker emails, we know at least one broker's connectedEmail exists here
+                var emails = emailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail)
+                    .Where(e => e == brokerConnecteEmail.Email); //TODO remove this when 1+ emails
 
                 //brokerEmail , GraphClient
                 var dict = new Dictionary<string, GraphServiceClient>();
@@ -326,6 +344,11 @@ public class NotifAnalyzer
                     .Where(e => e.BrokerId == brokerId && (!e.Seen || (e.Seen && e.NeedsAction && !e.RepliedTo)) && e.TimeReceived < timeToInclude)
                     .OrderBy(e => e.TimeReceived)
                     .ToListAsync();
+
+                //TODO remove this when 1+ emails
+                StillUnRepliedEmailEvents = StillUnRepliedEmailEvents.Where(e => e.BrokerEmail == brokerConnecteEmail.Email).ToList();
+                if(StillUnRepliedEmailEvents == null || !StillUnRepliedEmailEvents.Any()) goto AfterEmailsLabel;
+
                 emails = StillUnRepliedEmailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
                 if (isMsft)
                 {
@@ -428,6 +451,7 @@ public class NotifAnalyzer
                     }
                 }
 
+                AfterEmailsLabel:
 
                 //----------------------
                 var appeventFilterBiggerThanID = 0;
