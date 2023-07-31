@@ -171,7 +171,7 @@ public class TestProdController : ControllerBase
         var emailconn = await appDb.ConnectedEmails.FirstAsync(e => e.Email == email && e.isMSFT);
         _adGraphWrapper.CreateClient(emailconn.tenantId);
         await _adGraphWrapper._graphClient.Subscriptions[emailconn.GraphSubscriptionId.ToString()].DeleteAsync();
-        BackgroundJob.Delete(emailconn.SubsRenewalJobId);
+        if(emailconn.SubsRenewalJobId != null) BackgroundJob.Delete(emailconn.SubsRenewalJobId);
         if (emailconn.SyncJobId != null) BackgroundJob.Delete(emailconn.SyncJobId);
 
         await appDb.SaveChangesAsync();
@@ -193,8 +193,8 @@ public class TestProdController : ControllerBase
         await _myGmail.CallUnwatch(connEmail.Email, connEmail.BrokerId);
         //var jobIdRefresh = connEmail.TokenRefreshJobId; KEEP REFRESHING ACCESS TOKEN SO U CAN DO STUFF FROM FRONTEND
         //Hangfire.BackgroundJob.Delete(jobIdRefresh);
-        BackgroundJob.Delete(connEmail.SyncJobId);
-        RecurringJob.RemoveIfExists(connEmail.SubsRenewalJobId);
+        if(connEmail.SyncJobId != null) BackgroundJob.Delete(connEmail.SyncJobId);
+        if(connEmail.SubsRenewalJobId != null) RecurringJob.RemoveIfExists(connEmail.SubsRenewalJobId);
         return Ok();
     }
 

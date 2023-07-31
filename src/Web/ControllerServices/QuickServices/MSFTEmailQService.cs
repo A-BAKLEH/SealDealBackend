@@ -46,8 +46,8 @@ public class MSFTEmailQService
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         await _aDGraphWrapper._graphClient.Subscriptions[connectedEmail.GraphSubscriptionId.ToString()].DeleteAsync();
 
-        BackgroundJob.Delete(connectedEmail.SubsRenewalJobId);
-        BackgroundJob.Delete(connectedEmail.SyncJobId);
+        if(connectedEmail.SubsRenewalJobId != null) BackgroundJob.Delete(connectedEmail.SubsRenewalJobId);
+        if (connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
 
         _appDbContext.Remove(connectedEmail);
         await _appDbContext.SaveChangesAsync();

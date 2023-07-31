@@ -47,9 +47,9 @@ public class MyGmailQService
         await CallUnwatch(connectedEmail.Email, connectedEmail.BrokerId);
 
         var jobIdRefresh = connectedEmail.TokenRefreshJobId;
-        BackgroundJob.Delete(jobIdRefresh);
-        BackgroundJob.Delete(connectedEmail.SyncJobId);
-        RecurringJob.RemoveIfExists(connectedEmail.SubsRenewalJobId);
+        if(jobIdRefresh != null) BackgroundJob.Delete(jobIdRefresh);
+        if(connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
+        if(connectedEmail.SubsRenewalJobId != null)  RecurringJob.RemoveIfExists(connectedEmail.SubsRenewalJobId);
 
         var clientSecrets = new ClientSecrets
         {
