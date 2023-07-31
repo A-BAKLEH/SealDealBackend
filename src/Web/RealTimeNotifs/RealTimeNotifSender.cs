@@ -48,7 +48,7 @@ public class RealTimeNotifSender
                     .SendAsync("ReceiveMessage", "0");
                 return;
             }
-            else //appEvents and emailEvents
+            else if((appEvents != null && appEvents.Any()) || (emailEvents != null && emailEvents.Any()))//appEvents and emailEvents
             {
                 await _hubContext.Clients.User(brokerId.ToString())
                     .SendAsync("ReceiveMessage", "1");
@@ -75,6 +75,7 @@ public class RealTimeNotifSender
                 //    //update normalTable, give count of distinctIDs to backend
                 //}
             }
+            else { } //no notifs
         }
         // FOR NOW IGNORE PUSH NOTIFS    
         catch (Exception ex)

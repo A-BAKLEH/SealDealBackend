@@ -104,7 +104,7 @@ public enum EventType
     /// <summary>
     /// email from lead unseen for > 1 hour
     /// </summary>
-    UnSeenEmail = 1 << 20,
+    UnSeenEmail = 1 << 20,   //1048576
     /// <summary>
     /// Seen && ReplyNeeded && Unreplied-to emails from leads for 2 > hours
     /// </summary>
@@ -112,7 +112,7 @@ public enum EventType
     /// <summary>
     /// Unseen NewLead appEvent for > 15 mins
     /// </summary>
-    UnseenNewLead = 1 << 22,
+    UnseenNewLead = 1 << 22,  //4194304
 
     /// <summary>
     /// for admin when manually/automation creates a lead and lead is unassigned for > 1 hour

@@ -47,7 +47,7 @@ public class NotificationService
         using var NotifContext = _contextFactory.CreateDbContext();
 
         var brokerTask = AppEventsContext.Brokers
-            .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo, b.TimeZoneId })
+            .Select(b => new { b.Id, b.isAdmin, b.isSolo, b.TimeZoneId })
             .FirstAsync(b => b.Id == brokerId);
 
         var leadTask = AppEventsContext.Leads
@@ -177,7 +177,7 @@ public class NotificationService
         using var NotifContext = _contextFactory.CreateDbContext();
 
         var broker = await AppEventsContext.Brokers
-            .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo, b.TimeZoneId })
+            .Select(b => new { b.Id, b.isAdmin, b.isSolo, b.TimeZoneId })
             .FirstAsync(b => b.Id == brokerId);
 
         var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted;
@@ -334,7 +334,7 @@ public class NotificationService
         using var EmailEventsContext = _contextFactory.CreateDbContext();
 
         var broker = await AppEventsContext.Brokers
-            .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo, b.TimeZoneId })
+            .Select(b => new { b.Id, b.isAdmin, b.isSolo, b.TimeZoneId })
             .FirstAsync(b => b.Id == brokerId);
 
         var NormalTableFlags = EventType.LeadAssignedToYou | EventType.LeadStatusChange | EventType.ActionPlanFinished | EventType.ActionPlanStarted;
@@ -488,7 +488,7 @@ public class NotificationService
             })
             .ToListAsync();
         var broker = await NotifContext.Brokers
-           .Select(b => new { b.Id, b.LastSeenAppEventId, b.isAdmin, b.isSolo })
+           .Select(b => new { b.Id, b.isAdmin, b.isSolo })
            .FirstAsync(b => b.Id == brokerId);
 
         var CompleteDashboardDTO = new CompleteDashboardDTO

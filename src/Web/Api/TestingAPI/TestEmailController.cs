@@ -141,7 +141,6 @@ public class TestEmailController : ControllerBase
         var broker = await appDbContext1.Brokers
             .Include(b => b.EmailEvents)
             .FirstOrDefaultAsync(b => b.Id == brokerId);
-        broker.LastSeenAppEventId = 0;
         broker.AppEventAnalyzerLastId = 0;
         broker.LastUnassignedLeadIdAnalyzed = 0;
         broker.EmailEventAnalyzerLastTimestamp = DateTime.MinValue;

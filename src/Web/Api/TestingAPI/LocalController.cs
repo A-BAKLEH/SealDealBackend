@@ -1,6 +1,7 @@
 ﻿using Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Web.Config;
+using Web.ControllerServices.QuickServices;
 
 namespace Web.Api.TestingAPI;
 
@@ -11,11 +12,13 @@ public class LocalController : ControllerBase
 {
     private readonly ILogger<LocalController> _logger;
     private readonly AppDbContext _dbcontext;
+    private readonly MSFTEmailQService _MSFTEmailQService;
 
-    public LocalController(ILogger<LocalController> logger, AppDbContext appDbContext)
+    public LocalController(ILogger<LocalController> logger,MSFTEmailQService mSFTEmailQService, AppDbContext appDbContext)
     {
         _logger = logger;
         _dbcontext = appDbContext;
+        _MSFTEmailQService = mSFTEmailQService;
     }
 
     [HttpGet]
@@ -25,18 +28,13 @@ public class LocalController : ControllerBase
         return Ok(count);
     }
 
-    //[HttpGet("fixLeadStatuses")]
-    //public async Task<IActionResult> FixLeadStatus()
-    //{
-    //    var appEvent = await _dbcontext.AppEvents.FirstAsync(e => e.Id == 89);
-    //    appEvent.Props["OldLeadStatus"] = "Hot";
-    //    _dbcontext.Entry(appEvent).State = EntityState.Modified;
-    //    _dbcontext.Entry(appEvent).Property(e => e.Props).IsModified = true;
-    //    await _dbcontext.SaveChangesAsync();
-    //    await _dbcontext.Database.ExecuteSqlRawAsync
-    //        (
-    //          "UPDATE \"Leads\" SET \"LeadStatus\"='Hot' Where \"LeadStatus\"='New';"
-    //        );
-    //    return Ok();
-    //}
+    [HttpDelete("DisconnectMsftLocal")]
+    public async Task<IActionResult> DisconnectMsftLocal()
+    {
+        string email = "bashar.eskandar@sealdeal.ca";
+        var id = Guid.Parse("88cc3a73-2e82-42ba-b86a-7396af053cce");
+        await _MSFTEmailQService.DisconnectEmailMsftAsync(id, email);
+
+        return Ok();
+    }
 }

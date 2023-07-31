@@ -41,6 +41,7 @@ public class MSFTEmailQService
             .FirstAsync(b => b.Id == brokerId);
         //TODO later change when we have more than solo brokers
         broker.Agency.HasAdminEmailConsent = false;
+        broker.Agency.AzureTenantID = null;
 
         _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
         await _aDGraphWrapper._graphClient.Subscriptions[connectedEmail.GraphSubscriptionId.ToString()].DeleteAsync();

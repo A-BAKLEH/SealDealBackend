@@ -13,7 +13,6 @@ using Microsoft.Graph.Models.ODataErrors;
 using Serilog.Context;
 using Web.Processing.EmailAutomation;
 using Web.RealTimeNotifs;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using EventType = Core.Domain.NotificationAggregate.EventType;
 namespace Web.Processing.Analyzer;
 
@@ -74,9 +73,9 @@ public class NotifAnalyzer
             {
                 if (isMsft)
                 {
-                    if(convoId == null)
+                    if (convoId == null)
                     {
-                        _logger.LogCritical("{tag} verify seen replied to convoId is null for message {messageId} and broker email {email}", TagConstants.checkSeenAndRepliedTo, messageId,brokerEmail);
+                        _logger.LogCritical("{tag} verify seen replied to convoId is null for message {messageId} and broker email {email}", TagConstants.checkSeenAndRepliedTo, messageId, brokerEmail);
                         return new Tuple<bool, bool>(true, true);
                     }
                     var date1 = DateTimeOffset.UtcNow - TimeSpan.FromDays(200);
@@ -125,10 +124,10 @@ public class NotifAnalyzer
             _logger.LogCritical("{tag} problem verifying seen replied to {error}", TagConstants.checkSeenAndRepliedTo, error.Code + " :" + error.Message);
             return new Tuple<bool, bool>(true, true);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             var error = ex;
-            _logger.LogCritical("{tag} problem verifying seen replied to {error}", TagConstants.checkSeenAndRepliedTo,error.Message);
+            _logger.LogCritical("{tag} problem verifying seen replied to {error}", TagConstants.checkSeenAndRepliedTo, error.Message);
             return new Tuple<bool, bool>(true, true);
         }
 
@@ -256,7 +255,7 @@ public class NotifAnalyzer
                     _logger.LogWarning("{tag} broker {brokerId} does not exist", "analyzer", brokerId);
                     return;
                 }
-                if(broker.EmailEventAnalyzerLastTimestamp < broker.Created )
+                if (broker.EmailEventAnalyzerLastTimestamp < broker.Created)
                 {
                     broker.EmailEventAnalyzerLastTimestamp = broker.Created;
                 }
@@ -265,8 +264,8 @@ public class NotifAnalyzer
                 var FstNotifyTrueAndUnseenEvent = await dbcontext.AppEvents
                     .Select(e => new { e.Id, e.BrokerId, e.NotifyBroker, e.ReadByBroker })
                     .OrderBy(e => e.Id)
-                    .FirstOrDefaultAsync(e => e.Id >= broker.LastSeenAppEventId && e.BrokerId == brokerId && e.NotifyBroker == true && e.ReadByBroker == false);
-                var NewLastSeenAppEventId = FstNotifyTrueAndUnseenEvent?.Id ?? 0;
+                    .FirstOrDefaultAsync(e => e.Id > broker.AppEventAnalyzerLastId && e.BrokerId == brokerId && e.NotifyBroker == true && e.ReadByBroker == false);
+                int? FstNotifyTrueAndUnseenEventId = FstNotifyTrueAndUnseenEvent?.Id;
                 /*
                 2)   Unseen emails from leads check graph API to verify they still unseen , notify if
                 unseen for 1 > hours (priority 2)
@@ -286,7 +285,7 @@ public class NotifAnalyzer
 
                 //TODO We Assume only 1 connected email for now
                 var brokerConnecteEmail = broker.ConnectedEmails.FirstOrDefault();
-                if(brokerConnecteEmail == null) goto AfterEmailsLabel;
+                if (brokerConnecteEmail == null) goto AfterEmailsLabel;
 
                 var emailEvents = await dbcontext.EmailEvents
                     .Where(e => e.BrokerId == brokerId && e.TimeReceived > broker.EmailEventAnalyzerLastTimestamp)
@@ -347,7 +346,7 @@ public class NotifAnalyzer
 
                 //TODO remove this when 1+ emails
                 StillUnRepliedEmailEvents = StillUnRepliedEmailEvents.Where(e => e.BrokerEmail == brokerConnecteEmail.Email).ToList();
-                if(StillUnRepliedEmailEvents == null || !StillUnRepliedEmailEvents.Any()) goto AfterEmailsLabel;
+                if (StillUnRepliedEmailEvents == null || !StillUnRepliedEmailEvents.Any()) goto AfterEmailsLabel;
 
                 emails = StillUnRepliedEmailEvents.DistinctBy(e => e.BrokerEmail).Select(e => e.BrokerEmail);
                 if (isMsft)
@@ -375,11 +374,6 @@ public class NotifAnalyzer
                         {
                             resT = await CheckSeenAndRepliedToAsync(isMsft ? dict[unrepliedEmail.BrokerEmail] : null, isMsft ? null : _GmailService,
                                 unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, true, false);
-                            if (resT == null)
-                            {
-                                dbcontext.Remove(unrepliedEmail);
-                                continue;
-                            }
                             var existingNotifs = await dbcontext.Notifs
                                 .Where(n => n.BrokerId == brokerId && n.LeadId == unrepliedEmail.LeadId && !n.isSeen && n.NotifType == EventType.UnSeenEmail && n.EventId == unrepliedEmail.Id)
                                 .ToListAsync();
@@ -395,7 +389,7 @@ public class NotifAnalyzer
                                     }
                                 }
                             }
-                            else //not seen, doesnt need action
+                            else if(!existingNotifs.Any()) //not seen, might or might not need action, only create UnSeen notif if there is no notif Unseen now
                             {
                                 notifs.Add(
                                     new Notif
@@ -413,11 +407,6 @@ public class NotifAnalyzer
                         else //seen and needs Action and not replied to
                         {
                             resT = await CheckSeenAndRepliedToAsync(isMsft ? dict[unrepliedEmail.BrokerEmail] : null, isMsft ? null : _GmailService, unrepliedEmail.BrokerEmail, unrepliedEmail.Id, unrepliedEmail.ConversationId, false, true);
-                            if (resT == null)
-                            {
-                                dbcontext.Remove(unrepliedEmail);
-                                continue;
-                            }
                             var existingNotif = await dbcontext.Notifs.FirstOrDefaultAsync(n => n.BrokerId == brokerId && n.LeadId == unrepliedEmail.LeadId && !n.isSeen && n.NotifType == EventType.UnrepliedEmail && n.EventId == unrepliedEmail.Id);
                             //replied to
                             if (resT.Item2)
@@ -451,13 +440,14 @@ public class NotifAnalyzer
                     }
                 }
 
-                AfterEmailsLabel:
+            AfterEmailsLabel:
 
                 //----------------------
                 var appeventFilterBiggerThanID = 0;
-                if (broker.AppEventAnalyzerLastId > NewLastSeenAppEventId || broker.AppEventAnalyzerLastId == NewLastSeenAppEventId) appeventFilterBiggerThanID = broker.AppEventAnalyzerLastId;
-                else appeventFilterBiggerThanID = NewLastSeenAppEventId - 1;
-                if (appeventFilterBiggerThanID < 0) appeventFilterBiggerThanID = 0;
+                if (FstNotifyTrueAndUnseenEventId != null) appeventFilterBiggerThanID = (int)FstNotifyTrueAndUnseenEventId - 1;
+                else appeventFilterBiggerThanID = broker.AppEventAnalyzerLastId;
+                if (appeventFilterBiggerThanID < 0) appeventFilterBiggerThanID = 0; //probably never necessary
+                broker.AppEventAnalyzerLastId = appeventFilterBiggerThanID; //its updated to FstNotifyTrueAndUnseenEventId or stays the same
 
                 int leadAssignedToYou = (int)EventType.LeadAssignedToYou;
                 var UnseenLeadAssignedEventsToAnalyze = await dbcontext.AppEvents
@@ -471,14 +461,14 @@ public class NotifAnalyzer
                 {
                     return;
                 }
-                var currHighestAnalyzedAppEventId = 0;
+
                 UnseenLeadAssignedEventsToAnalyze.ForEach(e =>
                 {
                     //unseen LeadAssigned events > 15 mins
                     if (e.EventTimeStamp <= TimeNow - TimeSpan.FromMinutes(15))
                     //if (e.EventTimeStamp <= TimeNow - TimeSpan.FromSeconds(1))
                     {
-                        currHighestAnalyzedAppEventId = e.Id;
+                        broker.AppEventAnalyzerLastId = e.Id; //updated every time cuz they ordered ASC
                         notifs.Add(new Notif
                         {
                             BrokerId = brokerId,
@@ -525,8 +515,6 @@ public class NotifAnalyzer
                         broker.LastUnassignedLeadIdAnalyzed = unassignedCreatedLeads.Last().Id;
                 }
 
-                broker.LastSeenAppEventId = NewLastSeenAppEventId;
-                broker.AppEventAnalyzerLastId = currHighestAnalyzedAppEventId;
                 dbcontext.Notifs.AddRange(notifs);
                 if (cancellationToken.IsCancellationRequested)
                 {
