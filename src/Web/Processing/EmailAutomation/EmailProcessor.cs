@@ -292,7 +292,7 @@ public class EmailProcessor
                         });
 
         var IDsALLToReprocessMailsThisRun = new List<string>();
-        if (messages.Value.Any())
+        if (messages != null && messages.Value != null && messages.Value.Any())
         {
             bool first = true;
             do
@@ -308,7 +308,8 @@ public class EmailProcessor
                     messages = await _aDGraphWrapper._graphClient.RequestAdapter.SendAsync(nextPageRequestInformation, (parseNode) => new MessageCollectionResponse());
                 }
                 first = false;
-                //process messages                  
+                //process messages
+                if (messages == null || messages.Value == null || !messages.Value.Any()) break;
                 var messagesList = messages.Value;
 
                 refDTO.LastProcessedTimestamp = (DateTimeOffset)messagesList.Last().ReceivedDateTime;
@@ -333,6 +334,7 @@ public class EmailProcessor
         }
         //these would INCLUDE this run's failed messages
         var failedMessages1 = await GetFailedMessagesMsft(brokerDTO.BrokerEmail, cancellationToken);
+        if (failedMessages1 == null) failedMessages1 = new List<MsftMessage>(1);
         var failedMessagesToProcess = failedMessages1.Where(failed => !IDsALLToReprocessMailsThisRun.Contains(failed.Id)).ToList();
         if (failedMessagesToProcess != null && failedMessagesToProcess.Count > 0)
         {
