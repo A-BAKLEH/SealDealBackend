@@ -76,11 +76,9 @@ public class AccountController : BaseApiController
             return Forbid();
         }
 
-        await _gmailservice.DisconnectGmailAsync(id,email);
+        await _gmailservice.DisconnectGmailAsync(id, email);
         return Ok();
     }
-
-
 
     [HttpGet("StripeInvoices")]
     public async Task<IActionResult> StripeInvoices()

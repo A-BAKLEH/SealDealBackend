@@ -5,7 +5,6 @@ using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph.DeviceManagement.RemoteAssistancePartners.Item.Disconnect;
 using Microsoft.Graph.Models.ODataErrors;
 using SharedKernel.Exceptions;
 using Web.Processing.EmailAutomation;
@@ -30,12 +29,12 @@ public class MSFTEmailQService
     {
         var connectedEmail = await _appDbContext.ConnectedEmails
             .FirstOrDefaultAsync(e => e.BrokerId == brokerId && e.Email == email && e.isMSFT);
-        if (connectedEmail == null) throw new CustomBadRequestException(ProblemDetailsTitles.NotFound, $"Email {email} not connected to broker",404);
+        if (connectedEmail == null) throw new CustomBadRequestException(ProblemDetailsTitles.NotFound, $"Email {email} not connected to broker", 404);
 
         var ActionPlansRunning = await _appDbContext.ActionPlanAssociations
             .Where(a => a.lead.BrokerId == brokerId && a.ThisActionPlanStatus == Core.Domain.ActionPlanAggregate.ActionPlanStatus.Running)
             .AnyAsync();
-        if(ActionPlansRunning) throw new CustomBadRequestException(ProblemDetailsTitles.ActionPlansActive, $"Cannot disconnect email {email} while action plans are running", 403);
+        if (ActionPlansRunning) throw new CustomBadRequestException(ProblemDetailsTitles.ActionPlansActive, $"Cannot disconnect email {email} while action plans are running", 403);
 
         var broker = await _appDbContext.Brokers.Include(b => b.Agency)
             .FirstAsync(b => b.Id == brokerId);
@@ -43,11 +42,23 @@ public class MSFTEmailQService
         broker.Agency.HasAdminEmailConsent = false;
         broker.Agency.AzureTenantID = null;
 
-        _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
-        await _aDGraphWrapper._graphClient.Subscriptions[connectedEmail.GraphSubscriptionId.ToString()].DeleteAsync();
+        try //if admin consent not given
+        {
+            _aDGraphWrapper.CreateClient(connectedEmail.tenantId);
+            await _aDGraphWrapper._graphClient.Subscriptions[connectedEmail.GraphSubscriptionId.ToString()].DeleteAsync();
+        }
+        catch (Exception ex)
+        { }
 
-        if(connectedEmail.SubsRenewalJobId != null) BackgroundJob.Delete(connectedEmail.SubsRenewalJobId);
-        if (connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
+        try
+        {
+            if (connectedEmail.SubsRenewalJobId != null) BackgroundJob.Delete(connectedEmail.SubsRenewalJobId);
+            if (connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
+        }
+        catch (Exception ex)
+        {
+
+        }
 
         _appDbContext.Remove(connectedEmail);
         await _appDbContext.SaveChangesAsync();
