@@ -585,7 +585,7 @@ public class EmailProcessor
             leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.Hot,
-            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true } },
+            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true }},
             Language = lang,
         };
         lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = brokerDTO.brokerFirstName + " " + brokerDTO.brokerLastName;
@@ -907,10 +907,12 @@ public class EmailProcessor
             {
                 var Newlead = LeadProviderDBRecordsTask.Item1.Result.Lead;
                 bool exists = false;
-                //only relevant for admins
-                if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
+                //only relevant for admins, unassigned lead
+                //check if exists in agency
+                //if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 //relevant for brokers and admins who assigned lead to another broker or themselve
-                else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                //else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
@@ -941,9 +943,10 @@ public class EmailProcessor
                 var Newlead = UnknownDBRecordsTask.Item1.Result.Lead;
                 bool exists = false;
                 //only relevant for admins
-                if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
+                //if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 //relevant for brokers and admins who assigned lead to another broker or themselve
-                else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                //else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
@@ -1094,6 +1097,9 @@ public class EmailProcessor
                 _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Error.Message + ": " + ex.Error.Code);
             }
         }));
+        //TODO if neabled, forward all emails from leads to assigned brokers
+
+
         //mark the messages that failed with tag ReprocessMessageId"
         await TagFailedMessagesMSFT(ReprocessMessages, brokerDTO.BrokerEmail);
 
@@ -1716,9 +1722,10 @@ public class EmailProcessor
                 var Newlead = LeadProviderDBRecordsTask.Item1.Result.Lead;
                 bool exists = false;
                 //only relevant for admins
-                if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
+                //if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 //relevant for brokers and admins who assigned lead to another broker or themselve
-                else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                //else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
@@ -1749,9 +1756,10 @@ public class EmailProcessor
                 var Newlead = UnknownDBRecordsTask.Item1.Result.Lead;
                 bool exists = false;
                 //only relevant for admins
-                if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
+                //if (Newlead.BrokerId == null) exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 //relevant for brokers and admins who assigned lead to another broker or themselve
-                else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                //else exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.BrokerId == Newlead.BrokerId);
+                exists = await localdbContext.LeadEmails.AnyAsync(e => e.EmailAddress == Newlead.LeadEmails.First().EmailAddress && e.Lead.AgencyId == brokerDTO.AgencyId);
                 if (!exists)
                 {
                     localdbContext.Leads.Add(Newlead);
@@ -1915,6 +1923,8 @@ public class EmailProcessor
                 _logger.LogError("{tag} adding 'leadExtracted' email category error: {Error}", TagConstants.emailCategory, ex.Message);
             }
         }
+        //TODO if neabled, forward all emails from leads to assigned brokers
+
 
         //mark the messages that failed with tag ReprocessMessageId"
         await TagFailedMessagesGMAIL(ReprocessMessages, labels);

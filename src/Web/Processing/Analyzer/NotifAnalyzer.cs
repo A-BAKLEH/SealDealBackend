@@ -67,7 +67,6 @@ public class NotifAnalyzer
                     if (mess == null) return new Tuple<bool, bool>(true, true); //for deleted messages
                     return new Tuple<bool, bool>(!mess.LabelIds.Contains("UNREAD"), false);
                 }
-
             }
             else
             {
