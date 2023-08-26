@@ -291,10 +291,17 @@ public class TestEmailController : ControllerBase
         var text = messages[index].Body.Content;
         //text = EmailReducer.Reduce(text, "lead@realtor.ca");
         //var text = messages.Find(m => m.Id == "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAi4j1NAAA").Body.Content;
+
+        text = EmailReducer.Reduce(text, "Lead@realtor.ca");
+
         var length = text.Length;
-        var input = APIConstants.MyNameIs + "bashar eskandar" + APIConstants.IamBrokerWithEmail + "bashar.eskandar@sealdeal.ca"
-            + APIConstants.VeryStrictGPTPrompt + text;
-        
+        //var input = APIConstants.MyNameIs + "bashar eskandar" + APIConstants.IamBrokerWithEmail + "bashar.eskandar@sealdeal.ca"
+        //+ APIConstants.VeryStrictGPTPrompt + text;
+
+        var input =
+            APIConstants.VeryStrictGPTPrompt + text;
+
+
         string prompt = input;
 
         StringContent jsonContent = new(
@@ -454,19 +461,19 @@ public class TestEmailController : ControllerBase
           .MailFolders["Inbox"]
           .Messages[emailId]
           .GetAsync(opts => opts.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" }));
-         
-          //  var messages1 = await _adGraphWrapper._graphClient
-          //.Users["bashar.eskandar@sealdeal.ca"]
-          //.MailFolders["Inbox"]
-          //.Messages
-          //.GetAsync(config =>
-          //{
-          //    config.QueryParameters.Filter = $"id eq '{emailId}'";
-          //    config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
-          //});
-          //  var messages = messages1.Value;
+
+            //  var messages1 = await _adGraphWrapper._graphClient
+            //.Users["bashar.eskandar@sealdeal.ca"]
+            //.MailFolders["Inbox"]
+            //.Messages
+            //.GetAsync(config =>
+            //{
+            //    config.QueryParameters.Filter = $"id eq '{emailId}'";
+            //    config.Headers.Add("Prefer", new string[] { "IdType=\"ImmutableId\"", "outlook.body-content-type=\"text\"" });
+            //});
+            //  var messages = messages1.Value;
         }
-        catch(ODataError er)
+        catch (ODataError er)
         {
 
         }
@@ -510,7 +517,7 @@ public class TestEmailController : ControllerBase
         var agency = await appDbContext1.Agencies
             .Where(a => a.AzureTenantID == tenantId)
             .FirstOrDefaultAsync();
-        if(agency != null) agency.HasAdminEmailConsent = false;
+        if (agency != null) agency.HasAdminEmailConsent = false;
         appDbContext1.RemoveRange(connectedEmails);
         await appDbContext1.SaveChangesAsync();
         return Ok();
