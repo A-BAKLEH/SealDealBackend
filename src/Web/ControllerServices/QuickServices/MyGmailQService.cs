@@ -1,19 +1,17 @@
-﻿using Azure.Core;
-using Core.Config.Constants.LoggingConstants;
+﻿using Core.Config.Constants.LoggingConstants;
 using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
-using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
 using Hangfire;
 using Hangfire.Server;
-using Humanizer;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
+using Web.Constants;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -23,14 +21,16 @@ public class MyGmailQService
     private readonly ILogger<MyGmailQService> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfigurationSection _GmailSection;
+    private readonly IWebHostEnvironment webHostEnvironment;
     public MyGmailQService(AppDbContext appDbContext, ILogger<MyGmailQService> logger,
         IConfiguration configuration
-        , IHttpClientFactory httpClientFactory)
+        , IHttpClientFactory httpClientFactory, IWebHostEnvironment hostEnvironment)
     {
         _appDbContext = appDbContext;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
         _GmailSection = configuration.GetSection("Gmail");
+        webHostEnvironment = hostEnvironment;
     }
 
     public async Task DisconnectGmailAsync(Guid brokerId, string email)
@@ -47,9 +47,9 @@ public class MyGmailQService
         await CallUnwatch(connectedEmail.Email, connectedEmail.BrokerId);
 
         var jobIdRefresh = connectedEmail.TokenRefreshJobId;
-        if(jobIdRefresh != null) BackgroundJob.Delete(jobIdRefresh);
-        if(connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
-        if(connectedEmail.SubsRenewalJobId != null)  RecurringJob.RemoveIfExists(connectedEmail.SubsRenewalJobId);
+        if (jobIdRefresh != null) BackgroundJob.Delete(jobIdRefresh);
+        if (connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
+        if (connectedEmail.SubsRenewalJobId != null) RecurringJob.RemoveIfExists(connectedEmail.SubsRenewalJobId);
 
         var clientSecrets = new ClientSecrets
         {
@@ -230,15 +230,17 @@ public class MyGmailQService
             GoogleCredential cred = GoogleCredential.FromAccessToken(accessToken);
             GmailService service = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
 
-            var watchResult = await service.Users.Watch(new WatchRequest
+            if (!webHostEnvironment.IsDevelopment() || GlobalControl.TestModeConnectGmailWebhook)
             {
-                LabelFilterBehavior = "INCLUDE",
-                LabelIds = new[] { "INBOX" },
-                TopicName = $"projects/{projectId}/topics/{topicName}"
-            },
-            "me")
+                var watchResult = await service.Users.Watch(new WatchRequest
+                {
+                    LabelFilterBehavior = "INCLUDE",
+                    LabelIds = new[] { "INBOX" },
+                    TopicName = $"projects/{projectId}/topics/{topicName}"
+                }, "me")
                 .ExecuteAsync();
-            connectedEmail.historyId = watchResult.HistoryId?.ToString();
+                connectedEmail.historyId = watchResult.HistoryId?.ToString();
+            }
 
             //TODO await dummy function that creates labels
             await createLabelsAsync(email, brokerId, accessToken);
@@ -255,12 +257,15 @@ public class MyGmailQService
             var hour = TimeNow.Hour;
             var minute = TimeNow.Minute;
             if (hour == 6 || hour == 7) hour = 1;
-            RecurringJob.AddOrUpdate<MyGmailQService>(WebhooksubscriptionRenewalJobId,
+
+            if (!webHostEnvironment.IsDevelopment() || GlobalControl.TestModeConnectGmailWebhook)
+            {
+                RecurringJob.AddOrUpdate<MyGmailQService>(WebhooksubscriptionRenewalJobId,
                 a => a.CallWatch(email, brokerId), $"{minute} {hour} * * *", recJobOptions);
-            connectedEmail.SubsRenewalJobId = WebhooksubscriptionRenewalJobId;
+                connectedEmail.SubsRenewalJobId = WebhooksubscriptionRenewalJobId;
+            }
 
             //any other params that needs to be set in the future
-
             await _appDbContext.SaveChangesAsync();
         }
         catch (Exception ex)

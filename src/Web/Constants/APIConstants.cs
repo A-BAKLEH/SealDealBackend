@@ -44,8 +44,8 @@ public class APIConstants
         "lastName,phoneNumber,emailAddress,PropertyAddress,StreetAddress,Apartment,Language. Use 'null' for values that do not exist in the email text," +
         " except the Language. Also use 'null' for values that you are not >95% confident about. If the email message is not about a new lead and therefore" +
         " not of interest to me, output exactly '{\"NotFound\":1}'.For example, if the email message is about a new lead, but this lead's email address" +
-        "is not mentioned, then the value for key 'emailAddress' in your response shoud be 'null'. If the email message is about a communication,news letter,event or" +
-        "advertisement that relates to real-estate, then it does not interest me and you should again output '{\"NotFound\":1}'." +
+        " is not mentioned, then the value for key 'emailAddress' in your response shoud be 'null'. If the email message is about a communication,news letter,event or" +
+        " advertisement that relates to real-estate, then it does not interest me and you should again output '{\"NotFound\":1}'." +
         " Here is the email message I received: ";
 
     public const string TranslateTemplatePrompt = "If the following email template is in French, translate it to" +

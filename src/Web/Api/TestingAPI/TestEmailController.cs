@@ -292,7 +292,7 @@ public class TestEmailController : ControllerBase
         //text = EmailReducer.Reduce(text, "lead@realtor.ca");
         //var text = messages.Find(m => m.Id == "AAkALgAAAAAAHYQDEapmEc2byACqAC-EWg0AWW0FUfk1WUy6HUjP72bwXgAAi4j1NAAA").Body.Content;
 
-        text = EmailReducer.Reduce(text, "Lead@realtor.ca");
+        text = EmailReducer.Reduce(text, "Lead@realtor.ca",true);
 
         var length = text.Length;
         //var input = APIConstants.MyNameIs + "bashar eskandar" + APIConstants.IamBrokerWithEmail + "bashar.eskandar@sealdeal.ca"

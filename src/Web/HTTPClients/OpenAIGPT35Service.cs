@@ -1,12 +1,10 @@
 ﻿using Core.Config.Constants.LoggingConstants;
-using Microsoft.Graph.Models;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Web.Config;
 using Web.Constants;
 using static Web.Processing.EmailAutomation.EmailProcessor;
-using GmailMessage = Google.Apis.Gmail.v1.Data.Message;
 using MsftMessage = Microsoft.Graph.Models.Message;
 
 namespace Web.HTTPClients;
@@ -15,7 +13,8 @@ public class OpenAIGPT35Service
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<OpenAIGPT35Service> _logger;
-    public OpenAIGPT35Service(HttpClient httpClient, IConfiguration config, ILogger<OpenAIGPT35Service> logger)
+    private readonly IWebHostEnvironment _webHostEnvironment;
+    public OpenAIGPT35Service(HttpClient httpClient, IConfiguration config,IWebHostEnvironment webHostEnvironment , ILogger<OpenAIGPT35Service> logger)
     {
         var key = config.GetSection("OpenAI")["APIKey"];
         _httpClient = httpClient;
@@ -23,6 +22,7 @@ public class OpenAIGPT35Service
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         _logger = logger;
+        _webHostEnvironment = webHostEnvironment;
     }
 
     public async Task<string> TranslateSubjectAsync(string subject, string targetLanguage)
@@ -130,7 +130,7 @@ public class OpenAIGPT35Service
     /// <param name="emailbody"></param>
     /// <param name="leadProvider"></param>
     /// <returns></returns>
-    public async Task<OpenAIResponse?> ParseEmailAsync(MsftMessage? msftMessage, GmailMessageDecoded? gmailMessage ,string brokerEmail, string brokerFirstName, string brokerLastName, bool FromLeadProvider = false)
+    public async Task<OpenAIResponse?> ParseEmailAsync(MsftMessage? msftMessage, GmailMessageDecoded? gmailMessage, string brokerEmail, string brokerFirstName, string brokerLastName, bool FromLeadProvider = false)
     {
         OpenAIResponse res;
         int length = 0;
@@ -139,7 +139,7 @@ public class OpenAIGPT35Service
         try
         {
             string text = "";
-            if(gmailMessage == null)
+            if (gmailMessage == null)
             {
                 text = msftMessage.Body.Content;
             }
@@ -148,8 +148,9 @@ public class OpenAIGPT35Service
                 text = gmailMessage.textBody;
             }
             sender = gmailMessage?.From ?? msftMessage?.From.EmailAddress.Address;
-            text = EmailReducer.Reduce(text, sender);
+            text = EmailReducer.Reduce(text, sender, _webHostEnvironment.IsDevelopment());
             length = text.Length;
+            text = text.Substring(1000);
 
             var input = APIConstants.MyNameIs + brokerFirstName + " " + brokerLastName + APIConstants.IamBrokerWithEmail
                 + brokerEmail + APIConstants.VeryStrictGPTPrompt + text;

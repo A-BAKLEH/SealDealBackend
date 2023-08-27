@@ -837,7 +837,7 @@ public class EmailProcessor
                 foreach (var email in messageGrp)
                 {
                     //TODO take into consideration that this unknown sender might send multiple messages
-                    if (email.Body.Content.Length < 8000)
+                    if (email.Body.Content.Length < 6000)
                     {
                         UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(email, null, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, false));
                         UnknownSenderTaskMessages.Add(email);
@@ -1543,12 +1543,19 @@ public class EmailProcessor
         return null;
     }
 
-    public static List<GmailMessageDecoded> DecodeGmail(List<GmailMessage> originalMessages)
+    public static List<GmailMessageDecoded> DecodeGmail(List<GmailMessage> originalMessages, ILogger logger)
     {
         var result = new List<GmailMessageDecoded>(originalMessages.Count);
         foreach (var message in originalMessages)
         {
-            var part = FindGmailBody(message.Payload.Parts.ToList());
+            var parts = message?.Payload?.Parts;
+            if (parts == null || parts.Count == 0)
+            {
+                logger.LogWarning("{tag} Decoding gmail message with messageId {messageId} with no parts","DecodeGmail",message.Id);
+                continue;
+            }
+            
+            var part = FindGmailBody(parts.ToList());
             var bytes = WebEncoders.Base64UrlDecode(part.Body.Data);
             var decodedBody = Encoding.UTF8.GetString(bytes);
             if (part.MimeType == "text/html")
@@ -1591,7 +1598,7 @@ public class EmailProcessor
         var KnownLeadEmailEvents = new List<EmailEvent>();
         var KnownLeadTasks = new List<Tuple<Task<EmailEvent?>, GmailMessageDecoded>>();
 
-        var messagesUnfiltered = DecodeGmail(messagesInput);
+        var messagesUnfiltered = DecodeGmail(messagesInput,_logger);
         var messages = messagesUnfiltered.Where(m => !EmailSenderIgnore(m.From, brokerDTO.BrokerEmail)).ToList();
         var groupedMessagesBySender = messages.GroupBy(m => m.From);
 
@@ -1651,7 +1658,7 @@ public class EmailProcessor
                 foreach (var email in messageGrp)
                 {
                     //TODO take into consideration that this unknown sender might send multiple messages
-                    if (email.textBody.Length < 8000 || _webHostEnv.IsDevelopment())
+                    if (email.textBody.Length < 6000 || _webHostEnv.IsDevelopment())
                     {
                         UnknownSenderTasks.Add(_GPT35Service.ParseEmailAsync(null, email, brokerDTO.BrokerEmail, brokerDTO.brokerFirstName, brokerDTO.brokerLastName, false));
                         UnknownSenderTaskMessages.Add(email);

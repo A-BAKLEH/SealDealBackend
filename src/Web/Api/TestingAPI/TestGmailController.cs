@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using MimeKit;
 using Web.Config;
 using Web.ControllerServices.QuickServices;
+using Web.HTTPClients;
+using Web.Processing.EmailAutomation;
 
 namespace Web.Api.TestingAPI;
 
@@ -18,16 +20,18 @@ public class TestGmailController : ControllerBase
 {
     private readonly ILogger<TestGmailController> _logger;
     private readonly AppDbContext _dbcontext;
+    private readonly OpenAIGPT35Service _GPT35Service;
     private readonly MyGmailQService _myGmail;
     private static readonly string HeaderKeyName = "X-Requested-With";
     private static readonly string HeaderValue = "XmlHttpRequest";
 
     private static string currentRefreshToken = "1//01TYIZZM6-jeUCgYIARAAGAESNwF-L9IrH62JyJKdlfY6tLcV2hn3sqJ2iclDdEHVKa7koHfuyiUAMqHRelD2-dd2wKB8Q8bJI44";
-    public TestGmailController(ILogger<TestGmailController> logger, AppDbContext appDbContext, MyGmailQService myGmailQService)
+    public TestGmailController(ILogger<TestGmailController> logger, OpenAIGPT35Service openAIGPT35, AppDbContext appDbContext, MyGmailQService myGmailQService)
     {
         _logger = logger;
         _dbcontext = appDbContext;
         _myGmail = myGmailQService;
+        _GPT35Service = openAIGPT35;
     }
 
     [HttpGet("refresh")]
@@ -39,6 +43,37 @@ public class TestGmailController : ControllerBase
         await _myGmail.RefreshAccessTokenAsync(connEmail.Email, connEmail.BrokerId, null, CancellationToken.None);
         return Ok();
     }
+
+    [HttpGet("process")]
+    public async Task<IActionResult> process()
+    {
+        //MAKE IT DEV ONLY AGAIN
+        //check chatGPT changes
+
+        var connEmail = await _dbcontext.ConnectedEmails
+           .FirstAsync(e => e.Email == "nayridurgerianrealty@gmail.com");
+
+        GoogleCredential cred = GoogleCredential.FromAccessToken(connEmail.AccessToken);
+        var _GmailService = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
+
+        //var messRequest = _GmailService.Users.Messages.List("me");
+        //messRequest.IncludeSpamTrash = false;
+        //messRequest.LabelIds = new string[] { "INBOX" };
+        //messRequest.MaxResults = 20;
+
+        //var messagesPage = await messRequest.ExecuteAsync();
+          
+        var getRequest = _GmailService.Users.Messages.Get("me", "18a33c77be1ba8e6");
+        getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Full;
+
+        var mess = await getRequest.ExecuteAsync();
+        var messages = EmailProcessor.DecodeGmail(new List<Message> {mess}, _logger);
+
+        var res = await _GPT35Service.ParseEmailAsync(null, messages[0], connEmail.Email,"bashar","eskandar",true);
+
+        return Ok();
+    }
+    
 
     [HttpGet("deleteGmail")]
     public async Task<IActionResult> deleteGmail()
