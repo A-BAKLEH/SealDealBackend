@@ -150,7 +150,6 @@ public class OpenAIGPT35Service
             sender = gmailMessage?.From ?? msftMessage?.From.EmailAddress.Address;
             text = EmailReducer.Reduce(text, sender, _webHostEnvironment.IsDevelopment());
             length = text.Length;
-            text = text.Substring(1000);
 
             var input = APIConstants.MyNameIs + brokerFirstName + " " + brokerLastName + APIConstants.IamBrokerWithEmail
                 + brokerEmail + APIConstants.VeryStrictGPTPrompt + text;
