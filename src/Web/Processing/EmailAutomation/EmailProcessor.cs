@@ -23,9 +23,7 @@ using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
 using MimeKit;
-using Newtonsoft.Json.Linq;
 using Serilog.Context;
-using System;
 using System.Net.Mail;
 using System.Text;
 using Web.Constants;
@@ -585,7 +583,7 @@ public class EmailProcessor
             leadType = LeadType.Unknown,
             source = LeadSource.emailAuto,
             LeadStatus = LeadStatus.Hot,
-            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true }},
+            LeadEmails = new() { new LeadEmail { EmailAddress = LeadEmail, IsMain = true } },
             Language = lang,
         };
         lead.SourceDetails[NotificationJSONKeys.CreatedByFullName] = brokerDTO.brokerFirstName + " " + brokerDTO.brokerLastName;
@@ -1369,10 +1367,10 @@ public class EmailProcessor
 
         var messagesPage = await messRequest.ExecuteAsync();
         var IDsALLToReprocessMailsThisRun = new List<string>();
-        if (messagesPage == null || messagesPage.Messages == null)  goto FailedLabel;
-        
+        if (messagesPage == null || messagesPage.Messages == null) goto FailedLabel;
+
         bool first = true;
-        string NextPageToken = "";      
+        string NextPageToken = "";
         do
         {
             if (!first)
@@ -1410,7 +1408,7 @@ public class EmailProcessor
                 refDTO.historyId = gmailMessages[0].HistoryId.ToString();
             }
             var messagesAfterPreicseCutoff = gmailMessages.Where(m => DateTimeOffset.FromUnixTimeMilliseconds(m.InternalDate.Value) >= originalLastPRocessedTimesTamp).ToList();
-            if(messagesAfterPreicseCutoff == null || messagesAfterPreicseCutoff.Count == 0)
+            if (messagesAfterPreicseCutoff == null || messagesAfterPreicseCutoff.Count == 0)
             {
                 goto FailedLabel;
             }
@@ -1423,8 +1421,8 @@ public class EmailProcessor
             NextPageToken = messagesPage.NextPageToken;
             first = false;
         } while (messagesPage.NextPageToken != null);
-        
-        FailedLabel:
+
+    FailedLabel:
         bool processFailed = GlobalControl.ProcessFailedEmailsParsing;
         if (cancellationToken.IsCancellationRequested)
         {
@@ -1549,21 +1547,41 @@ public class EmailProcessor
         foreach (var message in originalMessages)
         {
             var parts = message?.Payload?.Parts;
+
+            string decodedBody = "";
+
             if (parts == null || parts.Count == 0)
             {
-                logger.LogWarning("{tag} Decoding gmail message with messageId {messageId} with no parts","DecodeGmail",message.Id);
-                continue;
-            }
-            
-            var part = FindGmailBody(parts.ToList());
-            var bytes = WebEncoders.Base64UrlDecode(part.Body.Data);
-            var decodedBody = Encoding.UTF8.GetString(bytes);
-            if (part.MimeType == "text/html")
-            {
-                HtmlDocument htmlDoc = new HtmlDocument();
-                htmlDoc.LoadHtml(decodedBody);
+                if (message.Payload?.Body?.Data != null)
+                {
+                    var bytes = WebEncoders.Base64UrlDecode(message.Payload.Body.Data);
+                    decodedBody = Encoding.UTF8.GetString(bytes);
+                    if (message.Payload.MimeType == "text/html")
+                    {
+                        HtmlDocument htmlDoc = new HtmlDocument();
+                        htmlDoc.LoadHtml(decodedBody);
 
-                decodedBody =  htmlDoc.DocumentNode.InnerText;
+                        decodedBody = htmlDoc.DocumentNode.InnerText;
+                    }
+                }
+                else
+                {
+                    logger.LogWarning("{tag} Decoding gmail message with messageId {messageId} with no parts and no body", "DecodeGmail", message.Id);
+                    continue;
+                }             
+            }
+            else
+            {
+                var part = FindGmailBody(parts.ToList());
+                var bytes = WebEncoders.Base64UrlDecode(part.Body.Data);
+                decodedBody = Encoding.UTF8.GetString(bytes);
+                if (part.MimeType == "text/html")
+                {
+                    HtmlDocument htmlDoc = new HtmlDocument();
+                    htmlDoc.LoadHtml(decodedBody);
+
+                    decodedBody = htmlDoc.DocumentNode.InnerText;
+                }
             }
 
             var from = message.Payload.Headers.FirstOrDefault(h => h.Name == "From")?.Value;
@@ -1598,7 +1616,7 @@ public class EmailProcessor
         var KnownLeadEmailEvents = new List<EmailEvent>();
         var KnownLeadTasks = new List<Tuple<Task<EmailEvent?>, GmailMessageDecoded>>();
 
-        var messagesUnfiltered = DecodeGmail(messagesInput,_logger);
+        var messagesUnfiltered = DecodeGmail(messagesInput, _logger);
         var messages = messagesUnfiltered.Where(m => !EmailSenderIgnore(m.From, brokerDTO.BrokerEmail)).ToList();
         var groupedMessagesBySender = messages.GroupBy(m => m.From);
 
@@ -2033,7 +2051,7 @@ public class EmailProcessor
             })
             .ExecuteAsync(cancellationToken);
 
-        if(messagesPage.Messages != null)
+        if (messagesPage.Messages != null)
         {
             var gmailMessages = new List<GmailMessage>(messagesPage.Messages.Count);
             var batchRequest = new BatchRequest(_GmailService);
@@ -2052,7 +2070,7 @@ public class EmailProcessor
             return gmailMessages;
         }
         return Enumerable.Empty<GmailMessage>().ToList();
-        
+
     }
 
     public async Task TagFailedMessagesGMAIL(List<GmailMessage> gmailMAILReprocessMessages, List<Label> labels)

@@ -14,7 +14,7 @@ using Web.Processing.EmailAutomation;
 
 namespace Web.Api.TestingAPI;
 
-[DevOnly]
+[AdminOnly]
 [Route("api/[controller]")]
 public class TestGmailController : ControllerBase
 {
@@ -62,18 +62,18 @@ public class TestGmailController : ControllerBase
         //messRequest.MaxResults = 20;
 
         //var messagesPage = await messRequest.ExecuteAsync();
-          
-        var getRequest = _GmailService.Users.Messages.Get("me", "18a33c77be1ba8e6");
+
+        var getRequest = _GmailService.Users.Messages.Get("me", "18a51d8d9f17d484");
         getRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Full;
 
         var mess = await getRequest.ExecuteAsync();
-        var messages = EmailProcessor.DecodeGmail(new List<Message> {mess}, _logger);
+        var messages = EmailProcessor.DecodeGmail(new List<Message> { mess }, _logger);
 
-        var res = await _GPT35Service.ParseEmailAsync(null, messages[0], connEmail.Email,"bashar","eskandar",true);
+        var res = await _GPT35Service.ParseEmailAsync(null, messages[0], connEmail.Email, "nayri", "durgerian", true);
 
         return Ok();
     }
-    
+
 
     [HttpGet("deleteGmail")]
     public async Task<IActionResult> deleteGmail()
