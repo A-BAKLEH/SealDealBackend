@@ -14,6 +14,7 @@ public class B2CGraphService : IB2CGraphService
 
     public GraphServiceClient _graphClient;
     private readonly ILogger<B2CGraphService> _logger;
+    private string? b2cTenantDomainName;
     //private readonly IConfigurationSection _MsGraphConfigSection;
     public B2CGraphService(IConfiguration config, ILogger<B2CGraphService> logger)
     {
@@ -24,7 +25,9 @@ public class B2CGraphService : IB2CGraphService
         var clientId = configSection["clientId"];
         var clientSecret = configSection["clientSecret"];
 
-        // using Azure.Identity;
+        configSection = config.GetSection("AzureAdB2C");
+        b2cTenantDomainName = configSection["Domain"];
+
         var options = new TokenCredentialOptions
         {
             AuthorityHost = AzureAuthorityHosts.AzurePublicCloud
@@ -61,7 +64,7 @@ public class B2CGraphService : IB2CGraphService
               new ObjectIdentity()
               {
                 SignInType = "emailAddress",
-                Issuer = "sealdealtest.onmicrosoft.com",
+                Issuer = b2cTenantDomainName,
                 IssuerAssignedId = broker.LoginEmail
               }
             },
@@ -71,16 +74,14 @@ public class B2CGraphService : IB2CGraphService
             },
             PasswordPolicies = "DisablePasswordExpiration",
         };
-        User created = null;
+        User? created = null;
         try
         {
             created = await _graphClient.Users.PostAsync(user);
         }
         catch(ODataError err)
         {
-            var error = err;
-            Console.WriteLine(error.AdditionalData);
-            Console.WriteLine(error.Error.Message);
+            _logger.LogError("{tag} failed creating b2c user with error {error}","b2cCreation",err.Error.Message);
         }
         
         return Tuple.Create(created.Id, password);

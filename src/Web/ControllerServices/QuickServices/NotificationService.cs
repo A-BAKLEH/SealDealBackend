@@ -186,6 +186,9 @@ public class NotificationService
             NormalTableFlags |= EventType.LeadCreated | EventType.YouAssignedtoBroker;
         }
 
+        //FOR NOW JUST LISTINNG ASSIGNE AND UNASSIGNED
+        var otherFlags = EventType.ListingAssigned | EventType.ListingUnAssigned;
+
         var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(broker.TimeZoneId);
         var todaydate = TimeZoneInfo.ConvertTime(DateTimeOffset.Now, timeZoneInfo).Date;
         var todayStart = todaydate.AddMinutes(0);
@@ -315,13 +318,16 @@ public class NotificationService
 
             CompleteDashboardDTO.LeadRelatedNotifs.Add(dtoToAdd);
         }
-        CompleteDashboardDTO.OtherNotifs.AddRange(AppEventswithoutLead.Select(e => new AppEventsNonLeadDTO
-        {
-            AppEventID = e.Id,
-            EventType = e.EventType.ToString(),
-            EventTimeStamp = e.EventTimeStamp,
-            Kes = e.Props
-        }));
+        //ONLY IN THIS METHOD WE ARE FILTERINF FOR ONLY LISTING NOTIFS
+        CompleteDashboardDTO.OtherNotifs.AddRange(AppEventswithoutLead
+            .Where(e => otherFlags.HasFlag(e.EventType))
+            .Select(e => new AppEventsNonLeadDTO
+            {
+                AppEventID = e.Id,
+                EventType = e.EventType.ToString(),
+                EventTimeStamp = e.EventTimeStamp,
+                Kes = e.Props
+            }));
 
         CompleteDashboardDTO.LeadRelatedNotifs = CompleteDashboardDTO.LeadRelatedNotifs.OrderByDescending(l => l.MostRecentEventOrEmailTime).ToList();
 

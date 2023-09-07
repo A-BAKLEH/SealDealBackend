@@ -22,10 +22,13 @@ public class LocalController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult Get()
+    public async Task<IActionResult> Get()
     {
-        var count = _dbcontext.Brokers.Count();
-        return Ok(count);
+        var agency = _dbcontext.Agencies.FirstOrDefault(a => a.Id == 5);
+        agency.NumberOfBrokersInSubscription = 2;
+        await _dbcontext.SaveChangesAsync();
+
+        return Ok();
     }
 
     [HttpDelete("DisconnectMsftLocal")]
