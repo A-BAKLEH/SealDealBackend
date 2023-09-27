@@ -1,5 +1,8 @@
 ﻿using Google.Apis.Auth.OAuth2;
 using Google.Apis.Calendar.v3;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
@@ -45,23 +48,60 @@ public class TestGmailController : ControllerBase
         return Ok();
     }
 
+    [HttpGet("telio")]
+    public async Task<IActionResult> telio()
+    {
+        var accountSid = "AC055776961ddf19eb1b8245925be3b002";
+        var authToken = "5f244a44ef0832f432fe50e1a38161e0";
+        TwilioClient.Init(accountSid, authToken);
+
+        var messageOptions = new CreateMessageOptions(
+          new PhoneNumber("+15145129956"));
+        messageOptions.From = new PhoneNumber("+18623776507");
+        messageOptions.Body = "hello habibi";
+
+
+        var message = MessageResource.Create(messageOptions);
+        Console.WriteLine(message.Body);
+        return Ok();
+    }
+
 
     [HttpGet("calendar")]
     public async Task<IActionResult> calendar()
     {
         var connEmail = await _dbcontext.ConnectedEmails
-           .FirstAsync(e => !e.isMSFT);
+           .FirstAsync(e => e.Email == "athanas2000@gmail.com");
 
         var cred = GoogleCredential.FromAccessToken(connEmail.AccessToken);
+
         var _CalendarService = new CalendarService (new BaseClientService.Initializer { HttpClientInitializer = cred });
 
-        //probably only permissino necessary is events. Default calendar is primary one, it can also not be deleted.
-        var calendarList = await _CalendarService.CalendarList.List().ExecuteAsync();
+
+
+
+        //_CalendarService.Events.List("primary").Execute();
+
+        //var res = _CalendarService.Events.Insert(new Google.Apis.Calendar.v3.Data.Event
+        //{
+        //    Summary = "test event",
+        //    Start = new EventDateTime
+        //    {
+        //        DateTimeDateTimeOffset = DateTimeOffset.UtcNow + TimeSpan.FromHours(1)
+        //    },
+        //    End = new EventDateTime
+        //    {
+        //        DateTimeDateTimeOffset = DateTimeOffset.UtcNow + TimeSpan.FromHours(1) + TimeSpan.FromMinutes(1)
+        //    }
+        //}, "primary").Execute();
+
+        //probably only permission necessary is events. Default calendar is primary one, it can also not be deleted.
+        //var calendarList = await _CalendarService.CalendarList.List().ExecuteAsync();
         //summary property is the name that the user sees
         //Id is email address, always unique, primary calendar has primary = true 
 
-        //there events and tasks, events have start and end, task just time date
 
+        //there events and tasks, events have start and end, task just time date
 
         //use tasks api for now. task has name description and unique ID. save Id of task in database, write lead's name in
         //description
