@@ -66,7 +66,7 @@ public class MSFTEmailQService
     public async Task<dynamic> GetConnectedEmails(Guid brokerId)
     {
         var connectedEmails = await _appDbContext.ConnectedEmails
-          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email, e.AssignLeadsAuto, e.isMSFT, e.AccessToken })
+          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email, e.AssignLeadsAuto, e.isMSFT, e.AccessToken,e.CalendarSyncEnabled,e.HasCalendarPermissions })
           .Where(c => c.BrokerId == brokerId)
           .ToListAsync();
         return (dynamic)connectedEmails;

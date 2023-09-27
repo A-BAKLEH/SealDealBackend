@@ -29,6 +29,10 @@ public class ConnectedEmail : EntityBase
     /// </summary>
     public string? SubsRenewalJobId { get; set; }
 
+    //-----calendar
+    public bool HasCalendarPermissions { get; set; } = false;
+    public bool CalendarSyncEnabled { get; set; } = false;
+
     //----------Gmail-----------
     public string? RefreshToken { get; set; }
     public string? AccessToken { get; set; }

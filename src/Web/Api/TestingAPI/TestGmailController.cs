@@ -1,4 +1,5 @@
 ﻿using Google.Apis.Auth.OAuth2;
+using Google.Apis.Calendar.v3;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
@@ -14,7 +15,7 @@ using Web.Processing.EmailAutomation;
 
 namespace Web.Api.TestingAPI;
 
-[AdminOnly]
+[DevOnly]
 [Route("api/[controller]")]
 public class TestGmailController : ControllerBase
 {
@@ -41,6 +42,32 @@ public class TestGmailController : ControllerBase
            .FirstAsync(e => !e.isMSFT);
 
         await _myGmail.RefreshAccessTokenAsync(connEmail.Email, connEmail.BrokerId, null, CancellationToken.None);
+        return Ok();
+    }
+
+
+    [HttpGet("calendar")]
+    public async Task<IActionResult> calendar()
+    {
+        var connEmail = await _dbcontext.ConnectedEmails
+           .FirstAsync(e => !e.isMSFT);
+
+        var cred = GoogleCredential.FromAccessToken(connEmail.AccessToken);
+        var _CalendarService = new CalendarService (new BaseClientService.Initializer { HttpClientInitializer = cred });
+
+        //probably only permissino necessary is events. Default calendar is primary one, it can also not be deleted.
+        var calendarList = await _CalendarService.CalendarList.List().ExecuteAsync();
+        //summary property is the name that the user sees
+        //Id is email address, always unique, primary calendar has primary = true 
+
+        //there events and tasks, events have start and end, task just time date
+
+
+        //use tasks api for now. task has name description and unique ID. save Id of task in database, write lead's name in
+        //description
+
+
+        //await _myGmail.RefreshAccessTokenAsync(connEmail.Email, connEmail.BrokerId, null, CancellationToken.None);
         return Ok();
     }
 
@@ -78,16 +105,16 @@ public class TestGmailController : ControllerBase
     [HttpGet("deleteGmail")]
     public async Task<IActionResult> deleteGmail()
     {
-        var connEmail = await _dbcontext.ConnectedEmails
+        var connectedEmail = await _dbcontext.ConnectedEmails
            .FirstAsync(e => !e.isMSFT);
-        await _myGmail.CallUnwatch(connEmail.Email, connEmail.BrokerId);
+        await _myGmail.CallUnwatch(connectedEmail.Email, connectedEmail.BrokerId);
 
-        var jobIdRefresh = connEmail.TokenRefreshJobId;
-        Hangfire.BackgroundJob.Delete(jobIdRefresh);
-        BackgroundJob.Delete(connEmail.SyncJobId);
-        RecurringJob.RemoveIfExists(connEmail.SubsRenewalJobId);
+        var jobIdRefresh = connectedEmail.TokenRefreshJobId;
+        if (jobIdRefresh != null) BackgroundJob.Delete(jobIdRefresh);
+        if (connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
+        if (connectedEmail.SubsRenewalJobId != null) RecurringJob.RemoveIfExists(connectedEmail.SubsRenewalJobId);
 
-        _dbcontext.Remove(connEmail);
+        _dbcontext.Remove(connectedEmail);
         await _dbcontext.SaveChangesAsync();
         return Ok();
     }

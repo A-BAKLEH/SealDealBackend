@@ -166,11 +166,8 @@ public class AccountController : BaseApiController
             return Ok(res);
         }
         return Ok();
-    }
+    } 
 
-
-
-    //----------------test ---------------
     /// <summary>
     /// will also check and handle admin consent if its given
     /// </summary>
@@ -376,5 +373,65 @@ public class AccountController : BaseApiController
         dynamic emails = await _MSFTEmailQService.GetConnectedEmails(id);
 
         return Ok(emails);
+    }
+
+
+    [HttpPost("ConnectedEmail/GoogleCalendar")]
+    public async Task<IActionResult> ConnectCalendar([FromBody] CodeSendingDTO dto)
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
+            return Forbid();
+        }
+
+        if (!Request.Headers.TryGetValue(HeaderKeyName, out StringValues headerValue) || headerValue != HeaderValue)
+        {
+            return BadRequest();
+        }
+
+
+        var clientSecrets = new ClientSecrets
+        {
+            ClientId = _GmailSection["ClientId"],
+            ClientSecret = _GmailSection["ClientSecret"]
+        };
+        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        {
+            ClientSecrets = clientSecrets,
+        });
+
+        TokenResponse token = await flow.ExchangeCodeForTokenAsync("lol", dto.code, _GmailSection["RedirectUri"], CancellationToken.None);
+        UserCredential cred = new UserCredential(flow, "me", token);
+        string accessToken = token.AccessToken;
+        string refrehToken = token.RefreshToken;
+
+        var service = new GmailService(
+            new BaseClientService.Initializer { HttpClientInitializer = cred });
+
+        //might not work here with the email if not using gmail already
+        var profile = await service.Users.GetProfile("me").ExecuteAsync();
+
+        await _gmailservice.AddGoogleCalendarAsync(id, profile.EmailAddress, refrehToken, accessToken);
+
+        var return1 = new { access_token = accessToken };
+        return Ok(return1);
+    }
+
+    [HttpPatch("ConnectedEmail/ToggleCalendarSync")]
+    public async Task<IActionResult> ToggleCalendarSync([FromBody] ToggleCalendarDTO dto)
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id, true);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive User tried to get agency Listings", TagConstants.Inactive);
+            return Forbid();
+        }
+        await _gmailservice.ToggleCalendarSync(id,dto.email, dto.toggle);
+
+        return Ok();
     }
 }

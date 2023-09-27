@@ -5,7 +5,6 @@ using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.ExternalServiceInterfaces;
-using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using MediatR;
@@ -15,11 +14,9 @@ using Microsoft.EntityFrameworkCore;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
 using Web.Config;
-using Web.Constants;
 using Web.ControllerServices.QuickServices;
 using Web.ControllerServices.StaticMethods;
 using Web.Processing.Analyzer;
-using Web.Processing.EmailAutomation;
 using Web.RealTimeNotifs;
 
 namespace Web.Api.TestingAPI;
@@ -81,8 +78,8 @@ public class TestController : ControllerBase
         var brokers = await _appDbContext.Brokers.ToListAsync();
         foreach (var item in brokers)
         {
-            await _brokerTagsQService.DeleteSoloBrokerWithoutTouchingStripeAsync(item.Id,item.AgencyId);
-        }  
+            await _brokerTagsQService.DeleteSoloBrokerWithoutTouchingStripeAsync(item.Id, item.AgencyId);
+        }
         return Ok();
     }
 

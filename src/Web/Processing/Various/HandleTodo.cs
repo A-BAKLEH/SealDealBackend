@@ -20,6 +20,6 @@ public class HandleTodo
   public async Task Handle(int Id, int reminder)
   {
     //TODO check if reminder is 1 then schedule final reminder in 10 minutes
-    Console.WriteLine($"handling todoTask with id {Id} and reminder Position {reminder}");
+    //Console.WriteLine($"handling todoTask with id {Id} and reminder Position {reminder}");
   }
 }

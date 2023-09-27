@@ -185,6 +185,33 @@ public class MyGmailQService
         await Task.WhenAll(tasks);
     }
 
+    public async Task AddGoogleCalendarAsync(Guid brokerId, string email, string refreshToken, string accessToken)
+    {
+        var connEmail = await _appDbContext.ConnectedEmails
+          .Where(e => e.BrokerId == brokerId && e.isMSFT == false && email == e.Email)
+          .FirstOrDefaultAsync();
+        if (connEmail == null) throw new CustomBadRequestException("not same email", "email not already connected for automation");
+
+        connEmail.RefreshToken = refreshToken;
+        connEmail.AccessToken = accessToken;
+        connEmail.HasCalendarPermissions = true;
+        connEmail.CalendarSyncEnabled = true;
+
+        await _appDbContext.SaveChangesAsync();
+    }
+
+    public async Task ToggleCalendarSync(Guid brokerId, string email, bool toggle)
+    {
+        var connEmail = await _appDbContext.ConnectedEmails
+          .Where(e => e.BrokerId == brokerId && e.isMSFT == false && email == e.Email)
+          .FirstOrDefaultAsync();
+        if (connEmail == null) throw new CustomBadRequestException("not same email", "email not already connected for automation");
+;
+        if(toggle != connEmail.CalendarSyncEnabled) connEmail.CalendarSyncEnabled = toggle;
+
+        await _appDbContext.SaveChangesAsync();
+    }
+
     public async Task ConnectGmailAsync(Guid brokerId, string email, string refreshToken, string accessToken)
     {
         var broker = await _appDbContext.Brokers
