@@ -247,37 +247,42 @@ public class MyGmailQService
           .FirstAsync(b => b.Id == brokerId);
 
         var connectedEmails = broker.ConnectedEmails;
+        ConnectedEmail connectedEmail = null;
 
-        int emailNumber = 1;
-        if (connectedEmails != null && connectedEmails.Count != 0)
+        if(connectedEmails != null && connectedEmails.Any(e => e.Email == email))
         {
-            foreach (var ConnEmail in connectedEmails)
+            connectedEmail = connectedEmails.First(e => e.Email == email);
+            connectedEmail.isMailbox = true;
+        }
+        else
+        {
+            var emailNumber = connectedEmails?.Count ?? 0;
+            emailNumber += 1;
+            connectedEmail = new ConnectedEmail
             {
-                if (ConnEmail.Email == email)
-                    throw new
-                      CustomBadRequestException($"the email {email} is already connected", ProblemDetailsTitles.EmailAlreadyConnected);
+                BrokerId = broker.Id,
+                Email = email,
+                EmailNumber = (byte)emailNumber,
+                tenantId = "",
+                hasAdminConsent = true,
+                isMSFT = false,
+                AssignLeadsAuto = true,
+                RefreshToken = refreshToken,
+                AccessToken = accessToken,
+                isMailbox = true,
+                isCalendar = false
+            };
 
-            }
-            emailNumber = connectedEmails.Count + 1;
+            if (broker.ConnectedEmails == null) broker.ConnectedEmails = new();
+            broker.ConnectedEmails.Add(connectedEmail);
+
+            //job to refresh access tokens
+            var refreshTime = TimeSpan.FromMinutes(55);
+            string tokenRefreshJobId = BackgroundJob.Schedule<MyGmailQService>(s => s.RefreshAccessTokenAsync(email, brokerId, null, CancellationToken.None), refreshTime);
+            connectedEmail.TokenRefreshJobId = tokenRefreshJobId;
         }
 
-        var connectedEmail = new ConnectedEmail
-        {
-            BrokerId = broker.Id,
-            Email = email,
-            EmailNumber = (byte)emailNumber,
-            tenantId = "",
-            hasAdminConsent = true,
-            isMSFT = false,
-            AssignLeadsAuto = true,
-            RefreshToken = refreshToken,
-            AccessToken = accessToken,
-            isMailbox = true,
-            isCalendar = false
-        };
-
-        if (broker.ConnectedEmails == null) broker.ConnectedEmails = new();
-        broker.ConnectedEmails.Add(connectedEmail);
+        
         try
         {
             var subSection = _GmailSection.GetSection("PubSub");
@@ -298,13 +303,7 @@ public class MyGmailQService
                 connectedEmail.historyId = watchResult.HistoryId?.ToString();
             }
 
-            //TODO await dummy function that creates labels
             await createLabelsAsync(email, brokerId, accessToken);
-
-            //job to refresh access tokens
-            var refreshTime = TimeSpan.FromMinutes(55);
-            string tokenRefreshJobId = BackgroundJob.Schedule<MyGmailQService>(s => s.RefreshAccessTokenAsync(email, brokerId, null, CancellationToken.None), refreshTime);
-            connectedEmail.TokenRefreshJobId = tokenRefreshJobId;
 
             //hangfire recurrrent job that calls watch once every day
             string WebhooksubscriptionRenewalJobId = email + "Watch";
