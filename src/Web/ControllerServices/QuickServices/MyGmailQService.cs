@@ -253,6 +253,8 @@ public class MyGmailQService
         {
             connectedEmail = connectedEmails.First(e => e.Email == email);
             connectedEmail.isMailbox = true;
+            connectedEmail.RefreshToken = refreshToken;
+            connectedEmail.AccessToken = accessToken;
         }
         else
         {
