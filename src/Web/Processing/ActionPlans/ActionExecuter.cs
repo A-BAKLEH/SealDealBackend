@@ -177,7 +177,7 @@ public class ActionExecuter
                 Subject = subjectTextToUse,
                 Body = new ItemBody
                 {
-                    ContentType = BodyType.Text,
+                    ContentType = BodyType.Html,
                     Content = replacedText
                 },
                 ToRecipients = new List<Recipient>()
@@ -229,13 +229,14 @@ public class ActionExecuter
                 To = { lead.LeadEmails[0].EmailAddress },
                 Subject = subjectTextToUse,
                 Body = replacedText,
+                IsBodyHtml = true
             };
 
             var mimeMessage = MimeMessage.CreateFromMailMessage(mailMessage);
 
             var gmailMessage = new Google.Apis.Gmail.v1.Data.Message
             {
-                Raw = Encode(mimeMessage)
+                Raw = Encode(mimeMessage),
             };
             var mes = await _GmailService.Users.Messages.Send(gmailMessage, "me").ExecuteAsync();
             await _GmailService.Users.Messages.Modify(new ModifyMessageRequest

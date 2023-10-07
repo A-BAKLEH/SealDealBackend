@@ -58,6 +58,7 @@ public class Broker : Entity<Guid>
     public DateTime EmailEventAnalyzerLastTimestamp { get; set; }
     public bool hasConnectedCalendar { get; set; } = false;
     public bool CalendarSyncEnabled { get; set; } = false;
+    public bool SMSNotifsEnabled { get; set; } = false;
     public List<ConnectedEmail>? ConnectedEmails { get; set; }
     public List<Lead>? Leads { get; set; }
     public List<BrokerListingAssignment>? AssignedListings { get; set; }

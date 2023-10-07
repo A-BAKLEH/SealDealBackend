@@ -60,7 +60,6 @@ public class TestGmailController : ControllerBase
         messageOptions.From = new PhoneNumber("+18623776507");
         messageOptions.Body = "hello habibi";
 
-
         var message = MessageResource.Create(messageOptions);
         Console.WriteLine(message.Body);
         return Ok();

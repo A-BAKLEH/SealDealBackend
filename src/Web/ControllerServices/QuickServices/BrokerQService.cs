@@ -13,6 +13,11 @@ using Infrastructure.Data;
 using Infrastructure.ExternalServices;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
+using Humanizer;
+using Core.Domain.ActionPlanAggregate;
+using Twilio.Types;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -25,6 +30,7 @@ public class BrokerQService
     private readonly ADGraphWrapper _adGraphWrapper;
     private readonly MyGmailQService _gmailservice;
     private readonly IConfigurationSection _GmailSection;
+    private readonly IConfigurationSection _TwilioSection;
     public BrokerQService(AppDbContext appDbContext, MyGmailQService gmailservice, IConfiguration config, ADGraphWrapper aDGraphWrapper, ILogger<BrokerQService> logger, IB2CGraphService b2CGraphService, IStripeSubscriptionService stripeSubscriptionService)
     {
         _appDbContext = appDbContext;
@@ -34,12 +40,49 @@ public class BrokerQService
         _logger = logger;
         _gmailservice = gmailservice;
         _GmailSection = config.GetSection("Gmail");
+        _TwilioSection = config.GetSection("Twilio");
     }
 
     public async Task SetTimeZoneAsync(Broker broker, string NewTimeZoneId)
     {
         broker.TimeZoneId = NewTimeZoneId;
         await _appDbContext.SaveChangesAsync();
+    }
+
+    public async Task<string> SetPhoneNumber(Guid id, string number)
+    {
+        var phoneNumber = "+1" + string.Concat(number.
+                Where(c => !char.IsWhiteSpace(c) && c != '(' && c != ')' && c != '-' && c != '_'));
+
+        await _appDbContext.Brokers
+            .Where(a => a.Id == id)
+            .ExecuteUpdateAsync(setters =>
+        setters.SetProperty(a => a.PhoneNumber, phoneNumber));
+        return phoneNumber;
+    }
+    public async Task enableSMSNotifs(Guid id)
+    {
+        var broker = await _appDbContext.Brokers.FirstAsync(b => b.Id == id);
+        broker.SMSNotifsEnabled = true;
+
+        var accountSid = _TwilioSection["accountSid"];
+        var authToken = _TwilioSection["authToken"];
+        var ourNumber = _TwilioSection["ourPhoneNumber"];
+        TwilioClient.Init(accountSid, authToken);
+
+        var messageOptions = new CreateMessageOptions(new PhoneNumber(broker.PhoneNumber));
+        messageOptions.From = new PhoneNumber(ourNumber);
+        messageOptions.Body = "Hello from SealDeal!\nWe will send you notifications for new leads from this number.";
+
+        var message = MessageResource.Create(messageOptions);
+
+        await _appDbContext.SaveChangesAsync();
+    }
+    public async Task disableSMSNotifs(Guid id)
+    {
+        await _appDbContext.Brokers.Where(b => b.Id == id)
+            .ExecuteUpdateAsync(setters =>
+            setters.SetProperty(b => b.SMSNotifsEnabled, false));
     }
 
     public async Task SetaccountLanguage(Guid brokerId, string lang)

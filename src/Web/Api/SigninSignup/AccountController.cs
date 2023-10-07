@@ -4,6 +4,7 @@ using Google.Apis.Auth.OAuth2.Flows;
 using Google.Apis.Auth.OAuth2.Responses;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Services;
+using Humanizer;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -50,6 +51,57 @@ public class AccountController : BaseApiController
         _httpClientFactory = httpClientFactory;
         _GmailSection = config.GetSection("Gmail");
     }
+
+    /// <summary>
+    /// inputs: english, french
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost("PhoneNumber")]
+    public async Task<IActionResult> setBrokerNumber([FromBody] PhoneNumberDTO dto)
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
+            return Forbid();
+        }
+        var res = await _brokerQService.SetPhoneNumber(id, dto.phoneNumber);
+        return Ok(res);
+    }
+    /// <summary>
+    /// inputs: english, french
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("EnableSMSNotifs")]
+    public async Task<IActionResult> EnableSMSNotifs()
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
+            return Forbid();
+        }
+        await _brokerQService.enableSMSNotifs(id);
+        return Ok();
+    }
+    [HttpGet("DisableSMSNotifs")]
+    public async Task<IActionResult> DisableTextNotifs()
+    {
+        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+        if (!brokerTuple.Item2)
+        {
+            _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
+            return Forbid();
+        }
+        //todo
+        await _brokerQService.disableSMSNotifs(id);
+        return Ok();
+    }
+
+
 
     [HttpDelete("DisconnectMsft/{email}")]
     public async Task<IActionResult> DisconnectMsft(string email)

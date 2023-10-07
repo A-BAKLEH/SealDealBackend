@@ -32,6 +32,7 @@ public static class TagConstants
     public const string syncEmail = "syncEmail";
 
     public const string openAi = "openAi";
+    public const string openAiTranslation = "openAiTranslation";
     public const string handleTaskResult = "handleTaskResult";
     public const string createDbRecords = "createDbRecords";
 

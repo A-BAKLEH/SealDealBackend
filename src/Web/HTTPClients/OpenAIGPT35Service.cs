@@ -119,8 +119,7 @@ public class OpenAIGPT35Service
             //    ErrorType = e.GetType(),
             //    ProcessedMessage = message
             //};
-            //_logger.LogError("{tag} GPT 3.5 email parsing error for messageID {messageID}" +
-            //    " and brokerEmail {brokerEmail} and error {Error}", TagConstants.openAi, message.Id, brokerEmail, e.Message + e.StackTrace);
+            _logger.LogError("{tag} GPT 3.5 template translation error {error}", TagConstants.openAiTranslation, e.Message + " \n" + e.StackTrace);
         }
         return null;
     }
