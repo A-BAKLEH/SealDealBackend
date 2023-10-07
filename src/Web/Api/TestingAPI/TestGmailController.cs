@@ -100,9 +100,6 @@ public class TestGmailController : ControllerBase
         //summary property is the name that the user sees
         //Id is email address, always unique, primary calendar has primary = true 
 
-
-        //there events and tasks, events have start and end, task just time date
-
         //use tasks api for now. task has name description and unique ID. save Id of task in database, write lead's name in
         //description
 

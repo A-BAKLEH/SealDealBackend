@@ -1,9 +1,13 @@
 ﻿using Core.Domain.BrokerAggregate;
 using Core.DTOs.ProcessingDTOs;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Calendar.v3;
+using Google.Apis.Calendar.v3.Data;
+using Google.Apis.Services;
 using Infrastructure.Data;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Web.ApiModels.RequestDTOs;
-using Web.Processing.Various;
 
 namespace Web.MediatrRequests.BrokerRequests;
 
@@ -15,15 +19,15 @@ public class CreateTodoTaskRequest : IRequest<ToDoTaskWithLeadName>
 public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskRequest, ToDoTaskWithLeadName>
 {
     private readonly AppDbContext _appDbContext;
-    public CreateTodoTaskRequestHandler(AppDbContext appDbContext)
+    private readonly ILogger<CreateTodoTaskRequestHandler> _logger;
+    public CreateTodoTaskRequestHandler(AppDbContext appDbContext, ILogger<CreateTodoTaskRequestHandler> logger)
     {
         _appDbContext = appDbContext;
+        _logger = logger;
     }
 
     public async Task<ToDoTaskWithLeadName> Handle(CreateTodoTaskRequest request, CancellationToken cancellationToken)
     {
-        //TODO make sure reminders always happen
-        using var transaction = await _appDbContext.Database.BeginTransactionAsync();
 
         var dueTime = request.createToDoTaskDTO.dueTime;
         var todo = new ToDoTask
@@ -35,13 +39,40 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
             TaskName = request.createToDoTaskDTO.TaskName,
         };
         _appDbContext.ToDoTasks.Add(todo);
-        await _appDbContext.SaveChangesAsync();
 
-        var firstReminder = dueTime - TimeSpan.FromMinutes(16);
-        var HangfireJobId1 = Hangfire.BackgroundJob.Schedule<HandleTodo>(h => h.Handle(todo.Id, 1), firstReminder);
-        todo.HangfireReminderId = HangfireJobId1;
+        //add calendar if broker wants to
+        if(request.createToDoTaskDTO.AddToCalendar)
+        {
+            var broker = await _appDbContext.Brokers
+                .Include(b => b.ConnectedEmails.Where(e => e.isCalendar))
+                .FirstAsync(b => b.Id == request.BrokerID);
+            if(broker.ConnectedEmails == null || broker.ConnectedEmails.Count == 0)
+            {
+                _logger.LogError("adding event to calendar but no calendar connected email");
+            }
+            else
+            {
+                var cred = GoogleCredential.FromAccessToken(broker.ConnectedEmails.First().AccessToken);
+                var _CalendarService = new CalendarService(new BaseClientService.Initializer { HttpClientInitializer = cred });
+
+                var res = _CalendarService.Events.Insert(new Event
+                {
+                    Summary = todo.TaskName,
+                    Start = new EventDateTime
+                    {
+                        DateTimeDateTimeOffset = dueTime
+                    },
+                    End = new EventDateTime
+                    {
+                        DateTimeDateTimeOffset = dueTime + TimeSpan.FromMinutes(1)
+                    },
+                    Description = request.createToDoTaskDTO.leadfirstName == null ? todo.Description : "lead: " + request.createToDoTaskDTO.leadfirstName + "\n" + todo.Description
+                }, "primary").Execute();
+                todo.CalendarEvenId = res.Id;
+            }
+        }
+
         await _appDbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
 
         var reponse = new ToDoTaskWithLeadName
         {
@@ -52,10 +83,9 @@ public class CreateTodoTaskRequestHandler : IRequestHandler<CreateTodoTaskReques
         };
         if (todo.LeadId != null)
         {
-            //TODO maybe add Lead name to Cache
-            var leadSelected = _appDbContext.Leads.Select(l => new { l.Id, l.LeadFirstName, l.LeadLastName }).First(l => l.Id == todo.LeadId);
-            reponse.firstName = leadSelected.LeadFirstName;
-            reponse.lastName = leadSelected.LeadLastName;
+            //var leadSelected = _appDbContext.Leads.Select(l => new { l.Id, l.LeadFirstName, l.LeadLastName }).First(l => l.Id == todo.LeadId);
+            reponse.firstName = request.createToDoTaskDTO.leadfirstName;
+            reponse.lastName = request.createToDoTaskDTO.leadlastName;
         }
         return reponse;
     }

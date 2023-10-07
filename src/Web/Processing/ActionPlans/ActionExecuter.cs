@@ -121,7 +121,7 @@ public class ActionExecuter
             _logger.LogError("{tag} no broker with Id {brokerId}", "ExecuteSendEmail", brokerId);
             return new Tuple<bool, AppEvent?>(false, null);
         }
-        var connEmail = broker.ConnectedEmails.FirstOrDefault();
+        var connEmail = broker.ConnectedEmails.FirstOrDefault(e => e.isMailbox);
         if (connEmail == null)
         {
             _logger.LogError("{tag} no connectedEmail for broker with Id {brokerId}", "ExecuteSendEmail", brokerId);

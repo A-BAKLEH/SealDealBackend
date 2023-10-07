@@ -19,14 +19,9 @@ public class ToDoTaskQService
         var todoTask = await _appDbContext.ToDoTasks.
           AsNoTracking()
           .FirstAsync(t => t.Id == ToDoId && t.BrokerId == brokerId);
-        if (todoTask.HangfireReminderId != null)
-        {
-            try
-            {
-                BackgroundJob.Delete(todoTask.HangfireReminderId);
-            }
-            catch (Exception) { }
-        }
+
+        //TODO delete from calendar when deleting 
+
         await _appDbContext.Database.ExecuteSqlRawAsync
           ($"DELETE FROM \"ToDoTasks\" WHERE \"Id\" = {ToDoId};");
     }

@@ -9,6 +9,5 @@
     public class ToggleCalendarDTO
     {
         public bool toggle { get; set; }
-        public string email { get; set; }
     }
 }

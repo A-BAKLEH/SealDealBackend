@@ -17,4 +17,6 @@ public class SignedInBrokerDTO
     public DateTime Created { get; set; }
     public bool SoloBroker { get; set;}
     public string BrokerLanguage { get; set; }
+    public bool hasConnectedCalendar { get; set; }
+    public bool CalendarSyncEnabled { get; set; }
 }

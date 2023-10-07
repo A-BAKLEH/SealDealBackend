@@ -75,6 +75,8 @@ public class AuthorizationService
         response.markEmailsRead = broker.MarkEmailsRead;
         response.SoloBroker = broker.isSolo;
         response.BrokerLanguage = broker.Language.ToString();
+        response.hasConnectedCalendar = broker.hasConnectedCalendar;
+        response.CalendarSyncEnabled = broker.CalendarSyncEnabled;
 
         if (TimeZoneId != null && broker.TimeZoneId != TimeZoneId)
         {

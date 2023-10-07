@@ -228,7 +228,7 @@ public class ActionPQService
     }
     public async Task<ActionPlan1DTO> CreateActionPlanAsync(CreateActionPlanDTO dto, Guid brokerId)
     {
-        var connEmailExists = await _appDbContext.ConnectedEmails.AnyAsync(e => e.BrokerId == brokerId && e.hasAdminConsent);
+        var connEmailExists = await _appDbContext.ConnectedEmails.AnyAsync(e => e.BrokerId == brokerId && e.hasAdminConsent && e.isMailbox);
         if (!connEmailExists) throw new CustomBadRequestException("You do not have a connected Email for Automation", "NoConnectedEmail");
         EventType trigger;
         switch (dto.Trigger)

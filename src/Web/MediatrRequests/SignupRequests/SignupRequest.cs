@@ -129,6 +129,8 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
             internalMessage = "justSignedUp"
         };
         response.BrokerLanguage = broker.Language.ToString();
+        response.CalendarSyncEnabled = broker.CalendarSyncEnabled;
+        response.hasConnectedCalendar = broker.hasConnectedCalendar;
         return response;
     }
 }

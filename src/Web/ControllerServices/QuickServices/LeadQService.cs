@@ -146,18 +146,6 @@ public class LeadQService
                 }
             }
         }
-        if (lead.ToDoTasks != null && lead.ToDoTasks.Any())
-        {
-            foreach (var item in lead.ToDoTasks)
-            {
-                if (item.HangfireReminderId != null)
-                    try
-                    {
-                        BackgroundJob.Delete(item.HangfireReminderId);
-                    }
-                    catch (Exception) { }
-            }
-        }
         //related todoTasks should be deleted by cascade
         //related Action plan associations should be deleted by cascade
         // Notifs will be deleted automatically. TODO see if u wanna move them to cold storage

@@ -22,7 +22,6 @@
     <PackageReference Include="Google.Apis.Auth" />
     <PackageReference Include="Google.Apis.Calendar.v3" />
     <PackageReference Include="Google.Apis.Gmail.v1" />
-    <PackageReference Include="Google.Apis.Tasks.v1" />
     <PackageReference Include="Hangfire.Dashboard.BasicAuthorization" />
     <PackageReference Include="Hellang.Middleware.ProblemDetails" />
     <PackageReference Include="HtmlAgilityPack" />

@@ -283,7 +283,7 @@ public class NotifAnalyzer
 
 
                 //TODO We Assume only 1 connected email for now
-                var brokerConnecteEmail = broker.ConnectedEmails.FirstOrDefault();
+                var brokerConnecteEmail = broker.ConnectedEmails.FirstOrDefault(e => e.isMailbox);
                 if (brokerConnecteEmail == null) goto AfterEmailsLabel;
 
                 var emailEvents = await dbcontext.EmailEvents

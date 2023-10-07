@@ -66,7 +66,7 @@ public class MSFTEmailQService
     public async Task<dynamic> GetConnectedEmails(Guid brokerId)
     {
         var connectedEmails = await _appDbContext.ConnectedEmails
-          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email, e.AssignLeadsAuto, e.isMSFT, e.AccessToken,e.CalendarSyncEnabled,e.HasCalendarPermissions })
+          .Select(e => new { e.BrokerId, e.hasAdminConsent, e.Email, e.AssignLeadsAuto, e.isMSFT, e.AccessToken,e.isCalendar,e.isMailbox })
           .Where(c => c.BrokerId == brokerId)
           .ToListAsync();
         return (dynamic)connectedEmails;
@@ -115,7 +115,9 @@ public class MSFTEmailQService
             tenantId = TenantId,
             hasAdminConsent = broker.Agency.HasAdminEmailConsent,
             isMSFT = true,
-            AssignLeadsAuto = AssignAdminLeadsAuto
+            AssignLeadsAuto = AssignAdminLeadsAuto,
+            isMailbox = true,
+            isCalendar = false
         };
 
         if (broker.ConnectedEmails == null) broker.ConnectedEmails = new();
@@ -154,7 +156,7 @@ public class MSFTEmailQService
     public async Task<dynamic> DummyMethodHandleAdminConsentAsync(string tenantId, Guid brokerId, int AgencyId)
     {
         var brokers = await _appDbContext.Brokers
-          .Include(b => b.ConnectedEmails.Where(e => e.tenantId == tenantId && e.isMSFT && !e.hasAdminConsent))
+          .Include(b => b.ConnectedEmails.Where(e => e.tenantId == tenantId && e.isMSFT && e.isMailbox && !e.hasAdminConsent))
           .Where(b => b.AgencyId == AgencyId)
           .ToListAsync();
         var agency = await _appDbContext.Agencies.FirstAsync(a => a.Id == AgencyId);

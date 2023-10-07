@@ -1,5 +1,6 @@
 ﻿using Core.Config.Constants.LoggingConstants;
 using Core.Constants.ProblemDetailsTitles;
+using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
@@ -36,6 +37,7 @@ public class MyGmailQService
     public async Task DisconnectGmailAsync(Guid brokerId, string email)
     {
         var connectedEmail = await _appDbContext.ConnectedEmails
+            .Include(e => e.Broker)
            .FirstOrDefaultAsync(e => e.BrokerId == brokerId && e.Email == email && !e.isMSFT);
         if (connectedEmail == null) throw new CustomBadRequestException(ProblemDetailsTitles.NotFound, $"Email {email} not connected to broker", 404);
 
@@ -62,7 +64,8 @@ public class MyGmailQService
         });
 
         await flow.RevokeTokenAsync(connectedEmail.Email, connectedEmail.RefreshToken, CancellationToken.None);
-
+        connectedEmail.Broker.hasConnectedCalendar = false;
+        connectedEmail.Broker.CalendarSyncEnabled = false;
         _appDbContext.Remove(connectedEmail);
         await _appDbContext.SaveChangesAsync();
     }
@@ -187,28 +190,52 @@ public class MyGmailQService
 
     public async Task AddGoogleCalendarAsync(Guid brokerId, string email, string refreshToken, string accessToken)
     {
-        var connEmail = await _appDbContext.ConnectedEmails
-          .Where(e => e.BrokerId == brokerId && e.isMSFT == false && email == e.Email)
-          .FirstOrDefaultAsync();
-        if (connEmail == null) throw new CustomBadRequestException("not same email", "email not already connected for automation");
+        var broker = await _appDbContext.Brokers
+            .Include(b => b.ConnectedEmails)
+            .FirstAsync(b => b.Id == brokerId);
 
-        connEmail.RefreshToken = refreshToken;
-        connEmail.AccessToken = accessToken;
-        connEmail.HasCalendarPermissions = true;
-        connEmail.CalendarSyncEnabled = true;
+        if (broker.ConnectedEmails == null) broker.ConnectedEmails = new List<ConnectedEmail>(1);
 
+        var existingEmail = broker.ConnectedEmails.FirstOrDefault(e => e.Email == email);
+        if(existingEmail == null)
+        {
+            var connectedEmail = new ConnectedEmail
+            {
+                BrokerId = brokerId,
+                Email = email,
+                EmailNumber = (byte) (broker.ConnectedEmails.Count + 1),
+                tenantId = "",
+                hasAdminConsent = true,
+                isMSFT = false,
+                AssignLeadsAuto = true,
+                RefreshToken = refreshToken,
+                AccessToken = accessToken,
+                isMailbox = false,
+                isCalendar = true
+            };
+            
+            var refreshTime = TimeSpan.FromMinutes(55);
+            string tokenRefreshJobId = BackgroundJob.Schedule<MyGmailQService>(s => s.RefreshAccessTokenAsync(email, brokerId, null, CancellationToken.None), refreshTime);
+            connectedEmail.TokenRefreshJobId = tokenRefreshJobId;
+            _appDbContext.ConnectedEmails.Add(connectedEmail);
+        }
+        else
+        {
+            existingEmail.RefreshToken = refreshToken;
+            existingEmail.AccessToken = accessToken;
+            existingEmail.isCalendar = true;
+        }
+        broker.hasConnectedCalendar = true;
+        broker.CalendarSyncEnabled = true;
         await _appDbContext.SaveChangesAsync();
     }
 
-    public async Task ToggleCalendarSync(Guid brokerId, string email, bool toggle)
+    public async Task ToggleCalendarSync(Guid brokerId, bool toggle)
     {
-        var connEmail = await _appDbContext.ConnectedEmails
-          .Where(e => e.BrokerId == brokerId && e.isMSFT == false && email == e.Email)
-          .FirstOrDefaultAsync();
-        if (connEmail == null) throw new CustomBadRequestException("not same email", "email not already connected for automation");
-;
-        if(toggle != connEmail.CalendarSyncEnabled) connEmail.CalendarSyncEnabled = toggle;
 
+        var broker = await _appDbContext.Brokers
+          .FirstAsync(b => b.Id == brokerId);
+        broker.CalendarSyncEnabled = toggle;
         await _appDbContext.SaveChangesAsync();
     }
 
@@ -244,7 +271,9 @@ public class MyGmailQService
             isMSFT = false,
             AssignLeadsAuto = true,
             RefreshToken = refreshToken,
-            AccessToken = accessToken
+            AccessToken = accessToken,
+            isMailbox = true,
+            isCalendar = false
         };
 
         if (broker.ConnectedEmails == null) broker.ConnectedEmails = new();
@@ -308,19 +337,5 @@ public class MyGmailQService
             .Select(e => new { e.BrokerId, e.Email, e.isMSFT, e.AccessToken })
             .FirstOrDefaultAsync(e => e.Email == email && e.BrokerId == id && !e.isMSFT);
         return connEmail?.AccessToken;
-    }
-}
-
-public class ExpiredHistoryIdHandler : Google.Apis.Http.IHttpExceptionHandler
-{
-    private readonly IDbContextFactory<AppDbContext> _factory;
-    public ExpiredHistoryIdHandler(IDbContextFactory<AppDbContext> contextFactory)
-    {
-        _factory = contextFactory;
-    }
-    public Task<bool> HandleExceptionAsync(Google.Apis.Http.HandleExceptionArgs args)
-    {
-
-        throw new NotImplementedException();
     }
 }

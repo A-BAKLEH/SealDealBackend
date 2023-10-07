@@ -17,7 +17,7 @@ public class ToDoTask : Entity<int>
     /// </summary>
     public bool IsDone { get; set; } = false;
     public DateTime TaskDueDate { get; set; }
-    public string? HangfireReminderId { get; set; }
+    public string? CalendarEvenId { get; set; }
     public Guid BrokerId { get; set; }
     public Broker Broker { get; set; }
     public int? LeadId { get; set; }

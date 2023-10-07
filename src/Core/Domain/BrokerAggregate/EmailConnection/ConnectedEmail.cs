@@ -20,18 +20,25 @@ public class ConnectedEmail : EntityBase
     /// </summary>
     public string Email { get; set; }
     public bool isMSFT { get; set; }
-    public bool hasAdminConsent { get; set; }
+    public bool isMailbox { get; set; } = true;
+    public bool isCalendar { get; set; } = false;
+
+    //microsoft-----------
+    public bool hasAdminConsent { get; set; } //gmail sets this to true but doesnt use it, but necessary cuz its checked
+    //to see if email has consent when creating action plan
     public string tenantId { get; set; }
-    public Guid? GraphSubscriptionId { get; set; }
-    public DateTime? SubsExpiryDate { get; set; }
+    public Guid? GraphSubscriptionId { get; set; } //for msft webhook
+    public DateTime? SubsExpiryDate { get; set; } //not really used except for documenting expiry date
+    //-----------------------
+
+    //SHARED
     /// <summary>
-    /// for gmail, this is recurrent job that calls Watch every day
+    /// for gmail, this is recurrent job that calls Watch every day.
     /// </summary>
-    public string? SubsRenewalJobId { get; set; }
+    public string? SubsRenewalJobId { get; set; } //to get notifs, NOTHING TO DO WITH CALENDAR
 
     //-----calendar
-    public bool HasCalendarPermissions { get; set; } = false;
-    public bool CalendarSyncEnabled { get; set; } = false;
+    //public bool CalendarSyncEnabled { get; set; } = false; maybe add later
 
     //----------Gmail-----------
     public string? RefreshToken { get; set; }

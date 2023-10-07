@@ -1,7 +1,6 @@
 ﻿using Core.ExternalServiceInterfaces.StripeInterfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Web.Constants;
 
 namespace Web.ControllerServices.QuickServices;
 
@@ -17,7 +16,7 @@ public class StripeQService
     public async Task<dynamic> GetInvoicesAsync(Guid brokerId)
     {
         var broker = await dbContext.Brokers
-            .Select(b => new { b.Agency.AdminStripeId, b.Id,b.Agency.StripeSubscriptionId })
+            .Select(b => new { b.Agency.AdminStripeId, b.Id, b.Agency.StripeSubscriptionId })
             .FirstOrDefaultAsync(b => b.Id == brokerId);
         if (broker != null && !string.IsNullOrEmpty(broker.AdminStripeId))
         {

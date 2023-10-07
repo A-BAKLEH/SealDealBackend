@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Graph.Models.ODataErrors;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using TimeZoneConverter;
 using Web.ApiModels.RequestDTOs;
@@ -205,12 +206,16 @@ public class AccountController : BaseApiController
         string accessToken = token.AccessToken;
         string refrehToken = token.RefreshToken;
 
-        var service = new GmailService(
-            new BaseClientService.Initializer { HttpClientInitializer = cred });
+        //var service = new GmailService(
+        //    new BaseClientService.Initializer { HttpClientInitializer = cred });
 
-        var profile = await service.Users.GetProfile("me").ExecuteAsync();
+        //var profile = await service.Users.GetProfile("me").ExecuteAsync();
 
-        await _gmailservice.ConnectGmailAsync(id, profile.EmailAddress, refrehToken, accessToken);
+        //TODO try this out if it works for calendar, or even befo
+        var id_token = new JwtSecurityToken(jwtEncodedString: token.IdToken);
+        string emailAddress = id_token.Claims.First(c => c.Type == "email").Value;
+
+        await _gmailservice.ConnectGmailAsync(id, emailAddress, refrehToken, accessToken);
 
         var return1 = new { access_token = accessToken };
         return Ok(return1);
@@ -408,13 +413,16 @@ public class AccountController : BaseApiController
         string accessToken = token.AccessToken;
         string refrehToken = token.RefreshToken;
 
+        var id_token = new JwtSecurityToken(jwtEncodedString: token.IdToken);
+        string emailAddress = id_token.Claims.First(c => c.Type == "email").Value;
+
         var service = new GmailService(
             new BaseClientService.Initializer { HttpClientInitializer = cred });
 
         //might not work here with the email if not using gmail already
-        var profile = await service.Users.GetProfile("me").ExecuteAsync();
+        //var profile = await service.Users.GetProfile("me").ExecuteAsync();
 
-        await _gmailservice.AddGoogleCalendarAsync(id, profile.EmailAddress, refrehToken, accessToken);
+        await _gmailservice.AddGoogleCalendarAsync(id, emailAddress, refrehToken, accessToken);
 
         var return1 = new { access_token = accessToken };
         return Ok(return1);
@@ -430,7 +438,7 @@ public class AccountController : BaseApiController
             _logger.LogCritical("{tag} inactive User tried to get agency Listings", TagConstants.Inactive);
             return Forbid();
         }
-        await _gmailservice.ToggleCalendarSync(id,dto.email, dto.toggle);
+        await _gmailservice.ToggleCalendarSync(id, dto.toggle);
 
         return Ok();
     }

@@ -1,10 +1,13 @@
 ﻿using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.BrokerAggregate;
+using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Core.ExternalServiceInterfaces;
 using Core.ExternalServiceInterfaces.StripeInterfaces;
+using Google.Apis.Auth.OAuth2.Flows;
+using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using Infrastructure.Data;
 using Infrastructure.ExternalServices;
@@ -20,13 +23,17 @@ public class BrokerQService
     private readonly IStripeSubscriptionService _stripeSubscriptionService;
     private readonly ILogger<BrokerQService> _logger;
     private readonly ADGraphWrapper _adGraphWrapper;
-    public BrokerQService(AppDbContext appDbContext, ADGraphWrapper aDGraphWrapper, ILogger<BrokerQService> logger, IB2CGraphService b2CGraphService, IStripeSubscriptionService stripeSubscriptionService)
+    private readonly MyGmailQService _gmailservice;
+    private readonly IConfigurationSection _GmailSection;
+    public BrokerQService(AppDbContext appDbContext, MyGmailQService gmailservice, IConfiguration config, ADGraphWrapper aDGraphWrapper, ILogger<BrokerQService> logger, IB2CGraphService b2CGraphService, IStripeSubscriptionService stripeSubscriptionService)
     {
         _appDbContext = appDbContext;
         _b2CGraphService = b2CGraphService;
         _stripeSubscriptionService = stripeSubscriptionService;
         _adGraphWrapper = aDGraphWrapper;
         _logger = logger;
+        _gmailservice = gmailservice;
+        _GmailSection = config.GetSection("Gmail");
     }
 
     public async Task SetTimeZoneAsync(Broker broker, string NewTimeZoneId)
@@ -119,18 +126,6 @@ public class BrokerQService
         _appDbContext.AppEvents.Add(StripeNotif);
 
 
-        var todoTasks = await _appDbContext.ToDoTasks.Where(t => t.BrokerId == brokerDeleteId && t.IsDone == false)
-          .Select(t => t.HangfireReminderId)
-          .ToListAsync();
-
-        foreach (var jobId in todoTasks)
-        {
-            if (jobId != null) try
-                {
-                    BackgroundJob.Delete(jobId);
-                }
-                catch (Exception) { }
-        }
         if (agency.AgencyBrokers[0].RecurrentTasks != null && agency.AgencyBrokers[0].RecurrentTasks.Any())
         {
             foreach (var task in agency.AgencyBrokers[0].RecurrentTasks)
@@ -148,13 +143,37 @@ public class BrokerQService
             {
                 try
                 {
-                    if(task.GraphSubscriptionId != null)
+                    if(task.isMSFT)
                     {
-                        var client = _adGraphWrapper.CreateExtraClient(task.tenantId);
-                        await client.Subscriptions[task.GraphSubscriptionId.ToString()].DeleteAsync();
-                    }                   
-                    if (task.SubsRenewalJobId != null) BackgroundJob.Delete(task.SubsRenewalJobId);
+                        if (task.GraphSubscriptionId != null)
+                        {
+                            var client = _adGraphWrapper.CreateExtraClient(task.tenantId);
+                            await client.Subscriptions[task.GraphSubscriptionId.ToString()].DeleteAsync();
+                        }                   
+                    }
+                    
+                    else
+                    {
+                        await _gmailservice.CallUnwatch(task.Email, brokerDeleteId);
+
+                        var jobIdRefresh = task.TokenRefreshJobId;
+                        if (jobIdRefresh != null) BackgroundJob.Delete(jobIdRefresh);
+
+                        var clientSecrets = new ClientSecrets
+                        {
+                            ClientId = _GmailSection["ClientId"],
+                            ClientSecret = _GmailSection["ClientSecret"]
+                        };
+                        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+                        {
+                            ClientSecrets = clientSecrets,
+                        });
+
+                        await flow.RevokeTokenAsync(task.Email, task.RefreshToken, CancellationToken.None);
+                    }
                     if (task.SyncJobId != null) BackgroundJob.Delete(task.SyncJobId);
+                    if (task.SubsRenewalJobId != null) BackgroundJob.Delete(task.SubsRenewalJobId);
+
                 }
                 catch (Exception) { }
             }
@@ -200,18 +219,6 @@ public class BrokerQService
             _logger.LogError(ex, "Error deleting broker from B2C");
         }
 
-        var todoTasks = await _appDbContext.ToDoTasks.Where(t => t.BrokerId == brokerDeleteId && t.IsDone == false)
-          .Select(t => t.HangfireReminderId)
-          .ToListAsync();
-
-        foreach (var jobId in todoTasks)
-        {
-            if (jobId != null) try
-                {
-                    BackgroundJob.Delete(jobId);
-                }
-                catch (Exception) { }
-        }
         if (agency.AgencyBrokers[0].RecurrentTasks != null && agency.AgencyBrokers[0].RecurrentTasks.Any())
         {
             foreach (var task in agency.AgencyBrokers[0].RecurrentTasks)
@@ -230,13 +237,37 @@ public class BrokerQService
             {
                 try
                 {
-                    if (task.GraphSubscriptionId != null)
+                    if (task.isMSFT)
                     {
-                        var client = _adGraphWrapper.CreateExtraClient(task.tenantId);
-                        await client.Subscriptions[task.GraphSubscriptionId.ToString()].DeleteAsync();
+                        if (task.GraphSubscriptionId != null)
+                        {
+                            var client = _adGraphWrapper.CreateExtraClient(task.tenantId);
+                            await client.Subscriptions[task.GraphSubscriptionId.ToString()].DeleteAsync();
+                        }
                     }
-                    if (task.SubsRenewalJobId != null) BackgroundJob.Delete(task.SubsRenewalJobId);
+
+                    else
+                    {
+                        await _gmailservice.CallUnwatch(task.Email, brokerDeleteId);
+
+                        var jobIdRefresh = task.TokenRefreshJobId;
+                        if (jobIdRefresh != null) BackgroundJob.Delete(jobIdRefresh);
+
+                        var clientSecrets = new ClientSecrets
+                        {
+                            ClientId = _GmailSection["ClientId"],
+                            ClientSecret = _GmailSection["ClientSecret"]
+                        };
+                        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+                        {
+                            ClientSecrets = clientSecrets,
+                        });
+
+                        await flow.RevokeTokenAsync(task.Email, task.RefreshToken, CancellationToken.None);
+                    }
                     if (task.SyncJobId != null) BackgroundJob.Delete(task.SyncJobId);
+                    if (task.SubsRenewalJobId != null) BackgroundJob.Delete(task.SubsRenewalJobId);
+
                 }
                 catch (Exception) { }
             }
