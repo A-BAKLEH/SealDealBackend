@@ -10,8 +10,10 @@ using Google.Apis.Services;
 using Hangfire;
 using Hangfire.Server;
 using Infrastructure.Data;
+using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Exceptions;
+using Stripe;
 using Web.Constants;
 
 namespace Web.ControllerServices.QuickServices;
@@ -46,8 +48,11 @@ public class MyGmailQService
             .AnyAsync();
         if (ActionPlansRunning) throw new CustomBadRequestException(ProblemDetailsTitles.ActionPlansActive, $"Cannot disconnect email {email} while action plans are running", 403);
 
-        await CallUnwatch(connectedEmail.Email, connectedEmail.BrokerId);
-
+        if (!webHostEnvironment.IsDevelopment() || GlobalControl.TestModeConnectGmailWebhook)
+        {
+            await CallUnwatch(connectedEmail.Email, connectedEmail.BrokerId);
+        }
+        
         var jobIdRefresh = connectedEmail.TokenRefreshJobId;
         if (jobIdRefresh != null) BackgroundJob.Delete(jobIdRefresh);
         if (connectedEmail.SyncJobId != null) BackgroundJob.Delete(connectedEmail.SyncJobId);
