@@ -4,10 +4,13 @@ using Core.Domain.NotificationAggregate;
 using Hangfire;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
 using Web.Constants;
 using Web.Outbox.Config;
 using Web.Processing.ActionPlans;
 using Web.RealTimeNotifs;
+using Task = System.Threading.Tasks.Task;
 
 namespace Web.Outbox;
 
@@ -21,9 +24,11 @@ public class LeadAssigned : EventBase
 public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
 {
     private readonly RealTimeNotifSender _realTimeNotif;
-    public LeadAssignedHandler(AppDbContext appDbContext, RealTimeNotifSender realTimeNotifSender, ILogger<LeadAssignedHandler> logger) : base(appDbContext, logger)
+    private string ourPhoneNumber = "";
+    public LeadAssignedHandler(AppDbContext appDbContext, RealTimeNotifSender realTimeNotifSender, IConfiguration config, ILogger<LeadAssignedHandler> logger) : base(appDbContext, logger)
     {
         _realTimeNotif = realTimeNotifSender;
+        ourPhoneNumber = config.GetSection("Twilio")["ourPhoneNumber"] ?? "";
     }
 
     public override async Task Handle(LeadAssigned LeadAssignedEvent, CancellationToken cancellationToken)
@@ -35,6 +40,8 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
             appEvent = _context.AppEvents
                 .Include(e => e.lead)
                 .ThenInclude(l => l.ActionPlanAssociations)
+                .Include(e => e.lead)
+                .ThenInclude(e => e.LeadEmails)
                 .Include(e => e.Broker)
                 .ThenInclude(b => b.ActionPlans.Where(ap => ap.isActive && ap.Triggers.HasFlag(EventType.LeadAssignedToYou)))
                 .FirstOrDefault(x => x.Id == LeadAssignedEvent.AppEventId);
@@ -125,6 +132,33 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
                     }
                 }
                 appEvents.Add(appEvent);
+                if (appEvent.Broker.SMSNotifsEnabled)
+                {
+                    try
+                    {
+                        var messageOptions = new CreateMessageOptions(new PhoneNumber(appEvent.Broker.PhoneNumber));
+                        messageOptions.From = new PhoneNumber(ourPhoneNumber);
+                        var senderfullName = appEvent.Props[NotificationJSONKeys.AssignedByFullName];
+
+                        var body = senderfullName == null ? "Lead Assigned:\n" : $"{senderfullName} assigned you a lead:\n";
+                        body += $"First name: {appEvent.lead.LeadFirstName}\n";
+                        body += $"Last name: {appEvent.lead.LeadLastName}\n";
+                        body += $"Phone number: {appEvent.lead.PhoneNumber}\n";
+                        if (appEvent.lead.LeadEmails != null && appEvent.lead.LeadEmails.Any())
+                        {
+                            var leadEmail = appEvent.lead.LeadEmails.First().EmailAddress;
+                            body += $"Email: {leadEmail}\n";
+                        }
+                        body += "Log into SealDeal to view all available lead info.";
+                        messageOptions.Body = body;
+
+                        var mess = await MessageResource.CreateAsync(messageOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogCritical("{tag} failure sending twilio notifs error: {error} ", "Twilio", ex.Message + ":\n" + ex.StackTrace);
+                    }
+                }
                 //TODO notify broker now if he's online and send PushNotif
                 await _realTimeNotif.SendRealTimeNotifsAsync(_logger, appEvent.BrokerId, true, true, null, appEvents, null); ;
             }
@@ -132,7 +166,7 @@ public class LeadAssignedHandler : EventHandlerBase<LeadAssigned>
         }
         catch (Exception ex)
         {
-            _logger.LogError("{tag} Handling LeadAssigned Failed for appEvent with appEventId {appEventId} with error {error}",TagConstants.handleLeadAssigned ,LeadAssignedEvent.AppEventId, ex.Message);
+            _logger.LogError("{tag} Handling LeadAssigned Failed for appEvent with appEventId {appEventId} with error {error}", TagConstants.handleLeadAssigned, LeadAssignedEvent.AppEventId, ex.Message);
             appEvent.ProcessingStatus = ProcessingStatus.Failed;
             await _context.SaveChangesAsync();
             throw;

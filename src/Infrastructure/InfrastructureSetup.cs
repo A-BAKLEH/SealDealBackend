@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Stripe;
 using System.Reflection;
+using Twilio;
 
 namespace Infrastructure;
 
@@ -69,6 +70,11 @@ public static class InfrastructureSetup
 
         var _stripeConfigSection = config.GetSection("StripeOptions");
         StripeConfiguration.ApiKey = _stripeConfigSection["APIKey"];
+
+        var _TwilioSection = config.GetSection("Twilio");
+        var accountSid = _TwilioSection["accountSid"];
+        var authToken = _TwilioSection["authToken"];
+        TwilioClient.Init(accountSid, authToken);
 
         services.AddMediatR(config => config.RegisterServicesFromAssemblies(_assemblies.ToArray()));
         services.AddScoped<IStripeCheckoutService, StripeCheckoutService>();

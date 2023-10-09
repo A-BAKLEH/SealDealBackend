@@ -17,6 +17,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.Graph" />
     <PackageReference Include="Stripe.net" />
+	<PackageReference Include="Twilio" />
   </ItemGroup>
   
   <ItemGroup>

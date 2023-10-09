@@ -26,6 +26,8 @@ using MimeKit;
 using Serilog.Context;
 using System.Net.Mail;
 using System.Text;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
 using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
@@ -49,6 +51,7 @@ public class EmailProcessor
     private GmailService? _GmailService;
     private readonly IConfigurationSection _GmailSection;
     private readonly IWebHostEnvironment _webHostEnv;
+    private string ourPhoneNumber = ""; 
     public EmailProcessor(AppDbContext appDbContext, IConfiguration config,
         ADGraphWrapper aDGraphWrapper, OpenAIGPT35Service openAIGPT35Service,
         IWebHostEnvironment env,
@@ -60,6 +63,7 @@ public class EmailProcessor
         _GPT35Service = openAIGPT35Service;
         _configurationSection = config.GetSection("URLs");
         _GmailSection = config.GetSection("Gmail");
+        ourPhoneNumber = config.GetSection("Twilio")["ourPhoneNumber"] ?? "";
         _contextFactory = contextFactory;
         _realTimeNotif = realTimeNotif;
         _webHostEnv = env;
@@ -1108,10 +1112,74 @@ public class EmailProcessor
         var emailevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.EmailEvents).ToList();
         emailevents.AddRange(KnownLeadEmailEvents);
         await _realTimeNotif.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true, null, appevents, emailevents);
+        if(leadsAdded.Any() && brokerDTO.SmsNotifsEnabled && brokerDTO.phoneNumber != null) await SMSNotifsAsync(leadsAdded.Select(l => new Tuple<Lead,string>(l.Item1.Lead, l.Item2.From.EmailAddress.Address)).ToList(),brokerDTO.Id, brokerDTO.phoneNumber);
         return tokens;
     }
 
     // --------------------------------- MSFTENDS ----- COMMON STARTs --------------------
+    public async Task SMSNotifsAsync(List<Tuple<Lead,string>> addedLeads, Guid brokerId,string brokerPhone)
+    {
+        try
+        {
+            var assignedToYou = addedLeads.Where(l => l.Item1.BrokerId == brokerId);
+            var unassigned = addedLeads.Where(l => l.Item1.BrokerId == null);
+            var assignedToElse = addedLeads.Where(l => l.Item1.BrokerId != null && l.Item1.BrokerId != brokerId);
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine("New lead(s) created from your mailbox.");
+            if (assignedToYou.Any())
+            {
+                stringBuilder.AppendLine("Assigned to you:");
+                foreach (var lead in assignedToYou)
+                {
+                    var leadLine = new StringBuilder();
+                    leadLine.Append("- " + lead.Item1.LeadFirstName);
+                    if (lead.Item1.LeadLastName != "unknown") leadLine.Append(" " + lead.Item1.LeadLastName);
+                    leadLine.Append(',');
+                    if (!string.IsNullOrEmpty(lead.Item1.PhoneNumber)) leadLine.Append(lead.Item1.PhoneNumber + ",");
+                    leadLine.Append("from: " + lead.Item2);
+                    stringBuilder.AppendLine(leadLine.ToString());
+                }
+            }
+            if (unassigned.Any())
+            {
+                stringBuilder.AppendLine("Unassigned leads:");
+                foreach (var lead in unassigned)
+                {
+                    var leadLine = new StringBuilder();
+                    leadLine.Append("- " + lead.Item1.LeadFirstName);
+                    if (lead.Item1.LeadLastName != "unknown") leadLine.Append(" " + lead.Item1.LeadLastName);
+                    leadLine.Append(',');
+                    if (!string.IsNullOrEmpty(lead.Item1.PhoneNumber)) leadLine.Append(lead.Item1.PhoneNumber + ",");
+                    leadLine.Append("from: " + lead.Item2);
+                    stringBuilder.AppendLine(leadLine.ToString());
+                }
+            }
+            if (assignedToElse.Any())
+            {
+                stringBuilder.AppendLine("Leads assigned to other brokers:");
+                foreach (var lead in assignedToElse)
+                {
+                    var leadLine = new StringBuilder();
+                    leadLine.Append("- " + lead.Item1.LeadFirstName);
+                    if (lead.Item1.LeadLastName != "unknown") leadLine.Append(" " + lead.Item1.LeadLastName);
+                    leadLine.Append(",from: " + lead.Item2);
+                    var assignedTo = lead.Item1.AppEvents.FirstOrDefault(e => e.EventType.HasFlag(EventType.YouAssignedtoBroker))?.Props[NotificationJSONKeys.AssignedToFullName];
+                    if (!string.IsNullOrEmpty(assignedTo)) leadLine.Append(",assigned to " + assignedTo);
+                    stringBuilder.AppendLine(leadLine.ToString());
+                }
+            }
+            var messageOptions = new CreateMessageOptions(new PhoneNumber(brokerPhone));
+            messageOptions.From = new PhoneNumber(ourPhoneNumber);
+            messageOptions.Body = stringBuilder.ToString();
+
+            var mess = await MessageResource.CreateAsync(messageOptions);
+        }
+        catch(Exception ex)
+        {
+            _logger.LogCritical("{tag} failure sending twilio notifs error: {error} ", "Twilio", ex.Message + ":\n" + ex.StackTrace);
+        }
+    }
 
     //common
     public async Task CheckEmailSyncAsync(bool isMsft, Guid? SubsId = null, string? tenantId = null, string? gmailEmail = null)
@@ -1230,7 +1298,7 @@ public class EmailProcessor
         using (LogContext.PushProperty("brokerEmail", email))
         {
             var connEmail = await _appDbContext.ConnectedEmails
-          .Select(e => new { e.isMSFT, e.AccessToken, e.historyId, e.SyncJobId, e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Language, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName })
+          .Select(e => new { e.isMSFT, e.AccessToken, e.historyId, e.SyncJobId, e.Email, e.GraphSubscriptionId, e.LastSync, e.tenantId, e.AssignLeadsAuto, e.Broker.Language, e.OpenAITokensUsed, e.BrokerId, e.Broker.isAdmin, e.Broker.AgencyId, e.Broker.isSolo, e.Broker.FirstName, e.Broker.LastName, e.Broker.SMSNotifsEnabled,e.Broker.PhoneNumber })
           .FirstAsync(x => x.Email == email);
 
             var brokerStartActionPlans = await _appDbContext.ActionPlans
@@ -1278,7 +1346,7 @@ public class EmailProcessor
             }
 
             var brokerDTO = new BrokerEmailProcessingDTO
-            { isMsft = connEmail.isMSFT, accessToken = connEmail.AccessToken, Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
+            { isMsft = connEmail.isMSFT, accessToken = connEmail.AccessToken,phoneNumber = connEmail.PhoneNumber,SmsNotifsEnabled = connEmail.SMSNotifsEnabled, Id = connEmail.BrokerId, brokerFirstName = connEmail.FirstName, brokerLastName = connEmail.LastName, AgencyId = connEmail.AgencyId, isAdmin = connEmail.isAdmin, isSolo = connEmail.isSolo, BrokerEmail = connEmail.Email, BrokerLanguge = connEmail.Language, AssignLeadsAuto = connEmail.AssignLeadsAuto };
             if (brokerStartActionPlans.Count == 1) brokerDTO.brokerStartActionPlans = brokerStartActionPlans;
             else brokerDTO.brokerStartActionPlans = new();
 
@@ -1961,6 +2029,7 @@ public class EmailProcessor
         var emailevents = leadsAdded.SelectMany(tup => tup.Item1.Lead.EmailEvents).ToList();
         emailevents.AddRange(KnownLeadEmailEvents);
         await _realTimeNotif.SendRealTimeNotifsAsync(_logger, brokerDTO.Id, true, true, null, appevents, emailevents);
+        if (leadsAdded.Any() && brokerDTO.SmsNotifsEnabled && brokerDTO.phoneNumber != null) await SMSNotifsAsync(leadsAdded.Select(l => new Tuple<Lead, string>(l.Item1.Lead, l.Item2.From)).ToList(), brokerDTO.Id, brokerDTO.phoneNumber);
         return tokens;
     }
 
