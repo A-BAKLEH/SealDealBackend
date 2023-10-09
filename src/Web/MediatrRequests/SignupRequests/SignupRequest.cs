@@ -122,6 +122,7 @@ public class SignupRequestHandler : IRequestHandler<SignupRequest, SignedInBroke
         response.PhoneNumber = broker.PhoneNumber;
         response.markEmailsRead = broker.MarkEmailsRead;
         response.SoloBroker = broker.isSolo;
+        response.SMSNotifsEnables = broker.SMSNotifsEnabled;
         response.AccountStatus = new AccountStatusDTO
         {
             userAccountStatus = "inactive",

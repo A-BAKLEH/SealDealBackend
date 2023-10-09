@@ -15,8 +15,9 @@ public class SignedInBrokerDTO
     public string LoginEmail { get; set; }
     public bool markEmailsRead { get; set; }
     public DateTime Created { get; set; }
-    public bool SoloBroker { get; set;}
+    public bool SoloBroker { get; set; }
     public string BrokerLanguage { get; set; }
     public bool hasConnectedCalendar { get; set; }
     public bool CalendarSyncEnabled { get; set; }
+    public bool SMSNotifsEnables {get;set;}
 }

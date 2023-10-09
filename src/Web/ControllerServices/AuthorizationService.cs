@@ -77,6 +77,7 @@ public class AuthorizationService
         response.BrokerLanguage = broker.Language.ToString();
         response.hasConnectedCalendar = broker.hasConnectedCalendar;
         response.CalendarSyncEnabled = broker.CalendarSyncEnabled;
+        response.SMSNotifsEnables = broker.SMSNotifsEnabled;
 
         if (TimeZoneId != null && broker.TimeZoneId != TimeZoneId)
         {
