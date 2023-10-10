@@ -23,6 +23,7 @@ using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 using Microsoft.Kiota.Abstractions;
 using MimeKit;
+using Npgsql;
 using Serilog.Context;
 using System.Net.Mail;
 using System.Text;
@@ -1030,7 +1031,21 @@ public class EmailProcessor
             }
         }
 
-        await localdbContext.SaveChangesAsync();
+        try
+        {
+            await localdbContext.SaveChangesAsync();
+        }
+        catch (PostgresException ex)
+        {
+            if (ex.MessageText.Contains("value too long for type character varying"))
+            {
+                foreach (var lead in leadsAdded)
+                {
+                    _logger.LogWarning("{tag} too long value email {} - emailId {emailId}", "errorSaving", lead.Item1.Lead.LeadEmails.First().EmailAddress, lead.Item2.From.EmailAddress.Address);
+                }
+            }
+            throw;
+        }
 
         //later maybe admin can define action plans that run on unassigned leads
         var assignedAddedLeads = leadsAdded.Where(l => l.Item1.Lead.BrokerId != null);
@@ -1934,7 +1949,22 @@ public class EmailProcessor
             }
         }
 
-        await localdbContext.SaveChangesAsync();
+        try
+        {
+            await localdbContext.SaveChangesAsync();
+        }
+        catch(PostgresException ex)
+        {
+            if(ex.MessageText.Contains("value too long for type character varying"))
+            {
+                foreach(var lead in leadsAdded)
+                {
+                    _logger.LogWarning("{tag} too long value email {} - emailId {emailId}", "errorSaving", lead.Item1.Lead.LeadEmails.First().EmailAddress,lead.Item2.From);
+                }
+            }
+            throw;
+        }
+        
 
         //later maybe admin can define action plans that run on unassigned leads
         var assignedAddedLeads = leadsAdded.Where(l => l.Item1.Lead.BrokerId != null);

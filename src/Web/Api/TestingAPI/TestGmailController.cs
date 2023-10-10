@@ -51,17 +51,15 @@ public class TestGmailController : ControllerBase
     [HttpGet("telio")]
     public async Task<IActionResult> telio()
     {
-        var accountSid = "AC055776961ddf19eb1b8245925be3b002";
-        var authToken = "5f244a44ef0832f432fe50e1a38161e0";
-        TwilioClient.Init(accountSid, authToken);
 
-        var messageOptions = new CreateMessageOptions(
-          new PhoneNumber("+15145129956"));
-        messageOptions.From = new PhoneNumber("+18623776507");
-        messageOptions.Body = "hello habibi";
+        //TwilioClient.Init(accountSid, authToken);
 
-        var message = MessageResource.Create(messageOptions);
-        Console.WriteLine(message.Body);
+        //var messageOptions = new CreateMessageOptions(
+        //  new PhoneNumber("+15145129956"));
+        //messageOptions.Body = "hello habibi";
+
+        //var message = MessageResource.Create(messageOptions);
+        //Console.WriteLine(message.Body);
         return Ok();
     }
 
