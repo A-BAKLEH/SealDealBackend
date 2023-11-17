@@ -1,5 +1,6 @@
 ﻿using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
+using Core.Domain.AINurturingAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.BrokerAggregate.Templates;
 using Core.Domain.LeadAggregate;
@@ -61,6 +62,7 @@ public class Broker : Entity<Guid>
     public bool SMSNotifsEnabled { get; set; } = false;
     public List<ConnectedEmail>? ConnectedEmails { get; set; }
     public List<Lead>? Leads { get; set; }
+    public List<AINurturing>? AINurturings { get; set; }
     public List<BrokerListingAssignment>? AssignedListings { get; set; }
     public List<Template>? Templates { get; set; }
     public List<ToDoTask>? Tasks { get; set; }

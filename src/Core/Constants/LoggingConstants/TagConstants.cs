@@ -33,6 +33,9 @@ public static class TagConstants
 
     public const string openAi = "openAi";
     public const string openAiTranslation = "openAiTranslation";
+
+    public const string openAiNurturingFollowUp = "openAiNurturingFollowUp";
+
     public const string handleTaskResult = "handleTaskResult";
     public const string createDbRecords = "createDbRecords";
 
@@ -43,4 +46,7 @@ public static class TagConstants
     public const string checkSeenAndRepliedTo = "checkSeenAndRepliedTo";
 
     public const string OutboxCleaner = "outboxCleaner";
+
+    public const string AiNurturingStarting = "startingAiNurturing";
+
 }

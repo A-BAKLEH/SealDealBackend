@@ -27,4 +27,8 @@ public static class ProblemDetailsTitles
     public const string AlreadyAssociatedToLead = "AlreadyAssociatedToLead";
 
     public const string TranslationFailed = "TranslationFailed ";
+
+    //AI Nurturing 
+    public const string AINurturingAlreadyEnabled = "AINurturingAlreadyEnabled";
+    public const string NoSuitableEmail = "NoSuitableEmail";
 }

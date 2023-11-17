@@ -117,5 +117,7 @@ public enum EventType
     /// <summary>
     /// for admin when manually/automation creates a lead and lead is unassigned for > 1 hour
     /// </summary>
-    UnAssignedLead = 1 << 23
+    UnAssignedLead = 1 << 23,
+ 
+   AINurturingStarted = 1 << 24
 }

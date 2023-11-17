@@ -1,4 +1,5 @@
-﻿using static Web.Processing.EmailAutomation.EmailProcessor;
+﻿using Web.Processing.Nurturing;
+using static Web.Processing.EmailAutomation.EmailProcessor;
 using MsftMessage = Microsoft.Graph.Models.Message;
 
 namespace Web.HTTPClients
@@ -16,6 +17,8 @@ namespace Web.HTTPClients
         public int EmailTokensUsed { get; set; }
         public MsftMessage? ProcessedMessageMSFT { get; set; }
         public GmailMessageDecoded? ProcessedMessageGMAIL { get; set; }
+        public NurturingResult? LeadAnalysis { get; set; }
+        public string TextReply { get; set; }
     }
 
     public class GPTRequest
@@ -62,5 +65,27 @@ namespace Web.HTTPClients
     {
         public string translationlanguage { get; set; }
         public string translatedtext { get; set; }
+    }
+
+    public class InputEmail
+    {
+        public string Email { get; set; }
+        public string Content { get; set; }
+        public DateTime Date { get; set; }
+        public NurturningEmailType Type { get; set; }
+    }
+
+    public enum NurturningEmailType
+    {
+        LeadMessage,
+        AIMessage
+    }
+
+    public enum NurturingProcessingType
+    {
+        FollowUp,
+        AskingQuestions,
+        AnalysingLead,
+        SendingInitialMessage,
     }
 }

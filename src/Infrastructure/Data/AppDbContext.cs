@@ -1,5 +1,6 @@
 ﻿using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
+using Core.Domain.AINurturingAggregate;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.BrokerAggregate.Templates;
@@ -41,6 +42,7 @@ public class AppDbContext : DbContext
     public DbSet<BrokerCleanupTask> BrokerCleanupTasks => Set<BrokerCleanupTask>();
     public DbSet<ActionPlan> ActionPlans => Set<ActionPlan>();
     public DbSet<ActionPlanAssociation> ActionPlanAssociations => Set<ActionPlanAssociation>();
+    public DbSet<AINurturing> AINurturings => Set<AINurturing>();
 
     public DbSet<ActionTracker> ActionTrackers => Set<ActionTracker>();
     public DbSet<Notif> Notifs => Set<Notif>();

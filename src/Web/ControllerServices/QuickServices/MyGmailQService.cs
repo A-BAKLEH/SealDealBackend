@@ -288,8 +288,7 @@ public class MyGmailQService
             string tokenRefreshJobId = BackgroundJob.Schedule<MyGmailQService>(s => s.RefreshAccessTokenAsync(email, brokerId, null, CancellationToken.None), refreshTime);
             connectedEmail.TokenRefreshJobId = tokenRefreshJobId;
         }
-
-        
+      
         try
         {
             var subSection = _GmailSection.GetSection("PubSub");

@@ -101,8 +101,6 @@ public class AccountController : BaseApiController
         return Ok();
     }
 
-
-
     [HttpDelete("DisconnectMsft/{email}")]
     public async Task<IActionResult> DisconnectMsft(string email)
     {
@@ -241,7 +239,6 @@ public class AccountController : BaseApiController
         {
             return BadRequest();
         }
-
 
         var clientSecrets = new ClientSecrets
         {

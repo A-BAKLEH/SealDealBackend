@@ -1,6 +1,7 @@
 ﻿
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
+using Core.Domain.AINurturingAggregate;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.NotificationAggregate;
 using SharedKernel;
@@ -65,6 +66,8 @@ public class Lead : Entity<int>
     public List<Tag>? Tags { get; set; }
     public List<ToDoTask> ToDoTasks { get; set; }
     public List<ActionPlanAssociation>? ActionPlanAssociations { get; set; }
+    public List<AINurturing>? AINurturings { get; set; }
+
     /// <summary>
     /// when created by auto, message ID is in AppEvent of creation/assignation
     /// </summary>

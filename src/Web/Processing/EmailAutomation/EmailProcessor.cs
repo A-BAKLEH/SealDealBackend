@@ -2,6 +2,7 @@
 using Core.Constants;
 using Core.Domain.ActionPlanAggregate;
 using Core.Domain.AgencyAggregate;
+using Core.Domain.AINurturingAggregate;
 using Core.Domain.BrokerAggregate;
 using Core.Domain.BrokerAggregate.EmailConnection;
 using Core.Domain.LeadAggregate;
@@ -33,6 +34,7 @@ using Web.Constants;
 using Web.ControllerServices.StaticMethods;
 using Web.HTTPClients;
 using Web.Processing.ActionPlans;
+using Web.Processing.Nurturing;
 using Web.RealTimeNotifs;
 using EventType = Core.Domain.NotificationAggregate.EventType;
 using GmailMessage = Google.Apis.Gmail.v1.Data.Message;
@@ -1342,7 +1344,7 @@ public class EmailProcessor
                 }
             }
             else
-            {
+            { 
                 if (StaticEmailConcurrencyHandler.EmailParsingdictGMAIL.TryGetValue(email, out var s))
                 {
                     if (performContext.BackgroundJob.Id != connEmail.SyncJobId)
@@ -1446,7 +1448,9 @@ public class EmailProcessor
         messRequest.IncludeSpamTrash = false;
         messRequest.LabelIds = new string[] { "INBOX" };
         messRequest.MaxResults = 20;
-        messRequest.Q = $"category:primary after:{CutoffTime}";
+        //messRequest.Q = $"category:primary after:{CutoffTime}";
+
+        messRequest.Q = $"after:{CutoffTime}";
 
         var messagesPage = await messRequest.ExecuteAsync();
         var IDsALLToReprocessMailsThisRun = new List<string>();
@@ -1698,6 +1702,7 @@ public class EmailProcessor
         int tokens = 0;
         var KnownLeadEmailEvents = new List<EmailEvent>();
         var KnownLeadTasks = new List<Tuple<Task<EmailEvent?>, GmailMessageDecoded>>();
+        var NurturedLeads = new List<NurturingEmailEvent>();
 
         var messagesUnfiltered = DecodeGmail(messagesInput, _logger);
         var messages = messagesUnfiltered.Where(m => !EmailSenderIgnore(m.From, brokerDTO.BrokerEmail)).ToList();
@@ -1728,8 +1733,11 @@ public class EmailProcessor
                 .Select(le => new { le.EmailAddress, le.LeadId, le.Lead.HasActionPlanToStop, le.Lead.BrokerId })
                 .FirstOrDefaultAsync(em => em.EmailAddress == fromEmailAddress && em.BrokerId == brokerDTO.Id);
 
+
             if (leadEmail != null)
             {
+                var activeNurturing = localdbContext.AINurturings.FirstOrDefault(x => x.LeadId == leadEmail.LeadId && x.Status == AINurturingStatus.Running);
+
                 if (leadEmail.HasActionPlanToStop) LeadIDsToStopActionPlan.Add(leadEmail.LeadId);
                 var groupedByConvo = messageGrp.GroupBy(m => m.message.ThreadId);
                 foreach (var convo in groupedByConvo)
@@ -1751,6 +1759,15 @@ public class EmailProcessor
                     else
                     { //just 1 message, check that its not in a conversation
                         KnownLeadTasks.Add(new Tuple<Task<EmailEvent?>, GmailMessageDecoded>(CreateEmailEventKnownLeadGmail(convo.First(), brokerDTO.BrokerEmail, leadEmail.LeadId), convo.First()));
+                    }
+
+                    if (activeNurturing != null)
+                    {
+                        NurturedLeads.Add(new NurturingEmailEvent()
+                        {
+                            NurturingId = activeNurturing.Id,
+                            DecodedEmail = convo.Last()
+                        });
                     }
                 }
             }
@@ -1807,6 +1824,11 @@ public class EmailProcessor
             tokens += HandleTaskResultGmail(leadTask, message, UnknownDBRecordsTasks, false, brokerDTO, ReprocessMessages);
         }
         //--------------------
+
+        foreach (var nurturedLead in NurturedLeads)
+        {
+            BackgroundJob.Schedule<NurturingProcessor>((x) => x.ProcessEmailReply(nurturedLead), TimeSpan.FromSeconds(0));
+        }
 
         //analyzing chatGPT results
         List<Tuple<EmailparserDBRecrodsRes, GmailMessageDecoded>> leadsAdded = new(LeadProviderDBRecordsTasks.Count + UnknownDBRecordsTasks.Count);
@@ -2108,7 +2130,6 @@ public class EmailProcessor
 
     public async Task<EmailEvent?> CreateEmailEventKnownLeadGmail(GmailMessageDecoded gmailMessageDecoded, string brokerEmail, int leadId)
     {
-
         var messages = await _GmailService.Users.Threads.Get(brokerEmail, gmailMessageDecoded.message.ThreadId)
             .Configure(r =>
             {

@@ -32,6 +32,7 @@ public class GmailWebhook : ControllerBase
             var email = data.emailAddress;
             await _emailProcessor.CheckEmailSyncAsync(false,gmailEmail: email);
         }
+
         return Ok();
     }
 }

@@ -91,6 +91,7 @@ public class ActionPlansController : BaseApiController
             _logger.LogCritical("{tag} inactive mofo User", TagConstants.Inactive);
             return Forbid();
         }
+
         var res = await _actionPQService.StartLeadActionPlanManually(id, dto);
 
         return Ok(res);

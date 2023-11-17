@@ -9,7 +9,6 @@ public class BrokerListingAssignmentConfig : IEntityTypeConfiguration<BrokerList
   {
     builder.HasKey(x => new { x.BrokerId, x.ListingId });
 
-
     builder.HasOne(bl => bl.Broker)
             .WithMany(broker => broker.AssignedListings)
             .HasForeignKey(bl => bl.BrokerId)

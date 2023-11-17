@@ -9,9 +9,11 @@ using Microsoft.Identity.Web;
 using Serilog;
 using SharedKernel.Exceptions;
 using SharedKernel.Exceptions.CustomProblemDetails;
+using System.Diagnostics;
 using System.Reflection;
 using Web;
 using Web.Config;
+using Web.Processing.ActionPlans;
 using Web.RealTimeNotifs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -152,6 +154,19 @@ if (isProd)
     });
 }
 else app.MapHangfireDashboard();
+Debug.WriteLine("test line");
+
+RecurringJob.RemoveIfExists("ainurturingprocessor");
+
+//app.Run();
+//RecurringJob.AddOrUpdate(
+//    "myrecurringjob",
+//    () => Debug.WriteLine("Recurring!"),
+//    Cron.Minutely);
+
+//RecurringJob.s
+
+//RecurringJob.AddOrUpdate<NurturingProcessor>("ainurturingprocessor", x => x.DoActionAsync(null), Cron.MinuteInterval(5));
 app.Run();
 
 //Add-Migration InitialMigrationName -StartupProject Web -Context AppDbContext -Project Infrastructure

@@ -34,8 +34,10 @@ namespace Web
             services.AddScoped<TagQService>();
             services.AddScoped<TemplatesQService>();
             services.AddScoped<ActionPQService>();
+            services.AddScoped<AINurturingQService>();
+
             services.AddScoped<HandleTodo>();
-            services.AddScoped<APProcessor>();
+            services.AddScoped<NurturingProcessor>();
 
             services.AddScoped<ToDoTaskQService>();
             services.AddScoped<EmailProcessor>();

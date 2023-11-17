@@ -38,7 +38,6 @@ public static class NotificationJSONKeys
     public const string ActionId = "ActionId";
     public const string APAssID = "APAssID";
 
-
     public const string APFinishedReason = "APFinishedReason";
     public const string AllActionsCompleted = "AllActionsCompleted";
     public const string ActionPlanError = "Error Encountered";

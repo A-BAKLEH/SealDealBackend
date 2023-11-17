@@ -29,6 +29,11 @@ public class LeadConfiguration : IEntityTypeConfiguration<Lead>
                 ValueComparer.CreateDefault(typeof(Dictionary<string, string>), true)
             );
 
+        builder.HasMany(x => x.AINurturings)
+            .WithOne(b => b.lead)
+            .HasForeignKey(b => b.LeadId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Property(l => l.LeadFirstName).HasMaxLength(50);
         builder.Property(l => l.LeadLastName).HasMaxLength(50);
         builder.Property(a => a.PhoneNumber).HasMaxLength(30);

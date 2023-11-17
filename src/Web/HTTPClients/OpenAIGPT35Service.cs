@@ -1,9 +1,15 @@
 ﻿using Core.Config.Constants.LoggingConstants;
+using Core.Domain.BrokerAggregate;
+using Core.Domain.LeadAggregate;
+using Infrastructure.Migrations;
+using Microsoft.Graph.Models.Security;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Twilio.Rest.Trunking.V1;
 using Web.Config;
 using Web.Constants;
+using Web.Processing.Nurturing;
 using static Web.Processing.EmailAutomation.EmailProcessor;
 using MsftMessage = Microsoft.Graph.Models.Message;
 
@@ -231,8 +237,152 @@ public class OpenAIGPT35Service
         {
             if (res.content == null) _logger.LogWarning("{tag} returning content object null,haslead {hasLead}, success {success}", TagConstants.openAi, res.HasLead, res.Success);
             else _logger.LogWarning("{tag} returning content object: {@openAiContent},haslead {hasLead}, success {success}", TagConstants.openAi, res.content, res.HasLead, res.Success);
-
         }
+
         return res;
+    }
+
+    public async Task<OpenAIResponse> ProccessAINurturing(NurturingProcessingType eventType, Broker brokerInfo, Lead leadInfo, List<InputEmail> emails = null, string emailsText = null)
+    {
+        try
+        {
+            string prompt = String.Empty;
+
+            switch (eventType)
+            {
+                case NurturingProcessingType.FollowUp:
+                    prompt = APIConstants.NurturingFollowUpPrompt;
+                    prompt = prompt.Replace("{agentName}", $"{brokerInfo.FirstName} {brokerInfo.LastName}");
+                    prompt = prompt.Replace("{agencyName}", $"{brokerInfo.Agency.AgencyName}");
+                    prompt = prompt.Replace("{leadName}", $"{leadInfo.LeadFirstName} {leadInfo.LeadLastName}");
+                    prompt = prompt.Replace("{leadBudget}", $"{leadInfo.Budget}");
+                    break;
+
+                case NurturingProcessingType.AskingQuestions:
+                    prompt = APIConstants.NurturingAskingQuestionPrompt;
+                    prompt = prompt.Replace("{agentName}", $"{brokerInfo.FirstName} {brokerInfo.LastName}");
+                    prompt = prompt.Replace("{agencyName}", $"{brokerInfo.Agency.AgencyName}");
+                    prompt = prompt.Replace("{leadName}", $"{leadInfo.LeadFirstName} {leadInfo.LeadLastName}");
+                    prompt = prompt.Replace("{leadBudget}", $"{leadInfo.Budget}");
+                    break;
+
+                case NurturingProcessingType.SendingInitialMessage:
+                    prompt = APIConstants.NurturingInitialMessagePrompt;
+                    prompt = prompt.Replace("{agentName}", $"{brokerInfo.FirstName} {brokerInfo.LastName}");
+                    prompt = prompt.Replace("{agencyName}", $"{brokerInfo.Agency.AgencyName}");
+                    prompt = prompt.Replace("{leadName}", $"{leadInfo.LeadFirstName} {leadInfo.LeadLastName}");
+                    prompt = prompt.Replace("{leadBudget}", $"{leadInfo.Budget}");
+                    break;
+
+                case NurturingProcessingType.AnalysingLead:
+                    prompt = APIConstants.NurturingLeadAnalysisPrompt;
+                    break;
+            }
+
+            var gptRequestBody = new
+            {
+                model = "gpt-3.5-turbo",
+                messages = new List<GPTRequest>(),
+                temperature = 0.2,
+            };
+
+            gptRequestBody.messages.Add(
+                GeneratePromptMessage(prompt));
+
+            if (eventType != NurturingProcessingType.SendingInitialMessage)
+            {
+                var conversationHistory = GenerateEmailConversationHistory(emails, emailsText);
+                gptRequestBody.messages.AddRange(conversationHistory);
+            }
+            
+            var jsonBody = JsonSerializer.Serialize(gptRequestBody);
+            var requestContent = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await _httpClient.PostAsync(String.Empty, requestContent);
+
+            response.EnsureSuccessStatusCode();
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var rawResponse = JsonSerializer.Deserialize<GPT35RawResponse>(jsonResponse);
+            var reply = rawResponse.choices.First().message.content;
+
+            var openAIResponse = new OpenAIResponse();
+            openAIResponse.Success = true;
+
+            if (eventType != NurturingProcessingType.AnalysingLead)
+            {
+                openAIResponse.TextReply = reply;
+            }
+            else
+            {
+                var leadAnalysisResult = JsonSerializer.Deserialize<NurturingResult>(reply);
+                openAIResponse.LeadAnalysis = leadAnalysisResult;
+            }
+
+            return openAIResponse;
+        }
+        catch (Exception e)
+        {
+            var openAIResponse = new OpenAIResponse()
+            {
+                Success = false,
+                ErrorMessage = e.Message,
+                ErrorType = e.GetType()
+            };
+
+            _logger.LogError("{tag} GPT 3.5 follow up message error {error}", TagConstants.openAiNurturingFollowUp, e.Message + " \n" + e.StackTrace);
+
+            return openAIResponse;
+        }
+    }
+
+    public GPTRequest GeneratePromptMessage(string prompt)
+    {
+        return new GPTRequest
+        {
+            role = "system",
+            content = prompt
+        };
+    }
+
+    public List<GPTRequest> GenerateEmailConversationHistory(List<InputEmail> emails, string emailsText)
+    {
+        List<GPTRequest> conversationHistory = new List<GPTRequest>();
+
+        if (emails == null && emailsText == null)
+        {
+            return conversationHistory;
+        }
+
+        if (!String.IsNullOrEmpty(emailsText))
+        {
+            conversationHistory.Add(new GPTRequest()
+            {
+                role = "user",
+                content = emailsText
+            });
+
+            return conversationHistory;
+        }
+
+        foreach (var email in emails)
+        {
+            GPTRequest message = new GPTRequest();
+
+            switch (email.Type)
+            {
+                case NurturningEmailType.AIMessage:
+                    message.role = "assistant";
+                    break;
+                case NurturningEmailType.LeadMessage:
+                    message.role = "user";
+                    break;
+            }
+
+            message.content = email.Content;
+            conversationHistory.Add(message);
+        }
+
+        return conversationHistory;
     }
 }

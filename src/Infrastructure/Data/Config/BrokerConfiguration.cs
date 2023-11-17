@@ -15,6 +15,7 @@ public class BrokerConfiguration : IEntityTypeConfiguration<Broker>
         builder.Property(b => b.TimeZoneId).HasMaxLength(50);
         builder.Property(b => b.TempTimeZone).HasMaxLength(50);
 
+        builder.HasMany(x => x.AINurturings).WithOne(b => b.broker).HasForeignKey(b => b.BrokerId).OnDelete(DeleteBehavior.Cascade);
 
         builder.Property(b => b.Id).ValueGeneratedNever();
     }
