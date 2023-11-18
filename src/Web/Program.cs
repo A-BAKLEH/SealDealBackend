@@ -166,7 +166,7 @@ RecurringJob.RemoveIfExists("ainurturingprocessor");
 
 //RecurringJob.s
 
-//RecurringJob.AddOrUpdate<NurturingProcessor>("ainurturingprocessor", x => x.DoActionAsync(null), Cron.MinuteInterval(5));
+RecurringJob.AddOrUpdate<NurturingProcessor>("ainurturingprocessor", x => x.DoActionAsync(null), Cron.MinuteInterval(5));
 app.Run();
 
 //Add-Migration InitialMigrationName -StartupProject Web -Context AppDbContext -Project Infrastructure

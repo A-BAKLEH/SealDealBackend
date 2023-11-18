@@ -350,7 +350,7 @@ public class ActionExecuter
                         Email = sender,
                         Date = DateTime.Parse(time),
                         Content = newContent,
-                        Type = sender == connEmail.Email ? NurturningEmailType.LeadMessage : NurturningEmailType.AIMessage
+                        Type = sender == connEmail.Email ? NurturningEmailType.AIMessage : NurturningEmailType.LeadMessage
                     });
                 }
             }
@@ -372,7 +372,6 @@ public class ActionExecuter
         GoogleCredential cred = GoogleCredential.FromAccessToken(connEmail.AccessToken);
         _GmailService = new GmailService(new BaseClientService.Initializer { HttpClientInitializer = cred });
 
-
         var messageRequest = _GmailService.Users.Messages.Get("me", messageId);
         var message = messageRequest.Execute();
 
@@ -381,26 +380,6 @@ public class ActionExecuter
         var request = _GmailService.Users.Threads.Get("me", threadId);
         request.Format = ThreadsResource.GetRequest.FormatEnum.Full; // Request the full format to include the body
         var thread = request.Execute();
-        List<string> messageContents = new List<string>();
-
-        if (thread.Messages != null)
-        {
-            foreach (var message123 in thread.Messages)
-            {
-                var part = message123.Payload.Parts?.FirstOrDefault(p => p.MimeType == "text/plain");
-                if (part == null)
-                {
-                    part = message123.Payload; // If there are no parts, use the payload directly
-                }
-
-                if (part.Body?.Data != null)
-                {
-                    string decodedString = DecodeBase64String(part.Body.Data);
-                    string newContent = ExtractNewContent(decodedString);
-                    messageContents.Add(newContent);
-                }
-            }
-        }
 
         // Fetch the original message to get the threadId and references
 
@@ -411,7 +390,7 @@ public class ActionExecuter
         {
             Subject = "Re: " + message.Payload.Headers.FirstOrDefault(h => h.Name == "Subject")?.Value,
             Body = replyBody,
-            From = new MailAddress("demo.broker@eazysoft.info"),
+            From = new MailAddress(connEmail.Email),
             Headers = {
             { "In-Reply-To", references },
             { "References", references },
@@ -482,7 +461,7 @@ public class ActionExecuter
         }
     }
 
-    public async Task<NurturingEmailResponse> ExecuteSendNurturingEmail(Guid brokerId, int leadId, int nurturingId, string textMessage, string originalMessageId = null)
+    public async Task<NurturingEmailResponse> ExecuteSendNurturingEmail(Guid brokerId, int leadId, int nurturingId, string textMessage, string replyingToMessageId = null, string threadId = null, string subject = "")
     {
         var timeNow = DateTime.UtcNow;
 
@@ -513,7 +492,7 @@ public class ActionExecuter
         }
 
         var leadLang = lead.Language;
-        string subjectTextToUse = "";
+        string subjectTextToUse = subject;
 
         if (connEmail.isMSFT)
         {
@@ -560,41 +539,59 @@ public class ActionExecuter
         {
             var labelsRes = await _GmailService.Users.Labels.List("me").ExecuteAsync();
             var labels = labelsRes.Labels.ToList();
-            var sentBySealDeal = labels.FirstOrDefault(l => l.Name == "SealDeal:SentByWorkflow");
+            var sentBySealDeal = labels.FirstOrDefault(l => l.Name == "SealDeal:SentByAI");
             if (sentBySealDeal == null)
             {
                 sentBySealDeal = await _GmailService.Users.Labels.Create(new Label
                 {
-                    Name = "SealDeal:SentByWorkflow",
+                    Name = "SealDeal:SentByAI",
                     LabelListVisibility = "labelShow",
                     MessageListVisibility = "show"
                 }, "me").ExecuteAsync();
             }
-            var mailMessage = new System.Net.Mail.MailMessage
+
+            MailMessage mailMessage = new MailMessage();
+
+            if (!String.IsNullOrEmpty(replyingToMessageId))
             {
-                To = { lead.LeadEmails[0].EmailAddress },
-                Subject = subjectTextToUse,
-                Body = textMessage,
-                IsBodyHtml = true
-            };
+                var messageRequest = _GmailService.Users.Messages.Get("me", replyingToMessageId);
+                var message = messageRequest.Execute();
 
-            mailMessage.Headers.Add("In-Reply-To", originalMessageId);
-            mailMessage.Headers.Add("References", originalMessageId);
+                threadId = message.ThreadId;
 
-            // Define parameters of request.
-            var emailInfoRequest = _GmailService.Users.Messages.Get("me", originalMessageId);
-            emailInfoRequest.Format = UsersResource.MessagesResource.GetRequest.FormatEnum.Raw;
-            var emailInfoResponse = await emailInfoRequest.ExecuteAsync();
+                var request = _GmailService.Users.Threads.Get("me", threadId);
+                request.Format = ThreadsResource.GetRequest.FormatEnum.Full; 
+                var thread = request.Execute();
 
-            string originalMessageRaw = emailInfoResponse.Raw;
-            string threadId = emailInfoResponse.ThreadId;
+                string references = message.Payload.Headers.FirstOrDefault(h => h.Name == "Message-ID")?.Value;
 
-
-            var mimeMessage = MimeMessage.CreateFromMailMessage(mailMessage);
-
+                mailMessage = new MailMessage
+                {
+                    Subject = "Re: " + message.Payload.Headers.FirstOrDefault(h => h.Name == "Subject")?.Value,
+                    Body = textMessage,
+                    From = new MailAddress(connEmail.Email),
+                    Headers = {
+                        { "In-Reply-To", references },
+                        { "References", references },
+                    },
+                    To = { lead.LeadEmails[0].EmailAddress }
+                };
+            }
+            else
+            {
+                mailMessage = new MailMessage
+                {
+                    Subject = subjectTextToUse,
+                    Body = textMessage,
+                    From = new MailAddress(connEmail.Email),
+                    To = { lead.LeadEmails[0].EmailAddress }
+                };
+            }
+                
+            var rawMessage = ConvertMailMessageToMime(mailMessage);
             var gmailMessage = new Google.Apis.Gmail.v1.Data.Message
             {
-                Raw = Encode(mimeMessage),
+                Raw = rawMessage,
             };
 
             if (!String.IsNullOrEmpty(threadId))

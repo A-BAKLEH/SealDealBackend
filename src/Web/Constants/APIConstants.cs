@@ -58,22 +58,23 @@ public class APIConstants
     public const string TranslateSubjectPrompt = "Translate the following email subject to" +
         " {0}. Do not change any words enclosed between '$' characters.Strictly output the translation. Here is the email subject: ";
 
-    public const string NurturingFollowUpPrompt = "Generate a follow-up email based on the previous emails sent in the conversation flow. Agent name - {agentName}, Agency Name - {agencyName}, Lead Full Name - {leadName}, Lead budget - {leadBudget}";
+    public const string NurturingFollowUpPrompt = "You're an AI real estate assistant who has been interacting with a potential lead via email. Generate a follow-up email based on the previous emails sent in the conversation flow. " +
+        "Agent name - {agentName}, Agency Name - {agencyName}, Lead Full Name - {leadName}, Lead budget - {leadBudget}. Don't generate an email subject, only generate body and format it properly.";
 
     public const string NurturingInitialMessagePrompt = "You are a real estate agent write an initial email to a new lead based on the following format using the data provided: \"Hello, my name is [firstname] from [agency/team name]." +
-        " I'm calling because you made a\r\nrequest for a property and I was wondering how long have you been looking for a property?\" and the following information we have about the lead making sure the email is short and concise" +
-        "Agent name - {agentName}, Agency Name - {agencyName}, Lead Full Name - {leadName}, Lead budget - {leadBudget}";
+        " I'm writing because you made a\r\nrequest for a property and I was wondering how long have you been looking for a property?\" and the following information we have about the lead making sure the email is short and concise" +
+        "Agent name - {agentName}, Agency Name - {agencyName}, Lead Full Name - {leadName}, Lead budget - {leadBudget}. Don't generate an email subject, only generate body and format it properly.";
 
-    public const string NurturingLeadAnalysisPrompt = "Assume the role of a real estate agent interacting with a potential lead via email. Based on the conversation, determine if the lead's status is 0 (Hot), 1 (Cold), 2 (Slow), 3 (Client), or 4 (Dead). Provide reasoning for the assigned status based on the flow and content of the conversation. Reply in the following json format - { \"FinalStatus\": <status number> }";
+    public const string NurturingLeadAnalysisPrompt = "You're an AI real estate assistant who just finished interacting with a potential lead via email. Based on the conversation, determine if the lead's status is 0 (Hot), 1 (Cold), 2 (Slow), 3 (Active), or 4 (Dead). " +
+        "Provide reasoning for the assigned status based on the flow and content of the conversation. Reply in the following json format - { \"FinalStatus\": <status number> }";
 
-    public const string NurturingAskingQuestionPrompt = @"You will be provided with an email conversation with a real estate lead, the conversation may contain multiple replies marked by the U+003E symbol, " +
-        "your previous messages were sent from the following email - demo.broker@eazysoft.info. Based on the content and tone of the previous interaction, " +
-        "select only 2-3 relevant questions from the list below, that have not yet been asked. Never repeat questions. Ask only 2-3 questions per email. " +
+    public const string NurturingAskingQuestionPrompt = @"You're an AI real estate assistant who has been interacting with a potential lead via email, Based on the content and tone of the previous interaction, " +
+        "select only a couple relevant questions from the list below, that have not yet been asked. Never repeat questions. Ask only a couple questions per email. " +
         "Then, craft an email response incorporating these questions to ensure the email flows naturally from the previous conversation and engages the lead further, " +
-        "while maintaining a friendly and professional tone." +
+        "while maintaining a friendly and professional tone. Don't generate an email subject, only generate body and format it properly." +
         "Use the following broker name - {agentName}, and agency name - {agencyName} Lead Full Name - {leadName}, Lead budget - {leadBudget}." +
         "\n List of Questions:" +
-        "\n1. 'Hello, my name is [firstname] from [agency name]. I'm calling because you requested information about a property. How long have you been looking for a property?'" +
+        "\n1. 'How long have you been looking for a property?'" +
         "\n2. 'Could you let me know your timeline? When do you need to move into your new house?'" +
         "\n3. '(Name), is selling a current property necessary for you to buy the next one?'" +
         "\n4. 'Have you come across any houses that have caught your interest?'" +

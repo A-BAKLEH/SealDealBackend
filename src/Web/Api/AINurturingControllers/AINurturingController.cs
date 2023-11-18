@@ -3,10 +3,10 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Web.ApiModels.RequestDTOs.ActionPlans;
 using Web.ApiModels.RequestDTOs.AINurturing;
 using Web.ControllerServices;
 using Web.ControllerServices.QuickServices;
+using Web.ControllerServices.StaticMethods;
 
 namespace Web.Api.AINurturingControllers
 {
@@ -37,11 +37,65 @@ namespace Web.Api.AINurturingControllers
             return Ok(res);
         }
 
-        [HttpPost("TestNurturing")]
-        public async Task<IActionResult> TestNurturing()
+        [HttpPatch("Lead/StopNurturing")]
+        public async Task<IActionResult> StopNurturing(int leadId)
         {
-            await _aiNurturingService.Test();
+            var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+            if (!brokerTuple.Item2)
+            {
+                _logger.LogCritical("{tag} inactive User", TagConstants.Inactive);
+                return Forbid();
+            }
+
+            await _aiNurturingService.StopAINurturing(leadId);
+
             return Ok();
+        }
+
+        [HttpGet("AINurturings")]
+        public async Task<IActionResult> GetMyNurturings()
+        {
+            var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+            if (!brokerTuple.Item2)
+            {
+                _logger.LogCritical("{tag} inactive mofo User", TagConstants.Inactive);
+                return Forbid();
+            }
+
+            var result = await _aiNurturingService.GetMyAINurturingsAsync(id);
+            var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+
+            foreach (var item in result)
+            {
+                item.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, item.TimeCreated);
+            }
+
+            return Ok(result);
+        }
+
+
+        [HttpGet("LeadNurturings")]
+        public async Task<IActionResult> GetLeadNurturings(int leadId)
+        {
+            var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var brokerTuple = await this._authorizeService.AuthorizeUser(id);
+            if (!brokerTuple.Item2)
+            {
+                _logger.LogCritical("{tag} inactive mofo User", TagConstants.Inactive);
+                return Forbid();
+            }
+
+            var result = await _aiNurturingService.GetLeadAINurturingsAsync(leadId);
+            var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(brokerTuple.Item1.TimeZoneId);
+
+            foreach (var item in result)
+            {
+                item.TimeCreated = MyTimeZoneConverter.ConvertFromUTC(timeZoneInfo, item.TimeCreated);
+            }
+
+            return Ok(result);
         }
     }
 }

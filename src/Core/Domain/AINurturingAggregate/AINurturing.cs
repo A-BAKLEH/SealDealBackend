@@ -1,13 +1,6 @@
-﻿using Core.Domain.ActionPlanAggregate;
-using Core.Domain.BrokerAggregate;
+﻿using Core.Domain.BrokerAggregate;
 using Core.Domain.LeadAggregate;
-using Core.Domain.NotificationAggregate;
 using SharedKernel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Core.Domain.AINurturingAggregate
 {
@@ -34,19 +27,16 @@ namespace Core.Domain.AINurturingAggregate
 public enum AINurturingStatus
 { 
     Cancelled,
-    CancelledError,
     StoppedNoResponse, 
     Running, 
     Done, 
-    CancelledByLeadResponse 
 }
 
 public enum NurturingFinalStatus
 {
     Hot,
     Cold,
-    Active,
     Slow,
-    Client,
+    Active,
     Dead
 }

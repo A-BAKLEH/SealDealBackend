@@ -1,22 +1,10 @@
-﻿using Core.Config.Constants.LoggingConstants;
-using Core.Domain.ActionPlanAggregate;
-using Core.Domain.AINurturingAggregate;
-using Core.Domain.BrokerAggregate.Templates;
-using Core.Domain.LeadAggregate;
-using Core.Domain.NotificationAggregate;
-using Core.DTOs.ProcessingDTOs;
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.Server;
 using Infrastructure.Data;
-using Infrastructure.Migrations;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using Serilog.Context;
-using System;
 using System.Diagnostics;
-using Web.Constants;
 using Web.HTTPClients;
-using Web.Processing.EmailAutomation;
 using Web.Processing.Nurturing;
 using Web.RealTimeNotifs;
 
@@ -52,19 +40,20 @@ public class NurturingProcessor
         {
             var activeNurturings = await _appDbContext.AINurturings
                 .Include(x => x.broker).ThenInclude(x => x.Agency).Include(x =>  x.lead)
-                .Where(x => x.Status == AINurturingStatus.Running).ToListAsync();
+                .Where(x => x.IsActive).ToListAsync();
 
 
             foreach (var aiNurturing in activeNurturings)
             {
                 try
                 {
-                    if (DateTime.UtcNow - aiNurturing.LastReplyDate > TimeSpan.FromMinutes(settingsFollowUpDelayDays))
+                    if (aiNurturing.LastProcessedMessageTime == null || DateTime.UtcNow - aiNurturing.LastProcessedMessageTime > /*TimeSpan.FromDays(settingsFollowUpDelayDays)*/ TimeSpan.FromMinutes(settingsFollowUpDelayDays))
                     {
-                        if (aiNurturing.LastFollowupDate == null || DateTime.UtcNow - aiNurturing.LastFollowupDate > TimeSpan.FromMinutes(settingsFollowUpDelayDays))
+                        if (DateTime.UtcNow - aiNurturing.LastFollowupDate > /*TimeSpan.FromDays(settingsFollowUpDelayDays)*/ TimeSpan.FromMinutes(settingsFollowUpDelayDays))
                         {
                             if (aiNurturing.FollowUpCount >= settingsFollowUpMax)
                             {
+                                aiNurturing.IsActive = false;
                                 aiNurturing.Status = AINurturingStatus.StoppedNoResponse;
                                 _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
 
@@ -72,15 +61,18 @@ public class NurturingProcessor
                             }
                             else
                             {
-                                OpenAIResponse response = await _openAIService.ProccessAINurturing(NurturingProcessingType.FollowUp, aiNurturing.broker, aiNurturing.lead);
+                                var threadHistory = await _actionExecuter.FetchThreadHistory(aiNurturing.BrokerId, aiNurturing.ThreadId);
+                                OpenAIResponse response = await _openAIService.ProccessAINurturing(NurturingProcessingType.FollowUp, aiNurturing.broker, aiNurturing.lead, threadHistory);
 
                                 if (response.Success)
                                 {
-                                    var result = await _actionExecuter.ExecuteSendNurturingEmail(aiNurturing.BrokerId, aiNurturing.LeadId, aiNurturing.Id, response.TextReply, aiNurturing.ThreadId);
+                                    var result = await _actionExecuter.ExecuteSendNurturingEmail(aiNurturing.BrokerId, aiNurturing.LeadId, aiNurturing.Id, response.TextReply, null, aiNurturing.ThreadId, "Following Up on Your Property Search Inquiry");
 
                                     if (result.Success)
                                     {
                                         aiNurturing.FollowUpCount++;
+                                        aiNurturing.LastFollowupDate = DateTime.UtcNow;
+
                                         _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
 
                                         await _appDbContext.SaveChangesAsync();
@@ -96,7 +88,7 @@ public class NurturingProcessor
                 }
                 catch (Exception ex)
                 {
-
+                    _logger.LogError($"Couldn't process follow ups for the following nurturing - {aiNurturing.Id}");
                 }
             }
         }
@@ -124,19 +116,21 @@ public class NurturingProcessor
         if (!response.Success)
         {
             _logger.LogError($"Couldn't generate an AI message for a nurturing initial message. Id - {aiNurturing.Id}");
-            return;
+            throw new InvalidOperationException($"Error generating the initial email for the lead; Nurturing - {aiNurturing.Id}");
         }
 
-        var emailResult = await _actionExecuter.ExecuteSendNurturingEmail(aiNurturing.BrokerId, aiNurturing.LeadId, aiNurturing.Id, response.TextReply);
+        var emailResult = await _actionExecuter.ExecuteSendNurturingEmail(aiNurturing.BrokerId, aiNurturing.LeadId, aiNurturing.Id, response.TextReply, null, null, "Inquiry About Your Property Search");
 
         if (!emailResult.Success)
         {
             _logger.LogError($"Couldn't send the initial message for a nurturing with id - {aiNurturing.Id}");
-            return;
+            throw new InvalidOperationException($"Error sending the initial email to the lead; Nurturing - {aiNurturing.Id}");
         }
 
-        aiNurturing.ThreadId = emailResult.ThreadId;
         aiNurturing.InitialMessageSent = true;
+        aiNurturing.ThreadId = emailResult.ThreadId;
+        aiNurturing.LastFollowupDate = DateTime.UtcNow;
+
         _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
 
         await _appDbContext.SaveChangesAsync();
@@ -154,6 +148,13 @@ public class NurturingProcessor
             return;
         }
 
+        if (!aiNurturing.IsActive)
+        {
+            _logger.LogInformation($"The nurturing with id - {emailEvent.NurturingId} is not active");
+
+            return;
+        }
+
         if (aiNurturing.LastProcessedMessageTime >= emailEvent.DecodedEmail.timeReceivedUTC)
         {
             return;
@@ -166,21 +167,17 @@ public class NurturingProcessor
 
             if (response.Success)
             {
-                try
-                {
-                    var deserializedAnalysis = JsonConvert.DeserializeObject<NurturingResult>(response.TextReply);
+                aiNurturing.IsActive = false;
+                aiNurturing.Status = AINurturingStatus.Done;
+                aiNurturing.AnalysisStatus = response.LeadAnalysis.FinalStatus;
+                _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
 
-                    aiNurturing.AnalysisStatus = deserializedAnalysis.FinalStatus;
-                    _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
-
-                    await _appDbContext.SaveChangesAsync();
-
-                    //send sms to broker
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogInformation($"Error processing analysis for the following nurturing - {aiNurturing.Id}; {ex.Message}");
-                }
+                await _appDbContext.SaveChangesAsync();
+                //send sms to broker
+            }
+            else
+            {
+                throw new InvalidOperationException($"Error generating an email for the lead; Nurturing - {aiNurturing.Id}");
             }
         }
         else
@@ -190,24 +187,22 @@ public class NurturingProcessor
 
             if (response.Success)
             {
-
-                //await _actionExecuter.ReplyToEmailById(aiNurturing.BrokerId, aiNurturing.LeadId, emailEvent.DecodedEmail.message.Id, response.TextReply);
                 var result = await _actionExecuter.ExecuteSendNurturingEmail(aiNurturing.BrokerId, aiNurturing.LeadId, aiNurturing.Id, response.TextReply, emailEvent.DecodedEmail.message.Id);
 
-                //if (result.Success)
-                //{
-                //    try
-                //    {
-                //        aiNurturing.QuestionsCount++;
-                //        _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
+                if (result.Success)
+                {
+                    aiNurturing.QuestionsCount++;
+                    aiNurturing.LastProcessedMessageTime = emailEvent.DecodedEmail.timeReceivedUTC;
+                    aiNurturing.LastFollowupDate = DateTime.UtcNow;
 
-                //        await _appDbContext.SaveChangesAsync();
-                //    }
-                //    catch (Exception ex)
-                //    {
+                    _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
 
-                //    }
-                //}
+                    await _appDbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Error sending an email for the lead; Nurturing - {aiNurturing.Id}");
+                }
             }
         }
     }

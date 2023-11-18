@@ -75,6 +75,13 @@ namespace Web.HTTPClients
         public NurturningEmailType Type { get; set; }
     }
 
+    public class GptNutrturingInput
+    {
+        //public string From { get; set; }
+        public string Message { get; set; }
+        public DateTime SentTme { get; set; }
+    }
+
     public enum NurturningEmailType
     {
         LeadMessage,

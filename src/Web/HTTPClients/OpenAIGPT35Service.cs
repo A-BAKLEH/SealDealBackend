@@ -286,14 +286,14 @@ public class OpenAIGPT35Service
                 temperature = 0.2,
             };
 
-            gptRequestBody.messages.Add(
-                GeneratePromptMessage(prompt));
-
             if (eventType != NurturingProcessingType.SendingInitialMessage)
             {
                 var conversationHistory = GenerateEmailConversationHistory(emails, emailsText);
                 gptRequestBody.messages.AddRange(conversationHistory);
             }
+
+            gptRequestBody.messages.Add(
+                GeneratePromptMessage(prompt));
             
             var jsonBody = JsonSerializer.Serialize(gptRequestBody);
             var requestContent = new StringContent(jsonBody, Encoding.UTF8, "application/json");
@@ -379,7 +379,15 @@ public class OpenAIGPT35Service
                     break;
             }
 
-            message.content = email.Content;
+            //message.content = email.Content;
+            GptNutrturingInput input = new GptNutrturingInput()
+            {
+                //From = email.Email,
+                Message = email.Content,
+                SentTme = email.Date
+            };
+
+            message.content = JsonSerializer.Serialize(input);
             conversationHistory.Add(message);
         }
 

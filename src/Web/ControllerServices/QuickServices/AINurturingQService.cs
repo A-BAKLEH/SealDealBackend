@@ -1,15 +1,14 @@
 ﻿using Core.Config.Constants.LoggingConstants;
 using Core.Constants.ProblemDetailsTitles;
 using Core.Domain.AINurturingAggregate;
-using Core.Domain.LeadAggregate;
 using Core.Domain.NotificationAggregate;
 using Core.DTOs.ProcessingDTOs;
 using Hangfire;
 using Infrastructure.Data;
-using Infrastructure.Migrations;
 using Microsoft.EntityFrameworkCore;
-using Pipelines.Sockets.Unofficial.Arenas;
 using SharedKernel.Exceptions;
+using Web.ApiModels.APIResponses.ActionPlans;
+using Web.ApiModels.APIResponses.AINurturings;
 using Web.ApiModels.RequestDTOs.AINurturing;
 using Web.Constants;
 using Web.Processing.ActionPlans;
@@ -26,19 +25,93 @@ namespace Web.ControllerServices.QuickServices
             _appDbContext = appDbContext;
         }
 
+        public async Task<List<AINurturingDTO>> GetMyAINurturingsAsync(Guid brokerId)
+        {
+            var broker = _appDbContext.Brokers.FirstOrDefault(x => x.Id == brokerId);
+            if (broker == null)
+            {
+                _logger.LogError($"No broker with Id {brokerId}");
+                throw new CustomBadRequestException($"No broker with Id {brokerId}", ProblemDetailsTitles.NotFound);
+            }
+
+            var aiNurturings = _appDbContext.AINurturings.Where(a => a.BrokerId == brokerId);
+            return await ConvertAINurturingsAsync(aiNurturings);
+        }
+
+        public async Task<List<AINurturingDTO>> GetLeadAINurturingsAsync(int leadId)
+        {
+            var lead = _appDbContext.Leads.FirstOrDefault(x => x.Id == leadId);
+            if (lead == null)
+            {
+                _logger.LogError($"No lead with Id {leadId}");
+                throw new CustomBadRequestException($"No lead with Id {leadId}", ProblemDetailsTitles.NotFound);
+            }
+
+            var aiNurturings = _appDbContext.AINurturings.Where(a => a.LeadId == leadId);
+            return await ConvertAINurturingsAsync(aiNurturings);
+        }
+
+        private async Task<List<AINurturingDTO>> ConvertAINurturingsAsync(IQueryable<AINurturing> aiNurturings)
+        {
+            var convertedNurturings = aiNurturings.Select(x => new AINurturingDTO
+            {
+                Id = x.Id,
+                IsActive = x.IsActive,
+                TimeCreated = x.TimeCreated,
+                Status = x.Status,
+                AnalysisStatus = x.AnalysisStatus,
+                LastFollowupDate = x.LastFollowupDate,
+                FollowUpCount = x.FollowUpCount,
+                GmailThreadId = x.ThreadId,
+                InitialMessageSent = x.InitialMessageSent,
+                LastProcessedMessageTime = x.LastProcessedMessageTime,
+                QuestionsCount = x.QuestionsCount,
+                Lead = new LeadNameIdDTO()
+                {
+                    firstName = x.lead.LeadFirstName,
+                    lastName = x.lead.LeadLastName,
+                    LeadId = x.LeadId
+                }
+            });
+
+            return await convertedNurturings.ToListAsync();
+        }
+
+        public async Task StopAINurturing(int leadId)
+        {
+            var aiNurturing = _appDbContext.AINurturings.FirstOrDefault(x => x.LeadId == leadId && x.IsActive);
+            if (aiNurturing == null)
+            {
+                _logger.LogError($"No nurturing for lead with Id {leadId}");
+                throw new CustomBadRequestException($"No nurturing for lead with Id {aiNurturing}", ProblemDetailsTitles.NotFound);
+            }
+
+            if (!aiNurturing.IsActive)
+            {
+                _logger.LogError($"The nurturing for lead with Id {leadId} has already been stopped");
+                throw new CustomBadRequestException($"The nurturing for lead with Id {leadId} has already been stopped", ProblemDetailsTitles.AlreadyPerformed);
+            }
+
+            aiNurturing.Status = AINurturingStatus.Cancelled;
+            aiNurturing.IsActive = false;
+
+            _appDbContext.Entry(aiNurturing).State = EntityState.Modified;
+            await _appDbContext.SaveChangesAsync();
+        }
+
         public async Task<AINurturingStartDTO> StartAINurturing(Guid brokerId, StartNurturingDTO dto)
         {
             var broker = _appDbContext.Brokers.Include(x => x.ConnectedEmails).FirstOrDefault(x => x.Id == brokerId);
             if (broker == null)
             {
-                _logger.LogError("{tag} no broker with Id {brokerId}", "ExecuteSendEmail", brokerId);
+                _logger.LogError($"No broker with Id {brokerId}");
                 throw new CustomBadRequestException($"No broker with Id {brokerId}", ProblemDetailsTitles.NotFound);
             }
 
             var connectedEmail = broker.ConnectedEmails?.FirstOrDefault(e => e.isMailbox);
             if (connectedEmail == null)
             {
-                _logger.LogError("{tag} no connectedEmail for broker with Id {brokerId}", "ExecuteSendEmail", brokerId);
+                _logger.LogError($"No connectedEmail for broker with Id {brokerId}");
                 throw new CustomBadRequestException($"No connectedEmail for broker with Id {brokerId}", ProblemDetailsTitles.NoSuitableEmail);
             }
             else
@@ -115,30 +188,6 @@ namespace Web.ControllerServices.QuickServices
             }
 
             return new AINurturingStartDTO { AlreadyRunningIDs = AlreadyRunningIDs, errorIDs = failedIDs };
-        }
-
-        public async Task Test()
-        {
-            try
-            {
-                //BackgroundJob.Schedule<NurturingProcessor>((x) => x.ProcessEmailReply(new Processing.Nurturing.NurturingEmailEvent()
-                //{
-                //    DecodedEmail = new Processing.EmailAutomation.EmailProcessor.GmailMessageDecoded()
-                //    {
-                //        textBody = "test"
-                //    },
-                //    NurturingId = 4
-                //}), TimeSpan.FromSeconds(0));
-
-                var nurturing = _appDbContext.AINurturings.Include(x => x.broker).ThenInclude(x => x.Agency).Include(x => x.lead).FirstOrDefault(x => x.Id == 4);
-                nurturing.QuestionsCount = 23;
-                _appDbContext.Entry(nurturing).State = EntityState.Modified;
-                await _appDbContext.SaveChangesAsync();
-            }
-            catch(Exception ex)
-            {
-
-            }
         }
     }
 }

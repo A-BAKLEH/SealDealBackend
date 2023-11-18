@@ -31,4 +31,5 @@ public static class ProblemDetailsTitles
     //AI Nurturing 
     public const string AINurturingAlreadyEnabled = "AINurturingAlreadyEnabled";
     public const string NoSuitableEmail = "NoSuitableEmail";
+    public const string AlreadyPerformed = "AlreadyPerformed";
 }
